@@ -23,7 +23,15 @@ export function ActivityDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-4 sm:max-w-[54rem]">
+      <DialogContent
+        className="gap-4 sm:max-w-[54rem]"
+        // Radix focuses the first cell by default, which pops its tooltip on open.
+        // Focus the dialog itself so a day's tooltip only shows on hover.
+        onOpenAutoFocus={(event) => {
+          event.preventDefault()
+          ;(event.target as HTMLElement).focus()
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-baseline gap-2">
             <span className="text-2xl font-semibold tabular-nums">

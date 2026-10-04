@@ -21,6 +21,8 @@ const ALLOCATION_ENTRY_PATH =
 // SAVE only; the page's Submit/Endorse buttons are never pressed.
 const SAVE_BUTTON = '#ctl00_ContentPlaceHolder1_btnZ';
 // Positions of a row's <input>s, as the site's _manhour.js counts them.
+const BTN_MENU_INPUT = 9;
+const TXT_MENU_INPUT = 10;
 const RBL_BILLABLE_YES_INPUT = 11;
 const HBILLABLE_INPUT = 18;
 const NAV_TIMEOUT_MS = 30_000;
@@ -59,9 +61,12 @@ export interface NpaxAllocationDay {
 
 /**
  * 'already-recorded' = N-PAX had allocations for that day, so nothing was added;
+ * 'no-time-record' = N-PAX has no time record (shift) for that day yet, so it
+ * can't compute work hours and nothing was filled;
  * 'dry-run' = the form was filled but not saved.
  */
-export type NpaxAllocationOutcome = 'saved' | 'already-recorded' | 'dry-run';
+export type NpaxAllocationOutcome =
+  'saved' | 'already-recorded' | 'no-time-record' | 'dry-run';
 
 /** One page's HTML as captured by `capturePages`. */
 export interface NpaxCapturedPage {
@@ -150,33 +155,24 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
         );
       }
 
-      const page = await this.openSignedInPage(
-        this.getSession(user),
-        ALLOCATION_ENTRY_PATH,
-      );
       const [year, month, date] = day.date.split('-').map(Number);
-      await this.selectDate(page, new Date(year, month - 1, date));
-
-      const form = await page.evaluate(() => {
-        const value = (id: string) =>
-          (
-            document.getElementById(
-              `ctl00_ContentPlaceHolder1_${id}`,
-            ) as HTMLInputElement | null
-          )?.value ?? '';
-        return {
-          date: value('txtDate'),
-          dayFlag: value('hiddenDFlag'),
-          existing: value('txtJStart'),
-        };
-      });
       const expected = `${String(month).padStart(2, '0')}/${String(date).padStart(2, '0')}/${year}`;
+      const page = await this.openAllocationForm(
+        this.getSession(user),
+        new Date(year, month - 1, date),
+        expected,
+      );
+
+      const form = await readAllocationForm(page);
       if (form.date.trim() !== expected) {
         throw new ServiceUnavailableException(
           `N-PAX showed date ${form.date || '(none)'} instead of ${expected}`,
         );
       }
       if (form.existing.trim() !== '') return 'already-recorded';
+      // Work Hours are computed from the day's shift ("... [HH:mm ... HH:mm]");
+      // without one (no time record yet, e.g. a rest day) every row stays incomplete.
+      if (!/\d{2}:\d{2}/.test(form.shift)) return 'no-time-record';
       // The page's own Add button refuses other day flags (e.g. "X" on rest days).
       if (!['1', '9', '0', ''].includes(form.dayFlag)) {
         throw new ServiceUnavailableException(
@@ -195,8 +191,9 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
           if (i > 0) await page.evaluate('Addk("tst")');
           const rowIndex = await page.evaluate((n) => {
             const table = document.getElementById('tst') as HTMLTableElement;
+            // Row 0 is the column header, which also has more than 5 cells.
             const rows = Array.from(table.rows).filter(
-              (r) => r.cells.length > 5,
+              (r) => r.rowIndex > 0 && r.cells.length > 5,
             );
             return rows[n]?.rowIndex ?? -1;
           }, i);
@@ -239,14 +236,28 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
             entry.workActivityCode as string,
             'Work Activity',
           );
-          await page.evaluate(
-            (row, particulars, billableInput, yesInput) => {
+          // Activities whose FBS code ends in |$| also need a Sub Act. Code,
+          // which NXLogSync does not pick; stop rather than save the row without it.
+          const needsSubAct = await page.evaluate(
+            (row, btnInput, txtInput) => {
               const table = document.getElementById('tst') as HTMLTableElement;
               const inputs = table.rows[row].getElementsByTagName('input');
-              // The site only records billable when the radio is clicked; mirror it.
-              inputs[billableInput].value = inputs[yesInput].checked
-                ? 'True'
-                : 'False';
+              return (
+                !inputs[btnInput].disabled && inputs[txtInput].value === ''
+              );
+            },
+            rowIndex,
+            BTN_MENU_INPUT,
+            TXT_MENU_INPUT,
+          );
+          if (needsSubAct) {
+            throw new ServiceUnavailableException(
+              `${day.date}: work activity ${entry.workActivityCode} needs a Sub Act. Code on N-PAX, which NXLogSync can't pick yet`,
+            );
+          }
+          await page.evaluate(
+            (row, particulars) => {
+              const table = document.getElementById('tst') as HTMLTableElement;
               const box =
                 table.rows[row + 1].getElementsByTagName('textarea')[0];
               box.value = particulars;
@@ -255,17 +266,43 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
             // "|$|" separates rows when the page posts them; keep it out of the text.
             // N-PAX keeps particulars in uppercase, including entries saved before the form enforced it.
             entry.description.replace(/\|\$\|/g, '| $ |').toUpperCase(),
-            HBILLABLE_INPUT,
-            RBL_BILLABLE_YES_INPUT,
           );
         }
 
         const complete = await page.evaluate('checkEntry("tst")');
         if (complete !== true) {
+          if (options.screenshotPath) {
+            await page.screenshot({
+              path: options.screenshotPath,
+              fullPage: true,
+            });
+          }
+          const blank = await findBlankField(page);
           throw new ServiceUnavailableException(
-            `N-PAX form for ${day.date} is incomplete after filling it${alerts.length ? `: ${alerts.join(' / ')}` : ''}`,
+            `N-PAX form for ${day.date} is incomplete after filling it${blank ? ` (${blank})` : ''}${alerts.length ? `: ${alerts.join(' / ')}` : ''}`,
           );
         }
+        // The page only decides whether Save is enabled when it loads, while the
+        // rows are still empty; rerun that check now they are filled. It can
+        // also flip a row's billable radio, so mirror the radios afterwards.
+        await page.evaluate(
+          'typeof readonlyControls === "function" && readonlyControls()',
+        );
+        await page.evaluate(
+          (billableInput, yesInput) => {
+            const table = document.getElementById('tst') as HTMLTableElement;
+            for (const row of Array.from(table.rows)) {
+              if (row.rowIndex === 0 || row.cells.length <= 5) continue;
+              const inputs = row.getElementsByTagName('input');
+              // The site only records billable when the radio is clicked; mirror it.
+              inputs[billableInput].value = inputs[yesInput].checked
+                ? 'True'
+                : 'False';
+            }
+          },
+          HBILLABLE_INPUT,
+          RBL_BILLABLE_YES_INPUT,
+        );
         await page.evaluate('SplitRemarks()');
 
         if (options.screenshotPath) {
@@ -273,6 +310,15 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
             path: options.screenshotPath,
             fullPage: true,
           });
+        }
+        const saveDisabled = await page.$eval(
+          SAVE_BUTTON,
+          (el) => (el as HTMLInputElement).disabled,
+        );
+        if (saveDisabled) {
+          throw new ServiceUnavailableException(
+            `N-PAX keeps Save disabled for ${day.date} (status ${form.status || 'none'}, day flag ${form.dayFlag || 'none'})`,
+          );
         }
         if (options.dryRun) return 'dry-run';
 
@@ -804,6 +850,26 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
     return this.openSignedInPage(session, JOB_SPLIT_PATH);
   }
 
+  /**
+   * Opens the allocation form for a date. Allocation Entry only ever shows
+   * today (its date box is read-only and it has no calendar), so other days
+   * go through Allocation Modification, which has the same form plus a
+   * calendar. `expected` is the date as the form shows it (MM/DD/YYYY).
+   */
+  private async openAllocationForm(
+    session: NpaxSession,
+    date: Date,
+    expected: string,
+  ): Promise<Page> {
+    const entry = await this.openSignedInPage(session, ALLOCATION_ENTRY_PATH);
+    if ((await readAllocationForm(entry)).date.trim() === expected) {
+      return entry;
+    }
+    const page = await this.openJobSplitPage(session);
+    await this.selectDate(page, date);
+    return page;
+  }
+
   /** Loads a site page on the user's session, logging in first if it has expired. */
   private async openSignedInPage(
     session: NpaxSession,
@@ -940,6 +1006,72 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
       direction,
     );
   }
+}
+
+/**
+ * Repeats the checks of the site's checkEntry() (same cells, same order) and
+ * names the first field it would reject, e.g. "entry 1: Work Act. Code is blank".
+ */
+function findBlankField(page: Page): Promise<string | null> {
+  return page.evaluate(() => {
+    const table = document.getElementById('tst') as HTMLTableElement;
+    const field = (row: HTMLTableRowElement, cell: number) =>
+      row.cells[cell]?.childNodes[1] as HTMLInputElement | undefined;
+    let entry = 0;
+    for (let i = 1; i < table.rows.length; i++) {
+      const row = table.rows[i];
+      if (row.cells.length > 5) {
+        entry++;
+        const start = field(row, 1)?.value ?? '';
+        const end = field(row, 2)?.value ?? '';
+        const checks: [string, boolean][] = [
+          [`Start Time "${start}"`, start.length === 5],
+          [`End Time "${end}"`, end.length === 5],
+          ['Work Hours', !!field(row, 3)?.value],
+          ['Job No.', !!field(row, 5)?.value],
+          ['Work Act. Code', !!field(row, 8)?.value],
+          [
+            'Billable',
+            Array.from(row.cells[11]?.getElementsByTagName('input') ?? []).some(
+              (radio) => radio.checked,
+            ),
+          ],
+        ];
+        const failed = checks.find(([, ok]) => !ok);
+        if (failed) return `entry ${entry}: ${failed[0]} is blank or invalid`;
+      } else if (row.cells.length !== 0) {
+        if (!field(row, 1)?.value?.trim()) {
+          return `entry ${entry}: Particulars is blank`;
+        }
+      }
+    }
+    return null;
+  });
+}
+
+/** The allocation form's date, day flag, status, shift and any allocations already on it. */
+function readAllocationForm(page: Page): Promise<{
+  date: string;
+  dayFlag: string;
+  status: string;
+  existing: string;
+  shift: string;
+}> {
+  return page.evaluate(() => {
+    const value = (id: string) =>
+      (
+        document.getElementById(
+          `ctl00_ContentPlaceHolder1_${id}`,
+        ) as HTMLInputElement | null
+      )?.value ?? '';
+    return {
+      date: value('txtDate'),
+      dayFlag: value('hiddenDFlag'),
+      status: value('hiddenStatus'),
+      existing: value('txtJStart'),
+      shift: value('txtShift'),
+    };
+  });
 }
 
 /**

@@ -121,6 +121,7 @@ export class SyncService implements OnApplicationBootstrap {
       const days = groupByDate(entries);
       const uploaded: LogEntry[] = [];
       const alreadyOnSite: string[] = [];
+      const noTimeRecord: string[] = [];
       // N-PAX needs a job and work activity on every row; those days wait.
       const incomplete = [...days.keys()].filter((date) =>
         (days.get(date) ?? []).some((e) => !e.jobCode || !e.workActivityCode),
@@ -140,6 +141,11 @@ export class SyncService implements OnApplicationBootstrap {
               date,
               entries: dayEntries,
             });
+            // Left unsynced so a later run uploads it once N-PAX has the time record.
+            if (outcome === 'no-time-record') {
+              noTimeRecord.push(date);
+              continue;
+            }
             // Either way the day is on N-PAX now; it no longer counts as pending.
             await this.logEntries.markSynced(
               dayEntries.map((e) => e.id),
@@ -168,6 +174,11 @@ export class SyncService implements OnApplicationBootstrap {
       if (alreadyOnSite.length > 0) {
         notes.push(
           `${alreadyOnSite.length} ${alreadyOnSite.length === 1 ? 'day was' : 'days were'} already on N-PAX (${alreadyOnSite.join(', ')})`,
+        );
+      }
+      if (noTimeRecord.length > 0) {
+        notes.push(
+          `${noTimeRecord.length} ${noTimeRecord.length === 1 ? 'day has' : 'days have'} no time record on N-PAX yet and will upload once it does (${noTimeRecord.join(', ')})`,
         );
       }
       if (remaining.length > 0) {

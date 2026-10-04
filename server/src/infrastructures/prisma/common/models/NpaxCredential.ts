@@ -14,75 +14,58 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model NpaxCredential
- * Single row (id = 1): the N-PAX login saved by Connect, so the server can log in
- * again after a restart. The password is AES-256-GCM encrypted, never stored plain.
+ * One row per connected user: the N-PAX login saved by Connect, so the server can log
+ * in again after a restart. The password is AES-256-GCM encrypted, never stored plain.
+ * Disconnecting deletes the row; the user's entries, schedule and runs stay.
  */
 export type NpaxCredentialModel = runtime.Types.Result.DefaultSelection<Prisma.$NpaxCredentialPayload>
 
 export type AggregateNpaxCredential = {
   _count: NpaxCredentialCountAggregateOutputType | null
-  _avg: NpaxCredentialAvgAggregateOutputType | null
-  _sum: NpaxCredentialSumAggregateOutputType | null
   _min: NpaxCredentialMinAggregateOutputType | null
   _max: NpaxCredentialMaxAggregateOutputType | null
 }
 
-export type NpaxCredentialAvgAggregateOutputType = {
-  id: number | null
-}
-
-export type NpaxCredentialSumAggregateOutputType = {
-  id: number | null
-}
-
 export type NpaxCredentialMinAggregateOutputType = {
-  id: number | null
   userId: string | null
+  loginId: string | null
   passwordEncrypted: string | null
   updatedAt: Date | null
 }
 
 export type NpaxCredentialMaxAggregateOutputType = {
-  id: number | null
   userId: string | null
+  loginId: string | null
   passwordEncrypted: string | null
   updatedAt: Date | null
 }
 
 export type NpaxCredentialCountAggregateOutputType = {
-  id: number
   userId: number
+  loginId: number
   passwordEncrypted: number
   updatedAt: number
   _all: number
 }
 
 
-export type NpaxCredentialAvgAggregateInputType = {
-  id?: true
-}
-
-export type NpaxCredentialSumAggregateInputType = {
-  id?: true
-}
-
 export type NpaxCredentialMinAggregateInputType = {
-  id?: true
   userId?: true
+  loginId?: true
   passwordEncrypted?: true
   updatedAt?: true
 }
 
 export type NpaxCredentialMaxAggregateInputType = {
-  id?: true
   userId?: true
+  loginId?: true
   passwordEncrypted?: true
   updatedAt?: true
 }
 
 export type NpaxCredentialCountAggregateInputType = {
-  id?: true
   userId?: true
+  loginId?: true
   passwordEncrypted?: true
   updatedAt?: true
   _all?: true
@@ -126,18 +109,6 @@ export type NpaxCredentialAggregateArgs<ExtArgs extends runtime.Types.Extensions
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
-   * Select which fields to average
-  **/
-  _avg?: NpaxCredentialAvgAggregateInputType
-  /**
-   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-   * 
-   * Select which fields to sum
-  **/
-  _sum?: NpaxCredentialSumAggregateInputType
-  /**
-   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-   * 
    * Select which fields to find the minimum value
   **/
   _min?: NpaxCredentialMinAggregateInputType
@@ -168,20 +139,16 @@ export type NpaxCredentialGroupByArgs<ExtArgs extends runtime.Types.Extensions.I
   take?: number
   skip?: number
   _count?: NpaxCredentialCountAggregateInputType | true
-  _avg?: NpaxCredentialAvgAggregateInputType
-  _sum?: NpaxCredentialSumAggregateInputType
   _min?: NpaxCredentialMinAggregateInputType
   _max?: NpaxCredentialMaxAggregateInputType
 }
 
 export type NpaxCredentialGroupByOutputType = {
-  id: number
   userId: string
+  loginId: string
   passwordEncrypted: string
   updatedAt: Date
   _count: NpaxCredentialCountAggregateOutputType | null
-  _avg: NpaxCredentialAvgAggregateOutputType | null
-  _sum: NpaxCredentialSumAggregateOutputType | null
   _min: NpaxCredentialMinAggregateOutputType | null
   _max: NpaxCredentialMaxAggregateOutputType | null
 }
@@ -205,167 +172,160 @@ export type NpaxCredentialWhereInput = {
   AND?: Prisma.NpaxCredentialWhereInput | Prisma.NpaxCredentialWhereInput[]
   OR?: Prisma.NpaxCredentialWhereInput[]
   NOT?: Prisma.NpaxCredentialWhereInput | Prisma.NpaxCredentialWhereInput[]
-  id?: Prisma.IntFilter<"NpaxCredential"> | number
   userId?: Prisma.StringFilter<"NpaxCredential"> | string
+  loginId?: Prisma.StringFilter<"NpaxCredential"> | string
   passwordEncrypted?: Prisma.StringFilter<"NpaxCredential"> | string
   updatedAt?: Prisma.DateTimeFilter<"NpaxCredential"> | Date | string
 }
 
 export type NpaxCredentialOrderByWithRelationInput = {
-  id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  loginId?: Prisma.SortOrder
   passwordEncrypted?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type NpaxCredentialWhereUniqueInput = Prisma.AtLeast<{
-  id?: number
+  userId?: string
   AND?: Prisma.NpaxCredentialWhereInput | Prisma.NpaxCredentialWhereInput[]
   OR?: Prisma.NpaxCredentialWhereInput[]
   NOT?: Prisma.NpaxCredentialWhereInput | Prisma.NpaxCredentialWhereInput[]
-  userId?: Prisma.StringFilter<"NpaxCredential"> | string
+  loginId?: Prisma.StringFilter<"NpaxCredential"> | string
   passwordEncrypted?: Prisma.StringFilter<"NpaxCredential"> | string
   updatedAt?: Prisma.DateTimeFilter<"NpaxCredential"> | Date | string
-}, "id">
+}, "userId">
 
 export type NpaxCredentialOrderByWithAggregationInput = {
-  id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  loginId?: Prisma.SortOrder
   passwordEncrypted?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.NpaxCredentialCountOrderByAggregateInput
-  _avg?: Prisma.NpaxCredentialAvgOrderByAggregateInput
   _max?: Prisma.NpaxCredentialMaxOrderByAggregateInput
   _min?: Prisma.NpaxCredentialMinOrderByAggregateInput
-  _sum?: Prisma.NpaxCredentialSumOrderByAggregateInput
 }
 
 export type NpaxCredentialScalarWhereWithAggregatesInput = {
   AND?: Prisma.NpaxCredentialScalarWhereWithAggregatesInput | Prisma.NpaxCredentialScalarWhereWithAggregatesInput[]
   OR?: Prisma.NpaxCredentialScalarWhereWithAggregatesInput[]
   NOT?: Prisma.NpaxCredentialScalarWhereWithAggregatesInput | Prisma.NpaxCredentialScalarWhereWithAggregatesInput[]
-  id?: Prisma.IntWithAggregatesFilter<"NpaxCredential"> | number
   userId?: Prisma.StringWithAggregatesFilter<"NpaxCredential"> | string
+  loginId?: Prisma.StringWithAggregatesFilter<"NpaxCredential"> | string
   passwordEncrypted?: Prisma.StringWithAggregatesFilter<"NpaxCredential"> | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"NpaxCredential"> | Date | string
 }
 
 export type NpaxCredentialCreateInput = {
-  id?: number
   userId: string
+  loginId: string
   passwordEncrypted: string
   updatedAt?: Date | string
 }
 
 export type NpaxCredentialUncheckedCreateInput = {
-  id?: number
   userId: string
+  loginId: string
   passwordEncrypted: string
   updatedAt?: Date | string
 }
 
 export type NpaxCredentialUpdateInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  loginId?: Prisma.StringFieldUpdateOperationsInput | string
   passwordEncrypted?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type NpaxCredentialUncheckedUpdateInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  loginId?: Prisma.StringFieldUpdateOperationsInput | string
   passwordEncrypted?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type NpaxCredentialCreateManyInput = {
-  id?: number
   userId: string
+  loginId: string
   passwordEncrypted: string
   updatedAt?: Date | string
 }
 
 export type NpaxCredentialUpdateManyMutationInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  loginId?: Prisma.StringFieldUpdateOperationsInput | string
   passwordEncrypted?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type NpaxCredentialUncheckedUpdateManyInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  loginId?: Prisma.StringFieldUpdateOperationsInput | string
   passwordEncrypted?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type NpaxCredentialCountOrderByAggregateInput = {
-  id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  loginId?: Prisma.SortOrder
   passwordEncrypted?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
-export type NpaxCredentialAvgOrderByAggregateInput = {
-  id?: Prisma.SortOrder
-}
-
 export type NpaxCredentialMaxOrderByAggregateInput = {
-  id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  loginId?: Prisma.SortOrder
   passwordEncrypted?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type NpaxCredentialMinOrderByAggregateInput = {
-  id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  loginId?: Prisma.SortOrder
   passwordEncrypted?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-}
-
-export type NpaxCredentialSumOrderByAggregateInput = {
-  id?: Prisma.SortOrder
 }
 
 
 
 export type NpaxCredentialSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
   userId?: boolean
+  loginId?: boolean
   passwordEncrypted?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["npaxCredential"]>
 
 export type NpaxCredentialSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
   userId?: boolean
+  loginId?: boolean
   passwordEncrypted?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["npaxCredential"]>
 
 export type NpaxCredentialSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
   userId?: boolean
+  loginId?: boolean
   passwordEncrypted?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["npaxCredential"]>
 
 export type NpaxCredentialSelectScalar = {
-  id?: boolean
   userId?: boolean
+  loginId?: boolean
   passwordEncrypted?: boolean
   updatedAt?: boolean
 }
 
-export type NpaxCredentialOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "passwordEncrypted" | "updatedAt", ExtArgs["result"]["npaxCredential"]>
+export type NpaxCredentialOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"userId" | "loginId" | "passwordEncrypted" | "updatedAt", ExtArgs["result"]["npaxCredential"]>
 
 export type $NpaxCredentialPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "NpaxCredential"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
-    id: number
     userId: string
+    /**
+     * The User ID as typed at Connect, used to sign in to N-PAX.
+     */
+    loginId: string
     /**
      * "iv:authTag:ciphertext", base64 parts; see EncryptionService.
      */
@@ -454,8 +414,8 @@ export interface NpaxCredentialDelegate<ExtArgs extends runtime.Types.Extensions
    * // Get first 10 NpaxCredentials
    * const npaxCredentials = await prisma.npaxCredential.findMany({ take: 10 })
    * 
-   * // Only select the `id`
-   * const npaxCredentialWithIdOnly = await prisma.npaxCredential.findMany({ select: { id: true } })
+   * // Only select the `userId`
+   * const npaxCredentialWithUserIdOnly = await prisma.npaxCredential.findMany({ select: { userId: true } })
    * 
    */
   findMany<T extends NpaxCredentialFindManyArgs>(args?: Prisma.SelectSubset<T, NpaxCredentialFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NpaxCredentialPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -499,9 +459,9 @@ export interface NpaxCredentialDelegate<ExtArgs extends runtime.Types.Extensions
    *   ]
    * })
    * 
-   * // Create many NpaxCredentials and only return the `id`
-   * const npaxCredentialWithIdOnly = await prisma.npaxCredential.createManyAndReturn({
-   *   select: { id: true },
+   * // Create many NpaxCredentials and only return the `userId`
+   * const npaxCredentialWithUserIdOnly = await prisma.npaxCredential.createManyAndReturn({
+   *   select: { userId: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -590,9 +550,9 @@ export interface NpaxCredentialDelegate<ExtArgs extends runtime.Types.Extensions
    *   ]
    * })
    * 
-   * // Update zero or more NpaxCredentials and only return the `id`
-   * const npaxCredentialWithIdOnly = await prisma.npaxCredential.updateManyAndReturn({
-   *   select: { id: true },
+   * // Update zero or more NpaxCredentials and only return the `userId`
+   * const npaxCredentialWithUserIdOnly = await prisma.npaxCredential.updateManyAndReturn({
+   *   select: { userId: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -794,8 +754,8 @@ export interface Prisma__NpaxCredentialClient<T, Null = never, ExtArgs extends r
  * Fields of the NpaxCredential model
  */
 export interface NpaxCredentialFieldRefs {
-  readonly id: Prisma.FieldRef<"NpaxCredential", 'Int'>
   readonly userId: Prisma.FieldRef<"NpaxCredential", 'String'>
+  readonly loginId: Prisma.FieldRef<"NpaxCredential", 'String'>
   readonly passwordEncrypted: Prisma.FieldRef<"NpaxCredential", 'String'>
   readonly updatedAt: Prisma.FieldRef<"NpaxCredential", 'DateTime'>
 }

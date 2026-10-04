@@ -15,6 +15,8 @@ interface DailyLogState {
   updateEntry: (date: string, id: string, draft: EntryDraft) => Promise<void>
   removeEntry: (date: string, id: string) => Promise<void>
   dismissError: () => void
+  /** Forgets the signed-out user's entries so the next user never sees them. */
+  reset: () => void
 }
 
 const mapDay = (state: DailyLogState, date: string, fn: (entries: LogEntry[]) => LogEntry[]) => ({
@@ -82,4 +84,6 @@ export const useDailyLogStore = create<DailyLogState>((set) => ({
   },
 
   dismissError: () => set({ error: null }),
+
+  reset: () => set({ entriesByDate: {}, loading: false, initialized: false, error: null }),
 }))

@@ -6,39 +6,47 @@ import {
 import { PrismaService } from '../../../infrastructures/prisma/prisma-service';
 import { SyncRunStatus, SyncScheduleDto, SyncTrigger } from '../dto/sync-dto';
 
-// The schedule is a single row; the column defaults are the out-of-the-box schedule.
-const SCHEDULE_ID = 1;
-
+/**
+ * Schedules and runs, one schedule row per user (keyed by the user's key, see
+ * toUserKey). A user's schedule row is created with the column defaults the
+ * first time it is read.
+ */
 @Injectable()
 export class SyncRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  getSchedule(): Promise<SyncSchedule> {
+  getSchedule(userId: string): Promise<SyncSchedule> {
     return this.prisma.syncSchedule.upsert({
-      where: { id: SCHEDULE_ID },
-      create: { id: SCHEDULE_ID },
+      where: { userId },
+      create: { userId },
       update: {},
     });
   }
 
-  saveSchedule(data: SyncScheduleDto): Promise<SyncSchedule> {
+  /** Every saved schedule, for the scheduler to check each user's run times. */
+  listSchedules(): Promise<SyncSchedule[]> {
+    return this.prisma.syncSchedule.findMany();
+  }
+
+  saveSchedule(userId: string, data: SyncScheduleDto): Promise<SyncSchedule> {
     return this.prisma.syncSchedule.upsert({
-      where: { id: SCHEDULE_ID },
-      create: { id: SCHEDULE_ID, ...data },
+      where: { userId },
+      create: { userId, ...data },
       update: data,
     });
   }
 
-  listRuns(limit: number): Promise<SyncRun[]> {
+  listRuns(userId: string, limit: number): Promise<SyncRun[]> {
     return this.prisma.syncRun.findMany({
+      where: { userId },
       orderBy: { startedAt: 'desc' },
       take: limit,
     });
   }
 
-  createRun(trigger: SyncTrigger): Promise<SyncRun> {
+  createRun(userId: string, trigger: SyncTrigger): Promise<SyncRun> {
     return this.prisma.syncRun.create({
-      data: { trigger, status: 'running' },
+      data: { userId, trigger, status: 'running' },
     });
   }
 

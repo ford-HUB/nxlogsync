@@ -24,7 +24,7 @@ export * from './enums.js';
 export type LogEntry = Prisma.LogEntryModel
 /**
  * Model SyncSchedule
- * Single row (id = 1): when the server uploads entries to N-PAX.
+ * One row per user: when the server uploads that user's entries to N-PAX.
  */
 export type SyncSchedule = Prisma.SyncScheduleModel
 /**
@@ -34,7 +34,14 @@ export type SyncSchedule = Prisma.SyncScheduleModel
 export type SyncRun = Prisma.SyncRunModel
 /**
  * Model NpaxCredential
- * Single row (id = 1): the N-PAX login saved by Connect, so the server can log in
- * again after a restart. The password is AES-256-GCM encrypted, never stored plain.
+ * One row per connected user: the N-PAX login saved by Connect, so the server can log
+ * in again after a restart. The password is AES-256-GCM encrypted, never stored plain.
+ * Disconnecting deletes the row; the user's entries, schedule and runs stay.
  */
 export type NpaxCredential = Prisma.NpaxCredentialModel
+/**
+ * Model UserSession
+ * A desktop signed in through Connect. The desktop sends the raw token as a Bearer
+ * token; only its SHA-256 hash is stored. Disconnect deletes the user's sessions.
+ */
+export type UserSession = Prisma.UserSessionModel

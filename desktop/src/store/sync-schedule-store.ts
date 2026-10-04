@@ -16,6 +16,8 @@ interface SyncScheduleState {
   saveSchedule: (schedule: SyncSchedule) => Promise<boolean>
   startRun: () => Promise<void>
   dismissError: () => void
+  /** Forgets the signed-out user's schedule and runs so the next user never sees them. */
+  reset: () => void
 }
 
 export const useSyncScheduleStore = create<SyncScheduleState>((set) => ({
@@ -66,4 +68,7 @@ export const useSyncScheduleStore = create<SyncScheduleState>((set) => ({
   },
 
   dismissError: () => set({ error: null }),
+
+  reset: () =>
+    set({ schedule: null, runs: [], pending: { days: 0, minutes: 0 }, initialized: false, saving: false, error: null }),
 }))

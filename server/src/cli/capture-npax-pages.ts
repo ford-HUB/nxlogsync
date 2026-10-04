@@ -2,13 +2,14 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { connectSavedLogin, NpaxCliModule } from './npax-cli-module';
+import { connectSavedLogin, NpaxCliModule, userArg } from './npax-cli-module';
 
 /**
  * Saves the N-PAX allocation pages, their scripts and lookup popups under
  * server/captures/<timestamp>/, using the login saved by Connect.
  *
  *   pnpm capture:npax
+ *   pnpm capture:npax --user=<User ID>   (when several logins are saved)
  */
 async function main(): Promise<void> {
   const logger = new Logger('CaptureNpaxPages');
@@ -16,8 +17,8 @@ async function main(): Promise<void> {
     logger: ['log', 'warn', 'error'],
   });
   try {
-    const npax = await connectSavedLogin(app);
-    const pages = await npax.capturePages();
+    const { npax, user } = await connectSavedLogin(app, userArg());
+    const pages = await npax.capturePages(user);
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
     const dir = join(process.cwd(), 'captures', stamp);
     await mkdir(dir, { recursive: true });

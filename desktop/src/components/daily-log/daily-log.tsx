@@ -1,6 +1,10 @@
 import { useCallback, useState } from 'react'
+import { ConnectNotice } from '@/components/feedback/connect-notice'
 import { ErrorBanner } from '@/components/feedback/error-banner'
 import { useDailyLog } from '@/hooks/use-daily-log'
+import { useIsSignedIn } from '@/hooks/use-site-session'
+import { cn } from '@/lib/utils'
+import { useSiteSessionStore } from '@/store/site-session-store'
 import { ActivityDialog } from './activity-dialog'
 import { DayHeader } from './day-header'
 import { EntryForm } from './entry-form'
@@ -13,6 +17,8 @@ interface DailyLogProps {
 
 export function DailyLog({ onOpenSettings }: DailyLogProps) {
   const log = useDailyLog()
+  const signedIn = useIsSignedIn()
+  const sessionLoaded = useSiteSessionStore((s) => s.loaded)
   const [highlightedId, setHighlightedId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [activityOpen, setActivityOpen] = useState(false)
@@ -47,7 +53,10 @@ export function DailyLog({ onOpenSettings }: DailyLogProps) {
         onToday={() => changeDay(log.goToToday)}
         onOpenActivity={() => setActivityOpen(true)}
         onOpenSettings={onOpenSettings}
+        locked={!signedIn}
       />
+
+      {sessionLoaded && !signedIn && <ConnectNotice onOpenSettings={onOpenSettings} />}
 
       {log.error && (
         <ErrorBanner
@@ -66,39 +75,42 @@ export function DailyLog({ onOpenSettings }: DailyLogProps) {
         onSelectDay={openDay}
       />
 
-      <HoursSummary
-        entries={log.entries}
-        totalMinutes={log.totalMinutes}
-        remainingMinutes={log.remainingMinutes}
-        status={log.status}
-        highlightedId={highlightedId}
-        onHighlight={setHighlightedId}
-      />
+      {/* Entries belong to the signed-in site user, so nothing below works until one connects. */}
+      <fieldset disabled={!signedIn} className={cn('contents', !signedIn && 'pointer-events-none')}>
+        <HoursSummary
+          entries={log.entries}
+          totalMinutes={log.totalMinutes}
+          remainingMinutes={log.remainingMinutes}
+          status={log.status}
+          highlightedId={highlightedId}
+          onHighlight={setHighlightedId}
+        />
 
-      {/* Remount per day so the draft re-suggests times from that day's entries. */}
-      <EntryForm
-        key={log.dateKey}
-        entries={log.entries}
-        remainingMinutes={log.remainingMinutes}
-        isToday={log.isToday}
-        editingEntry={editingEntry}
-        onAdd={log.addEntry}
-        onUpdate={(id, draft) => {
-          log.updateEntry(id, draft)
-          stopEditing()
-        }}
-        onCancelEdit={stopEditing}
-      />
+        {/* Remount per day so the draft re-suggests times from that day's entries. */}
+        <EntryForm
+          key={log.dateKey}
+          entries={log.entries}
+          remainingMinutes={log.remainingMinutes}
+          isToday={log.isToday}
+          editingEntry={editingEntry}
+          onAdd={log.addEntry}
+          onUpdate={(id, draft) => {
+            log.updateEntry(id, draft)
+            stopEditing()
+          }}
+          onCancelEdit={stopEditing}
+        />
 
-      <EntryList
-        entries={log.entries}
-        initialized={log.initialized}
-        highlightedId={highlightedId}
-        editingId={editingEntry?.id ?? null}
-        onHighlight={setHighlightedId}
-        onSelect={toggleEditing}
-        onRemove={log.removeEntry}
-      />
+        <EntryList
+          entries={log.entries}
+          initialized={log.initialized}
+          highlightedId={highlightedId}
+          editingId={editingEntry?.id ?? null}
+          onHighlight={setHighlightedId}
+          onSelect={toggleEditing}
+          onRemove={log.removeEntry}
+        />
+      </fieldset>
     </div>
   )
 }

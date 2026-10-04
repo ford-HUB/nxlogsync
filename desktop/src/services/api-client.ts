@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { API_TIMEOUT_MS, API_UNREACHABLE_MESSAGE } from '@/constants/api'
+import { API_TIMEOUT_MS, API_UNREACHABLE_MESSAGE, SESSION_TOKEN_STORAGE_KEY } from '@/constants/api'
 
 export type ApiResult<T> = { success: true; data: T } | { success: false; message: string }
 
@@ -9,6 +9,41 @@ const API_BASE_URL =
 const client = axios.create({
   baseURL: API_BASE_URL,
   timeout: API_TIMEOUT_MS,
+})
+
+/**
+ * The token Connect returns: it tells the server which user every request is for,
+ * so each user only ever reads and writes their own entries. Kept across restarts
+ * until Log out, or until the server stops accepting it (401).
+ */
+export function getSessionToken(): string | null {
+  try {
+    return localStorage.getItem(SESSION_TOKEN_STORAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function setSessionToken(token: string | null): void {
+  try {
+    if (token) localStorage.setItem(SESSION_TOKEN_STORAGE_KEY, token)
+    else localStorage.removeItem(SESSION_TOKEN_STORAGE_KEY)
+  } catch {
+    // Storage unavailable: the session lasts until the app closes.
+  }
+}
+
+client.interceptors.request.use((config) => {
+  const token = getSessionToken()
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+// The server signed this user out (Log out elsewhere, or N-PAX rejected the saved login).
+// Dropping the token makes the next status poll report 'disconnected', which locks the app.
+client.interceptors.response.use(undefined, (error: unknown) => {
+  if (axios.isAxiosError(error) && error.response?.status === 401) setSessionToken(null)
+  return Promise.reject(error)
 })
 
 /** The server's `{ ok, data }` envelope, when the response is wrapped in one. */

@@ -7,12 +7,14 @@ interface ScheduleHeaderProps {
   /** Locks the app; the passcode is needed to get back in. */
   onLogout: () => void
   onResetPasscode: (current: string) => Promise<boolean>
+  /** Disables everything except Log out (no site user signed in yet). */
+  locked?: boolean
 }
 
-export function ScheduleHeader({ onBack, onLogout, onResetPasscode }: ScheduleHeaderProps) {
+export function ScheduleHeader({ onBack, onLogout, onResetPasscode, locked = false }: ScheduleHeaderProps) {
   return (
     <header className="flex items-center gap-3">
-      <Button type="button" variant="outline" size="icon" aria-label="Back to daily log" onClick={onBack}>
+      <Button type="button" variant="outline" size="icon" aria-label="Back to daily log" onClick={onBack} disabled={locked}>
         <ArrowLeft />
       </Button>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -21,7 +23,7 @@ export function ScheduleHeader({ onBack, onLogout, onResetPasscode }: ScheduleHe
           Settings · When NXLogSync uploads your logged hours to the target site
         </p>
       </div>
-      <ResetPasscodeDialog onReset={onResetPasscode} />
+      <ResetPasscodeDialog onReset={onResetPasscode} disabled={locked} />
       <Button type="button" variant="outline" onClick={onLogout}>
         <LogOut />
         Log out

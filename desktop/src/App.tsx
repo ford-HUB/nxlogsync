@@ -1,33 +1,36 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/electron-vite.animate.svg'
+import { useEffect, useState } from 'react'
+import { PasscodeScreen } from '@/components/passcode/passcode-screen'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { usePasscodeExpiry } from '@/hooks/use-passcode-expiry'
+import { DailyLogPage } from '@/pages/daily-log-page'
+import { SettingsPage } from '@/pages/settings-page'
+import { usePasscodeStore } from '@/store/passcode-store'
+
+type AppView = 'daily-log' | 'settings'
 
 function App() {
-  const [count, setCount] = useState(0)
+  // No router yet: two screens, switched in memory.
+  const [view, setView] = useState<AppView>('daily-log')
+  const status = usePasscodeStore((s) => s.status)
+  const lock = usePasscodeStore((s) => s.lock)
+  const resetPasscode = usePasscodeStore((s) => s.resetPasscode)
+  usePasscodeExpiry()
+
+  // Unlocking after a lock lands on the daily log; finishing or cancelling a reset returns to Settings.
+  useEffect(() => {
+    if (status === 'locked') setView('daily-log')
+  }, [status])
+
+  if (status !== 'unlocked') return <PasscodeScreen />
 
   return (
-    <>
-      <div>
-        <a href="https://electron-vite.github.io" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <TooltipProvider delayDuration={150}>
+      {view === 'settings' ? (
+        <SettingsPage onBack={() => setView('daily-log')} onLogout={() => lock()} onResetPasscode={resetPasscode} />
+      ) : (
+        <DailyLogPage onOpenSettings={() => setView('settings')} />
+      )}
+    </TooltipProvider>
   )
 }
 

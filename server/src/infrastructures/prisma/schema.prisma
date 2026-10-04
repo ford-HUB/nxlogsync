@@ -1,0 +1,81 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "./common"
+  moduleFormat = "cjs"
+  runtime      = "nodejs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// One block of logged work. Times are minutes since local midnight (0–1440).
+model LogEntry {
+  id               String    @id @default(uuid())
+  /// Local calendar day, "YYYY-MM-DD".
+  date             String
+  startMinutes     Int       @map("start_minutes")
+  endMinutes       Int       @map("end_minutes")
+  description      String
+  /// N-PAX Work Activity code (see WORK_ACTIVITIES); null until picked.
+  workActivityCode String?   @map("work_activity_code")
+  /// N-PAX Job code (e.g. "CL00-00003-001"); null until picked.
+  jobCode          String?   @map("job_code")
+  /// Set once the entry has been saved to N-PAX.
+  syncedAt         DateTime? @map("synced_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@index([date])
+  @@map("log_entries")
+}
+
+/// Single row (id = 1): when the server uploads entries to N-PAX.
+model SyncSchedule {
+  id                   Int      @id @default(1)
+  enabled              Boolean  @default(true)
+  /// 'daily' | 'interval' | 'monthly' | 'manual'
+  mode                 String   @default("daily")
+  dailyAtMinutes       Int      @default(1080) @map("daily_at_minutes")
+  intervalHours        Int      @default(2) @map("interval_hours")
+  windowStartMinutes   Int      @default(480) @map("window_start_minutes")
+  windowEndMinutes     Int      @default(1080) @map("window_end_minutes")
+  /// Date#getDay() numbering, 0 = Sunday.
+  days                 Int[]    @default([1, 2, 3, 4, 5])
+  monthlyDaysBeforeEnd Int      @default(0) @map("monthly_days_before_end")
+  monthlyWeekdaysOnly  Boolean  @default(true) @map("monthly_weekdays_only")
+  targetUrl            String   @default("https://workflow.n-pax.com/index.aspx") @map("target_url")
+  retryAttempts        Int      @default(3) @map("retry_attempts")
+  skipEmptyDays        Boolean  @default(true) @map("skip_empty_days")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("sync_schedule")
+}
+
+model SyncRun {
+  id         String    @id @default(uuid())
+  startedAt  DateTime  @default(now()) @map("started_at")
+  finishedAt DateTime? @map("finished_at")
+  /// 'scheduled' | 'manual'
+  trigger    String
+  /// 'running' | 'success' | 'failed' | 'skipped'
+  status     String
+  entryCount Int       @default(0) @map("entry_count")
+  minutes    Int       @default(0)
+  message    String?
+
+  @@index([startedAt])
+  @@map("sync_runs")
+}
+
+/// Single row (id = 1): the N-PAX login saved by Connect, so the server can log in
+/// again after a restart. The password is AES-256-GCM encrypted, never stored plain.
+model NpaxCredential {
+  id                Int      @id @default(1)
+  userId            String   @map("user_id")
+  /// "iv:authTag:ciphertext", base64 parts; see EncryptionService.
+  passwordEncrypted String   @map("password_encrypted")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("npax_credentials")
+}

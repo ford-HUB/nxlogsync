@@ -15,4 +15,11 @@ module.exports = {
       { allowConstantExport: true },
     ],
   },
+  overrides: [
+    {
+      // shadcn primitives export cva variants next to components (e.g. buttonVariants)
+      files: ['src/components/ui/**/*.tsx'],
+      rules: { 'react-refresh/only-export-components': 'off' },
+    },
+  ],
 }

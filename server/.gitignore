@@ -67,3 +67,9 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Prisma generated client
+src/generated/
+
+# N-PAX page captures (contain personal data)
+/captures

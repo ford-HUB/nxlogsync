@@ -68,7 +68,7 @@ export const TARGET_SITE_NAME = 'NX Timesheet portal'
 
 /** Stands in for the server's schedule until it loads (the screen shows a skeleton meanwhile). Matches the server's defaults. */
 export const FALLBACK_SCHEDULE: SyncSchedule = {
-  enabled: true,
+  enabled: false,
   mode: 'daily',
   dailyAtMinutes: 18 * 60,
   intervalHours: 2,

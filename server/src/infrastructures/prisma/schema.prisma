@@ -37,7 +37,7 @@ model LogEntry {
 /// One row per user: when the server uploads that user's entries to N-PAX.
 model SyncSchedule {
   userId               String   @id @map("user_id")
-  enabled              Boolean  @default(true)
+  enabled              Boolean  @default(false)
   /// 'daily' | 'interval' | 'monthly' | 'manual'
   mode                 String   @default("daily")
   dailyAtMinutes       Int      @default(1080) @map("daily_at_minutes")

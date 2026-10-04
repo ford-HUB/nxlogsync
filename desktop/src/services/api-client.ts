@@ -3,8 +3,11 @@ import { API_TIMEOUT_MS, API_UNREACHABLE_MESSAGE } from '@/constants/api'
 
 export type ApiResult<T> = { success: true; data: T } | { success: false; message: string }
 
+const API_BASE_URL =
+  import.meta.env.VITE_ENV === 'production' ? import.meta.env.VITE_PRODUCTION : import.meta.env.VITE_DEVELOPMENT
+
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
   timeout: API_TIMEOUT_MS,
 })
 

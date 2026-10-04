@@ -6,11 +6,14 @@ export function verifyCredentials(userId: string, password: string): Promise<Api
   return post('/v1/credentials/verify', { userId, password })
 }
 
-/** Logs in and keeps the session alive on the server; it re-logs in on its own when the site expires it. */
+/**
+ * Logs in and keeps the session alive on the server; it re-logs in on its own when the site expires it.
+ * `token` (null when the login was rejected) identifies this user on every later request.
+ */
 export function connectSession(
   userId: string,
   password: string,
-): Promise<ApiResult<{ valid: boolean; session: SiteSession }>> {
+): Promise<ApiResult<{ valid: boolean; session: SiteSession; token: string | null }>> {
   return post('/v1/credentials/connect', { userId, password })
 }
 

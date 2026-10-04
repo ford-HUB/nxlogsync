@@ -38,6 +38,7 @@ export type SyncRunSumAggregateOutputType = {
 
 export type SyncRunMinAggregateOutputType = {
   id: string | null
+  userId: string | null
   startedAt: Date | null
   finishedAt: Date | null
   trigger: string | null
@@ -49,6 +50,7 @@ export type SyncRunMinAggregateOutputType = {
 
 export type SyncRunMaxAggregateOutputType = {
   id: string | null
+  userId: string | null
   startedAt: Date | null
   finishedAt: Date | null
   trigger: string | null
@@ -60,6 +62,7 @@ export type SyncRunMaxAggregateOutputType = {
 
 export type SyncRunCountAggregateOutputType = {
   id: number
+  userId: number
   startedAt: number
   finishedAt: number
   trigger: number
@@ -83,6 +86,7 @@ export type SyncRunSumAggregateInputType = {
 
 export type SyncRunMinAggregateInputType = {
   id?: true
+  userId?: true
   startedAt?: true
   finishedAt?: true
   trigger?: true
@@ -94,6 +98,7 @@ export type SyncRunMinAggregateInputType = {
 
 export type SyncRunMaxAggregateInputType = {
   id?: true
+  userId?: true
   startedAt?: true
   finishedAt?: true
   trigger?: true
@@ -105,6 +110,7 @@ export type SyncRunMaxAggregateInputType = {
 
 export type SyncRunCountAggregateInputType = {
   id?: true
+  userId?: true
   startedAt?: true
   finishedAt?: true
   trigger?: true
@@ -203,6 +209,7 @@ export type SyncRunGroupByArgs<ExtArgs extends runtime.Types.Extensions.Internal
 
 export type SyncRunGroupByOutputType = {
   id: string
+  userId: string
   startedAt: Date
   finishedAt: Date | null
   trigger: string
@@ -237,6 +244,7 @@ export type SyncRunWhereInput = {
   OR?: Prisma.SyncRunWhereInput[]
   NOT?: Prisma.SyncRunWhereInput | Prisma.SyncRunWhereInput[]
   id?: Prisma.StringFilter<"SyncRun"> | string
+  userId?: Prisma.StringFilter<"SyncRun"> | string
   startedAt?: Prisma.DateTimeFilter<"SyncRun"> | Date | string
   finishedAt?: Prisma.DateTimeNullableFilter<"SyncRun"> | Date | string | null
   trigger?: Prisma.StringFilter<"SyncRun"> | string
@@ -248,6 +256,7 @@ export type SyncRunWhereInput = {
 
 export type SyncRunOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
   finishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   trigger?: Prisma.SortOrder
@@ -262,6 +271,7 @@ export type SyncRunWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.SyncRunWhereInput | Prisma.SyncRunWhereInput[]
   OR?: Prisma.SyncRunWhereInput[]
   NOT?: Prisma.SyncRunWhereInput | Prisma.SyncRunWhereInput[]
+  userId?: Prisma.StringFilter<"SyncRun"> | string
   startedAt?: Prisma.DateTimeFilter<"SyncRun"> | Date | string
   finishedAt?: Prisma.DateTimeNullableFilter<"SyncRun"> | Date | string | null
   trigger?: Prisma.StringFilter<"SyncRun"> | string
@@ -273,6 +283,7 @@ export type SyncRunWhereUniqueInput = Prisma.AtLeast<{
 
 export type SyncRunOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
   finishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   trigger?: Prisma.SortOrder
@@ -292,6 +303,7 @@ export type SyncRunScalarWhereWithAggregatesInput = {
   OR?: Prisma.SyncRunScalarWhereWithAggregatesInput[]
   NOT?: Prisma.SyncRunScalarWhereWithAggregatesInput | Prisma.SyncRunScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"SyncRun"> | string
+  userId?: Prisma.StringWithAggregatesFilter<"SyncRun"> | string
   startedAt?: Prisma.DateTimeWithAggregatesFilter<"SyncRun"> | Date | string
   finishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SyncRun"> | Date | string | null
   trigger?: Prisma.StringWithAggregatesFilter<"SyncRun"> | string
@@ -303,6 +315,7 @@ export type SyncRunScalarWhereWithAggregatesInput = {
 
 export type SyncRunCreateInput = {
   id?: string
+  userId: string
   startedAt?: Date | string
   finishedAt?: Date | string | null
   trigger: string
@@ -314,6 +327,7 @@ export type SyncRunCreateInput = {
 
 export type SyncRunUncheckedCreateInput = {
   id?: string
+  userId: string
   startedAt?: Date | string
   finishedAt?: Date | string | null
   trigger: string
@@ -325,6 +339,7 @@ export type SyncRunUncheckedCreateInput = {
 
 export type SyncRunUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   startedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   trigger?: Prisma.StringFieldUpdateOperationsInput | string
@@ -336,6 +351,7 @@ export type SyncRunUpdateInput = {
 
 export type SyncRunUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   startedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   trigger?: Prisma.StringFieldUpdateOperationsInput | string
@@ -347,6 +363,7 @@ export type SyncRunUncheckedUpdateInput = {
 
 export type SyncRunCreateManyInput = {
   id?: string
+  userId: string
   startedAt?: Date | string
   finishedAt?: Date | string | null
   trigger: string
@@ -358,6 +375,7 @@ export type SyncRunCreateManyInput = {
 
 export type SyncRunUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   startedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   trigger?: Prisma.StringFieldUpdateOperationsInput | string
@@ -369,6 +387,7 @@ export type SyncRunUpdateManyMutationInput = {
 
 export type SyncRunUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   startedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   trigger?: Prisma.StringFieldUpdateOperationsInput | string
@@ -380,6 +399,7 @@ export type SyncRunUncheckedUpdateManyInput = {
 
 export type SyncRunCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
   finishedAt?: Prisma.SortOrder
   trigger?: Prisma.SortOrder
@@ -396,6 +416,7 @@ export type SyncRunAvgOrderByAggregateInput = {
 
 export type SyncRunMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
   finishedAt?: Prisma.SortOrder
   trigger?: Prisma.SortOrder
@@ -407,6 +428,7 @@ export type SyncRunMaxOrderByAggregateInput = {
 
 export type SyncRunMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
   finishedAt?: Prisma.SortOrder
   trigger?: Prisma.SortOrder
@@ -425,6 +447,7 @@ export type SyncRunSumOrderByAggregateInput = {
 
 export type SyncRunSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  userId?: boolean
   startedAt?: boolean
   finishedAt?: boolean
   trigger?: boolean
@@ -436,6 +459,7 @@ export type SyncRunSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
 
 export type SyncRunSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  userId?: boolean
   startedAt?: boolean
   finishedAt?: boolean
   trigger?: boolean
@@ -447,6 +471,7 @@ export type SyncRunSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
 
 export type SyncRunSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  userId?: boolean
   startedAt?: boolean
   finishedAt?: boolean
   trigger?: boolean
@@ -458,6 +483,7 @@ export type SyncRunSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
 
 export type SyncRunSelectScalar = {
   id?: boolean
+  userId?: boolean
   startedAt?: boolean
   finishedAt?: boolean
   trigger?: boolean
@@ -467,13 +493,14 @@ export type SyncRunSelectScalar = {
   message?: boolean
 }
 
-export type SyncRunOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "startedAt" | "finishedAt" | "trigger" | "status" | "entryCount" | "minutes" | "message", ExtArgs["result"]["syncRun"]>
+export type SyncRunOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "startedAt" | "finishedAt" | "trigger" | "status" | "entryCount" | "minutes" | "message", ExtArgs["result"]["syncRun"]>
 
 export type $SyncRunPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "SyncRun"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
+    userId: string
     startedAt: Date
     finishedAt: Date | null
     /**
@@ -911,6 +938,7 @@ export interface Prisma__SyncRunClient<T, Null = never, ExtArgs extends runtime.
  */
 export interface SyncRunFieldRefs {
   readonly id: Prisma.FieldRef<"SyncRun", 'String'>
+  readonly userId: Prisma.FieldRef<"SyncRun", 'String'>
   readonly startedAt: Prisma.FieldRef<"SyncRun", 'DateTime'>
   readonly finishedAt: Prisma.FieldRef<"SyncRun", 'DateTime'>
   readonly trigger: Prisma.FieldRef<"SyncRun", 'String'>

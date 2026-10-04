@@ -9,9 +9,13 @@ datasource db {
   provider = "postgresql"
 }
 
+// Every user-owned row carries `userId`: the N-PAX User ID that connected,
+// lowercased (N-PAX logins are Active Directory names, which ignore case).
+
 /// One block of logged work. Times are minutes since local midnight (0–1440).
 model LogEntry {
   id               String    @id @default(uuid())
+  userId           String    @map("user_id")
   /// Local calendar day, "YYYY-MM-DD".
   date             String
   startMinutes     Int       @map("start_minutes")
@@ -26,13 +30,13 @@ model LogEntry {
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  @@index([date])
+  @@index([userId, date])
   @@map("log_entries")
 }
 
-/// Single row (id = 1): when the server uploads entries to N-PAX.
+/// One row per user: when the server uploads that user's entries to N-PAX.
 model SyncSchedule {
-  id                   Int      @id @default(1)
+  userId               String   @id @map("user_id")
   enabled              Boolean  @default(true)
   /// 'daily' | 'interval' | 'monthly' | 'manual'
   mode                 String   @default("daily")
@@ -54,6 +58,7 @@ model SyncSchedule {
 
 model SyncRun {
   id         String    @id @default(uuid())
+  userId     String    @map("user_id")
   startedAt  DateTime  @default(now()) @map("started_at")
   finishedAt DateTime? @map("finished_at")
   /// 'scheduled' | 'manual'
@@ -64,18 +69,31 @@ model SyncRun {
   minutes    Int       @default(0)
   message    String?
 
-  @@index([startedAt])
+  @@index([userId, startedAt])
   @@map("sync_runs")
 }
 
-/// Single row (id = 1): the N-PAX login saved by Connect, so the server can log in
-/// again after a restart. The password is AES-256-GCM encrypted, never stored plain.
+/// One row per connected user: the N-PAX login saved by Connect, so the server can log
+/// in again after a restart. The password is AES-256-GCM encrypted, never stored plain.
+/// Disconnecting deletes the row; the user's entries, schedule and runs stay.
 model NpaxCredential {
-  id                Int      @id @default(1)
-  userId            String   @map("user_id")
+  userId            String   @id @map("user_id")
+  /// The User ID as typed at Connect, used to sign in to N-PAX.
+  loginId           String   @map("login_id")
   /// "iv:authTag:ciphertext", base64 parts; see EncryptionService.
   passwordEncrypted String   @map("password_encrypted")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
   @@map("npax_credentials")
+}
+
+/// A desktop signed in through Connect. The desktop sends the raw token as a Bearer
+/// token; only its SHA-256 hash is stored. Disconnect deletes the user's sessions.
+model UserSession {
+  tokenHash String   @id @map("token_hash")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("user_sessions")
 }

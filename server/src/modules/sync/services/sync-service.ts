@@ -26,13 +26,14 @@ const DEFAULT_RUN_LIMIT = 20;
 const RETRY_BACKOFF_MS = 5_000;
 
 /**
- * Uploads unsynced log entries to N-PAX, one day at a time. Only one run is
- * active at once; it is recorded in sync_runs as it starts and finishes.
+ * Uploads a user's unsynced log entries to N-PAX on that user's session, one
+ * day at a time. Each user has at most one active run; it is recorded in
+ * sync_runs as it starts and finishes. `user` is always the user's key.
  */
 @Injectable()
 export class SyncService implements OnApplicationBootstrap {
   private readonly logger = new Logger(SyncService.name);
-  private activeRun: Promise<void> | null = null;
+  private readonly activeRuns = new Set<string>();
 
   constructor(
     private readonly repository: SyncRepository,
@@ -44,58 +45,74 @@ export class SyncService implements OnApplicationBootstrap {
     await this.repository.failInterruptedRuns();
   }
 
-  async getSchedule(): Promise<SyncScheduleDto> {
-    return toScheduleResponse(await this.repository.getSchedule());
+  async getSchedule(user: string): Promise<SyncScheduleDto> {
+    return toScheduleResponse(await this.repository.getSchedule(user));
   }
 
-  async saveSchedule(data: SyncScheduleDto): Promise<SyncScheduleDto> {
+  /** Every user's saved schedule, keyed by user. */
+  async listSchedules(): Promise<Map<string, SyncScheduleDto>> {
+    const rows = await this.repository.listSchedules();
+    return new Map(rows.map((row) => [row.userId, toScheduleResponse(row)]));
+  }
+
+  async saveSchedule(
+    user: string,
+    data: SyncScheduleDto,
+  ): Promise<SyncScheduleDto> {
     const days = [...new Set(data.days)].sort((a, b) => a - b);
     return toScheduleResponse(
-      await this.repository.saveSchedule({ ...data, days }),
+      await this.repository.saveSchedule(user, { ...data, days }),
     );
   }
 
-  async listRuns(limit = DEFAULT_RUN_LIMIT): Promise<SyncRunResponseDto[]> {
-    return (await this.repository.listRuns(limit)).map(toRunResponse);
+  async listRuns(
+    user: string,
+    limit = DEFAULT_RUN_LIMIT,
+  ): Promise<SyncRunResponseDto[]> {
+    return (await this.repository.listRuns(user, limit)).map(toRunResponse);
   }
 
-  async getPending(): Promise<PendingUploadResponseDto> {
-    const entries = await this.logEntries.findUnsynced(toDateKey(new Date()));
+  async getPending(user: string): Promise<PendingUploadResponseDto> {
+    const entries = await this.logEntries.findUnsynced(
+      user,
+      toDateKey(new Date()),
+    );
     return {
       days: new Set(entries.map((e) => e.date)).size,
       minutes: sumMinutes(entries),
     };
   }
 
-  get isRunning(): boolean {
-    return this.activeRun !== null;
+  isRunning(user: string): boolean {
+    return this.activeRuns.has(user);
   }
 
   /** Records a new run and uploads in the background; poll the runs list for the outcome. */
-  async startRun(trigger: SyncTrigger): Promise<SyncRunResponseDto> {
-    if (this.activeRun)
+  async startRun(
+    user: string,
+    trigger: SyncTrigger,
+  ): Promise<SyncRunResponseDto> {
+    if (this.activeRuns.has(user))
       throw new ConflictException('A sync is already running');
     // Claim the slot before the first await so two requests can't both start.
-    let release: () => void = () => undefined;
-    this.activeRun = new Promise((resolve) => (release = resolve));
+    this.activeRuns.add(user);
     try {
-      const run = await this.repository.createRun(trigger);
-      void this.execute(run).finally(() => {
-        this.activeRun = null;
-        release();
-      });
+      const run = await this.repository.createRun(user, trigger);
+      void this.execute(user, run).finally(() => this.activeRuns.delete(user));
       return toRunResponse(run);
     } catch (error) {
-      this.activeRun = null;
-      release();
+      this.activeRuns.delete(user);
       throw error;
     }
   }
 
-  private async execute(run: SyncRun): Promise<void> {
+  private async execute(user: string, run: SyncRun): Promise<void> {
     try {
-      const schedule = await this.repository.getSchedule();
-      const entries = await this.logEntries.findUnsynced(toDateKey(new Date()));
+      const schedule = await this.repository.getSchedule(user);
+      const entries = await this.logEntries.findUnsynced(
+        user,
+        toDateKey(new Date()),
+      );
       if (entries.length === 0) {
         await this.finish(run, 'skipped', [], 'Nothing new to upload');
         return;
@@ -119,7 +136,7 @@ export class SyncService implements OnApplicationBootstrap {
         for (const date of remaining) {
           const dayEntries = days.get(date) ?? [];
           try {
-            const outcome = await this.npax.saveAllocationDay({
+            const outcome = await this.npax.saveAllocationDay(user, {
               date,
               entries: dayEntries,
             });
@@ -132,7 +149,9 @@ export class SyncService implements OnApplicationBootstrap {
             else uploaded.push(...dayEntries);
           } catch (error) {
             lastError = error instanceof Error ? error.message : String(error);
-            this.logger.warn(`Sync of ${date} failed: ${lastError}`);
+            this.logger.warn(
+              `Sync of ${date} for ${user} failed: ${lastError}`,
+            );
             failed.push(date);
           }
         }
@@ -181,7 +200,9 @@ export class SyncService implements OnApplicationBootstrap {
       minutes: sumMinutes(uploaded),
       message,
     });
-    this.logger.log(`Sync run ${run.id} (${run.trigger}) → ${status}`);
+    this.logger.log(
+      `Sync run ${run.id} for ${run.userId} (${run.trigger}) → ${status}`,
+    );
   }
 }
 

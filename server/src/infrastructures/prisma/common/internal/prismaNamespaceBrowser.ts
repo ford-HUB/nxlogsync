@@ -54,7 +54,8 @@ export const ModelName = {
   LogEntry: 'LogEntry',
   SyncSchedule: 'SyncSchedule',
   SyncRun: 'SyncRun',
-  NpaxCredential: 'NpaxCredential'
+  NpaxCredential: 'NpaxCredential',
+  UserSession: 'UserSession'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -75,6 +76,7 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 
 export const LogEntryScalarFieldEnum = {
   id: 'id',
+  userId: 'userId',
   date: 'date',
   startMinutes: 'startMinutes',
   endMinutes: 'endMinutes',
@@ -90,7 +92,7 @@ export type LogEntryScalarFieldEnum = (typeof LogEntryScalarFieldEnum)[keyof typ
 
 
 export const SyncScheduleScalarFieldEnum = {
-  id: 'id',
+  userId: 'userId',
   enabled: 'enabled',
   mode: 'mode',
   dailyAtMinutes: 'dailyAtMinutes',
@@ -111,6 +113,7 @@ export type SyncScheduleScalarFieldEnum = (typeof SyncScheduleScalarFieldEnum)[k
 
 export const SyncRunScalarFieldEnum = {
   id: 'id',
+  userId: 'userId',
   startedAt: 'startedAt',
   finishedAt: 'finishedAt',
   trigger: 'trigger',
@@ -124,13 +127,22 @@ export type SyncRunScalarFieldEnum = (typeof SyncRunScalarFieldEnum)[keyof typeo
 
 
 export const NpaxCredentialScalarFieldEnum = {
-  id: 'id',
   userId: 'userId',
+  loginId: 'loginId',
   passwordEncrypted: 'passwordEncrypted',
   updatedAt: 'updatedAt'
 } as const
 
 export type NpaxCredentialScalarFieldEnum = (typeof NpaxCredentialScalarFieldEnum)[keyof typeof NpaxCredentialScalarFieldEnum]
+
+
+export const UserSessionScalarFieldEnum = {
+  tokenHash: 'tokenHash',
+  userId: 'userId',
+  createdAt: 'createdAt'
+} as const
+
+export type UserSessionScalarFieldEnum = (typeof UserSessionScalarFieldEnum)[keyof typeof UserSessionScalarFieldEnum]
 
 
 export const SortOrder = {

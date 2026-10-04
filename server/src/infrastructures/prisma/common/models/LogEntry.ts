@@ -38,6 +38,7 @@ export type LogEntrySumAggregateOutputType = {
 
 export type LogEntryMinAggregateOutputType = {
   id: string | null
+  userId: string | null
   date: string | null
   startMinutes: number | null
   endMinutes: number | null
@@ -51,6 +52,7 @@ export type LogEntryMinAggregateOutputType = {
 
 export type LogEntryMaxAggregateOutputType = {
   id: string | null
+  userId: string | null
   date: string | null
   startMinutes: number | null
   endMinutes: number | null
@@ -64,6 +66,7 @@ export type LogEntryMaxAggregateOutputType = {
 
 export type LogEntryCountAggregateOutputType = {
   id: number
+  userId: number
   date: number
   startMinutes: number
   endMinutes: number
@@ -89,6 +92,7 @@ export type LogEntrySumAggregateInputType = {
 
 export type LogEntryMinAggregateInputType = {
   id?: true
+  userId?: true
   date?: true
   startMinutes?: true
   endMinutes?: true
@@ -102,6 +106,7 @@ export type LogEntryMinAggregateInputType = {
 
 export type LogEntryMaxAggregateInputType = {
   id?: true
+  userId?: true
   date?: true
   startMinutes?: true
   endMinutes?: true
@@ -115,6 +120,7 @@ export type LogEntryMaxAggregateInputType = {
 
 export type LogEntryCountAggregateInputType = {
   id?: true
+  userId?: true
   date?: true
   startMinutes?: true
   endMinutes?: true
@@ -215,6 +221,7 @@ export type LogEntryGroupByArgs<ExtArgs extends runtime.Types.Extensions.Interna
 
 export type LogEntryGroupByOutputType = {
   id: string
+  userId: string
   date: string
   startMinutes: number
   endMinutes: number
@@ -251,6 +258,7 @@ export type LogEntryWhereInput = {
   OR?: Prisma.LogEntryWhereInput[]
   NOT?: Prisma.LogEntryWhereInput | Prisma.LogEntryWhereInput[]
   id?: Prisma.StringFilter<"LogEntry"> | string
+  userId?: Prisma.StringFilter<"LogEntry"> | string
   date?: Prisma.StringFilter<"LogEntry"> | string
   startMinutes?: Prisma.IntFilter<"LogEntry"> | number
   endMinutes?: Prisma.IntFilter<"LogEntry"> | number
@@ -264,6 +272,7 @@ export type LogEntryWhereInput = {
 
 export type LogEntryOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   date?: Prisma.SortOrder
   startMinutes?: Prisma.SortOrder
   endMinutes?: Prisma.SortOrder
@@ -280,6 +289,7 @@ export type LogEntryWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.LogEntryWhereInput | Prisma.LogEntryWhereInput[]
   OR?: Prisma.LogEntryWhereInput[]
   NOT?: Prisma.LogEntryWhereInput | Prisma.LogEntryWhereInput[]
+  userId?: Prisma.StringFilter<"LogEntry"> | string
   date?: Prisma.StringFilter<"LogEntry"> | string
   startMinutes?: Prisma.IntFilter<"LogEntry"> | number
   endMinutes?: Prisma.IntFilter<"LogEntry"> | number
@@ -293,6 +303,7 @@ export type LogEntryWhereUniqueInput = Prisma.AtLeast<{
 
 export type LogEntryOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   date?: Prisma.SortOrder
   startMinutes?: Prisma.SortOrder
   endMinutes?: Prisma.SortOrder
@@ -314,6 +325,7 @@ export type LogEntryScalarWhereWithAggregatesInput = {
   OR?: Prisma.LogEntryScalarWhereWithAggregatesInput[]
   NOT?: Prisma.LogEntryScalarWhereWithAggregatesInput | Prisma.LogEntryScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"LogEntry"> | string
+  userId?: Prisma.StringWithAggregatesFilter<"LogEntry"> | string
   date?: Prisma.StringWithAggregatesFilter<"LogEntry"> | string
   startMinutes?: Prisma.IntWithAggregatesFilter<"LogEntry"> | number
   endMinutes?: Prisma.IntWithAggregatesFilter<"LogEntry"> | number
@@ -327,6 +339,7 @@ export type LogEntryScalarWhereWithAggregatesInput = {
 
 export type LogEntryCreateInput = {
   id?: string
+  userId: string
   date: string
   startMinutes: number
   endMinutes: number
@@ -340,6 +353,7 @@ export type LogEntryCreateInput = {
 
 export type LogEntryUncheckedCreateInput = {
   id?: string
+  userId: string
   date: string
   startMinutes: number
   endMinutes: number
@@ -353,6 +367,7 @@ export type LogEntryUncheckedCreateInput = {
 
 export type LogEntryUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   date?: Prisma.StringFieldUpdateOperationsInput | string
   startMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   endMinutes?: Prisma.IntFieldUpdateOperationsInput | number
@@ -366,6 +381,7 @@ export type LogEntryUpdateInput = {
 
 export type LogEntryUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   date?: Prisma.StringFieldUpdateOperationsInput | string
   startMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   endMinutes?: Prisma.IntFieldUpdateOperationsInput | number
@@ -379,6 +395,7 @@ export type LogEntryUncheckedUpdateInput = {
 
 export type LogEntryCreateManyInput = {
   id?: string
+  userId: string
   date: string
   startMinutes: number
   endMinutes: number
@@ -392,6 +409,7 @@ export type LogEntryCreateManyInput = {
 
 export type LogEntryUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   date?: Prisma.StringFieldUpdateOperationsInput | string
   startMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   endMinutes?: Prisma.IntFieldUpdateOperationsInput | number
@@ -405,6 +423,7 @@ export type LogEntryUpdateManyMutationInput = {
 
 export type LogEntryUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   date?: Prisma.StringFieldUpdateOperationsInput | string
   startMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   endMinutes?: Prisma.IntFieldUpdateOperationsInput | number
@@ -418,6 +437,7 @@ export type LogEntryUncheckedUpdateManyInput = {
 
 export type LogEntryCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   date?: Prisma.SortOrder
   startMinutes?: Prisma.SortOrder
   endMinutes?: Prisma.SortOrder
@@ -436,6 +456,7 @@ export type LogEntryAvgOrderByAggregateInput = {
 
 export type LogEntryMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   date?: Prisma.SortOrder
   startMinutes?: Prisma.SortOrder
   endMinutes?: Prisma.SortOrder
@@ -449,6 +470,7 @@ export type LogEntryMaxOrderByAggregateInput = {
 
 export type LogEntryMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   date?: Prisma.SortOrder
   startMinutes?: Prisma.SortOrder
   endMinutes?: Prisma.SortOrder
@@ -493,6 +515,7 @@ export type DateTimeFieldUpdateOperationsInput = {
 
 export type LogEntrySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  userId?: boolean
   date?: boolean
   startMinutes?: boolean
   endMinutes?: boolean
@@ -506,6 +529,7 @@ export type LogEntrySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
 
 export type LogEntrySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  userId?: boolean
   date?: boolean
   startMinutes?: boolean
   endMinutes?: boolean
@@ -519,6 +543,7 @@ export type LogEntrySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
 
 export type LogEntrySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  userId?: boolean
   date?: boolean
   startMinutes?: boolean
   endMinutes?: boolean
@@ -532,6 +557,7 @@ export type LogEntrySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
 
 export type LogEntrySelectScalar = {
   id?: boolean
+  userId?: boolean
   date?: boolean
   startMinutes?: boolean
   endMinutes?: boolean
@@ -543,13 +569,14 @@ export type LogEntrySelectScalar = {
   updatedAt?: boolean
 }
 
-export type LogEntryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "date" | "startMinutes" | "endMinutes" | "description" | "workActivityCode" | "jobCode" | "syncedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["logEntry"]>
+export type LogEntryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "date" | "startMinutes" | "endMinutes" | "description" | "workActivityCode" | "jobCode" | "syncedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["logEntry"]>
 
 export type $LogEntryPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "LogEntry"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
+    userId: string
     /**
      * Local calendar day, "YYYY-MM-DD".
      */
@@ -995,6 +1022,7 @@ export interface Prisma__LogEntryClient<T, Null = never, ExtArgs extends runtime
  */
 export interface LogEntryFieldRefs {
   readonly id: Prisma.FieldRef<"LogEntry", 'String'>
+  readonly userId: Prisma.FieldRef<"LogEntry", 'String'>
   readonly date: Prisma.FieldRef<"LogEntry", 'String'>
   readonly startMinutes: Prisma.FieldRef<"LogEntry", 'Int'>
   readonly endMinutes: Prisma.FieldRef<"LogEntry", 'Int'>

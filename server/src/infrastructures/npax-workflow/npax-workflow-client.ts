@@ -71,42 +71,43 @@ export interface NpaxCapturedPage {
 }
 
 interface NpaxLogin {
-  userId: string;
+  /** The User ID as typed at Connect. */
+  loginId: string;
   password: string;
+}
+
+/** One user's signed-in browser context. Keyed by the user's lowercased User ID. */
+interface NpaxSession {
+  // Held in memory only, so the session can be re-established after the site expires it.
+  login: NpaxLogin;
+  context: BrowserContext | null;
+  page: Page | null;
+  status: NpaxSessionStatus;
 }
 const MAX_MONTHS_BACK = 3;
 // ASP.NET Calendar postback args are day offsets from 2000-01-01.
 const CALENDAR_EPOCH_UTC = Date.UTC(2000, 0, 1);
 
 /**
- * Reads attendance values from the N-PAX workflow site through one headless
- * browser session. Requests are queued so the site only ever sees one
- * navigation at a time. The session belongs to whoever last connected (or the
- * login restored at startup); `keepAlive` refreshes it and logs in again when
- * the site has expired it.
+ * Works the N-PAX workflow site through one headless browser, with a separate
+ * browser context (cookies, session) per connected user. Every call names the
+ * user it acts for: `user` is that user's lowercased User ID. Requests are
+ * queued so the site only ever sees one navigation at a time. `keepAlive`
+ * refreshes a user's session and logs in again when the site has expired it.
  */
 @Injectable()
 export class NpaxWorkflowClient implements OnModuleDestroy {
   private readonly logger = new Logger(NpaxWorkflowClient.name);
   private browser: Browser | null = null;
-  private context: BrowserContext | null = null;
-  private page: Page | null = null;
-  // Held in memory only, so the session can be re-established after the site expires it.
-  private login: NpaxLogin | null = null;
-  private status: NpaxSessionStatus = {
-    state: 'disconnected',
-    userId: null,
-    checkedAt: null,
-    message: null,
-  };
+  private readonly sessions = new Map<string, NpaxSession>();
   private queue: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly config: ConfigService) {}
 
   /** Returns the "Time In 1" value (HH:mm) for a date, or null if blank. */
-  getTimeIn(date: Date): Promise<string | null> {
+  getTimeIn(user: string, date: Date): Promise<string | null> {
     return this.enqueue(async () => {
-      const page = await this.openJobSplitPage();
+      const page = await this.openJobSplitPage(this.getSession(user));
       await this.selectDate(page, date);
 
       const expected = [date.getMonth() + 1, date.getDate()]
@@ -135,6 +136,7 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
    * With `dryRun` the form is filled and screenshotted but not saved.
    */
   saveAllocationDay(
+    user: string,
     day: NpaxAllocationDay,
     options: { dryRun?: boolean; screenshotPath?: string } = {},
   ): Promise<NpaxAllocationOutcome> {
@@ -148,7 +150,10 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
         );
       }
 
-      const page = await this.openSignedInPage(ALLOCATION_ENTRY_PATH);
+      const page = await this.openSignedInPage(
+        this.getSession(user),
+        ALLOCATION_ENTRY_PATH,
+      );
       const [year, month, date] = day.date.split('-').map(Number);
       await this.selectDate(page, new Date(year, month - 1, date));
 
@@ -406,9 +411,9 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
    * lookup page linked from either (e.g. lookupJSJobCode.aspx), for mapping
    * the form. Read-only: pages are only loaded, nothing is clicked or submitted.
    */
-  capturePages(): Promise<NpaxCapturedPage[]> {
+  capturePages(user: string): Promise<NpaxCapturedPage[]> {
     return this.enqueue(async () => {
-      const page = await this.openJobSplitPage();
+      const page = await this.openJobSplitPage(this.getSession(user));
       const captured: NpaxCapturedPage[] = [];
       const captureFrames = async (prefix: string) => {
         for (const [i, frame] of page.frames().entries()) {
@@ -540,16 +545,16 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
 
   /**
    * Tries to log in with the given credentials in a throwaway browser context,
-   * so the shared session's cookies are never touched. Resolves false when the
+   * so no user's session cookies are touched. Resolves false when the
    * site rejects the login; throws when the site itself can't be reached.
    */
-  verifyLogin(userId: string, password: string): Promise<boolean> {
+  verifyLogin(loginId: string, password: string): Promise<boolean> {
     return this.enqueue(async () => {
       const context = await (await this.getBrowser()).createBrowserContext();
       try {
         const page = await openPage(context);
         await page.goto(this.baseUrl + LOGIN_PATH, { waitUntil: 'load' });
-        await this.signIn(page, userId, password);
+        await this.signIn(page, loginId, password);
         return !this.isOnLoginPage(page);
       } catch (error) {
         // A login form that never navigates means the site refused it inline.
@@ -561,31 +566,61 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
     });
   }
 
-  getStatus(): NpaxSessionStatus {
-    return { ...this.status };
+  /** The user's session; 'disconnected' when they have none. */
+  getStatus(user: string): NpaxSessionStatus {
+    const session = this.sessions.get(user);
+    if (!session) {
+      return {
+        state: 'disconnected',
+        userId: null,
+        checkedAt: null,
+        message: null,
+      };
+    }
+    return { ...session.status };
+  }
+
+  /** Users with a login held in memory (connected, reconnecting or unreachable). */
+  connectedUsers(): string[] {
+    return [...this.sessions.keys()];
+  }
+
+  hasLogin(user: string): boolean {
+    return this.sessions.has(user);
   }
 
   /**
    * Logs in with these credentials and, if the site accepts them, makes that
-   * login the shared session (replacing any previous one). Resolves false when
-   * the site rejects them; throws when the site can't be reached.
+   * login `user`'s session (replacing any previous one of theirs; other users'
+   * sessions are untouched). Resolves false when the site rejects them; throws
+   * when the site can't be reached.
    */
-  connect(userId: string, password: string): Promise<boolean> {
+  connect(user: string, loginId: string, password: string): Promise<boolean> {
     return this.enqueue(async () => {
       const context = await (await this.getBrowser()).createBrowserContext();
       try {
         const page = await openPage(context);
         await page.goto(this.baseUrl + LOGIN_PATH, { waitUntil: 'load' });
-        await this.signIn(page, userId, password);
+        await this.signIn(page, loginId, password);
         if (this.isOnLoginPage(page)) {
           await context.close().catch(() => undefined);
           return false;
         }
-        await this.closeSession();
-        this.context = context;
-        this.page = page;
-        this.login = { userId, password };
-        this.markConnected();
+        const previous = this.sessions.get(user);
+        if (previous) await this.closeSession(previous);
+        const session: NpaxSession = {
+          login: { loginId, password },
+          context,
+          page,
+          status: {
+            state: 'connected',
+            userId: loginId,
+            checkedAt: null,
+            message: null,
+          },
+        };
+        this.sessions.set(user, session);
+        this.markConnected(session);
         return true;
       } catch (error) {
         await context.close().catch(() => undefined);
@@ -599,18 +634,27 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
    * Takes a previously saved login without logging in yet; the next
    * `keepAlive` signs in with it (and drops it if the site rejects it).
    */
-  restoreLogin(userId: string, password: string): void {
-    this.login = { userId, password };
-    this.setStatus('reconnecting', userId, 'Restoring the saved login');
+  restoreLogin(user: string, loginId: string, password: string): void {
+    this.sessions.set(user, {
+      login: { loginId, password },
+      context: null,
+      page: null,
+      status: {
+        state: 'reconnecting',
+        userId: loginId,
+        checkedAt: null,
+        message: 'Restoring the saved login',
+      },
+    });
   }
 
-  /** Forgets the connected login and closes its browser session. */
-  disconnect(): Promise<NpaxSessionStatus> {
+  /** Forgets the user's login and closes their browser session. */
+  disconnect(user: string): Promise<NpaxSessionStatus> {
     return this.enqueue(async () => {
-      this.login = null;
-      await this.closeSession();
-      this.setStatus('disconnected', null, null);
-      return this.getStatus();
+      const session = this.sessions.get(user);
+      this.sessions.delete(user);
+      if (session) await this.closeSession(session);
+      return this.getStatus(user);
     });
   }
 
@@ -620,10 +664,11 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
    * disconnects) only when every attempt was rejected by the site; network
    * failures leave it 'unreachable' so the next check tries again.
    */
-  keepAlive(): Promise<NpaxSessionStatus> {
+  keepAlive(user: string): Promise<NpaxSessionStatus> {
     return this.enqueue(async () => {
-      const login = this.login;
-      if (!login) return this.getStatus();
+      const session = this.sessions.get(user);
+      if (!session) return this.getStatus(user);
+      const { login } = session;
 
       const attempts = Math.max(
         1,
@@ -637,49 +682,47 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
       for (let attempt = 1; attempt <= attempts; attempt++) {
         if (attempt > 1) await delay(RELOGIN_BACKOFF_MS * 2 ** (attempt - 2));
         try {
-          const page = await this.getPage();
+          const page = await this.getPage(session);
           await page.goto(this.baseUrl + JOB_SPLIT_PATH, { waitUntil: 'load' });
           if (!this.isOnLoginPage(page)) {
-            this.markConnected();
-            return this.getStatus();
+            this.markConnected(session);
+            return this.getStatus(user);
           }
 
           this.logger.warn(
-            `N-PAX session expired; logging in again (attempt ${attempt}/${attempts})`,
+            `N-PAX session for ${user} expired; logging in again (attempt ${attempt}/${attempts})`,
           );
-          this.setStatus('reconnecting', login.userId, 'Session expired');
-          await this.signIn(page, login.userId, login.password);
+          this.setStatus(session, 'reconnecting', 'Session expired');
+          await this.signIn(page, login.loginId, login.password);
           await page.goto(this.baseUrl + JOB_SPLIT_PATH, { waitUntil: 'load' });
           if (!this.isOnLoginPage(page)) {
-            this.markConnected();
-            return this.getStatus();
+            this.markConnected(session);
+            return this.getStatus(user);
           }
           rejections++;
           lastError = 'The site rejected the saved login';
         } catch (error) {
           // A broken page is recreated on the next attempt.
-          await this.page?.close().catch(() => undefined);
-          this.page = null;
+          await session.page?.close().catch(() => undefined);
+          session.page = null;
           lastError = error instanceof Error ? error.message : String(error);
           this.logger.warn(
-            `N-PAX keep-alive attempt ${attempt} failed: ${lastError}`,
+            `N-PAX keep-alive attempt ${attempt} for ${user} failed: ${lastError}`,
           );
         }
       }
 
       if (rejections === attempts) {
-        this.logger.error('N-PAX rejected the saved login; disconnecting');
-        this.login = null;
-        await this.closeSession();
-        this.setStatus(
-          'disconnected',
-          null,
-          'The site rejected the saved login. Connect again.',
+        this.logger.error(
+          `N-PAX rejected the saved login for ${user}; disconnecting`,
         );
+        // Only if it is still this login; a fresh Connect may have replaced it meanwhile.
+        if (this.sessions.get(user) === session) this.sessions.delete(user);
+        await this.closeSession(session);
       } else {
-        this.setStatus('unreachable', login.userId, lastError);
+        this.setStatus(session, 'unreachable', lastError);
       }
-      return this.getStatus();
+      return this.getStatus(user);
     });
   }
 
@@ -699,8 +742,11 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
 
   private async getBrowser(): Promise<Browser> {
     if (!this.browser?.connected) {
-      this.context = null;
-      this.page = null;
+      // Contexts die with the browser; each session gets a new one on its next page.
+      for (const session of this.sessions.values()) {
+        session.context = null;
+        session.page = null;
+      }
       this.browser = await puppeteer.launch({
         headless: true,
         executablePath:
@@ -711,59 +757,63 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
     return this.browser;
   }
 
-  private async getPage(): Promise<Page> {
-    if (this.page && !this.page.isClosed()) return this.page;
+  private async getPage(session: NpaxSession): Promise<Page> {
+    if (session.page && !session.page.isClosed()) return session.page;
     const browser = await this.getBrowser();
-    this.context ??= await browser.createBrowserContext();
-    this.page = await openPage(this.context);
-    return this.page;
+    session.context ??= await browser.createBrowserContext();
+    session.page = await openPage(session.context);
+    return session.page;
   }
 
-  private async closeSession(): Promise<void> {
-    await this.context?.close().catch(() => undefined);
-    this.context = null;
-    this.page = null;
+  private async closeSession(session: NpaxSession): Promise<void> {
+    await session.context?.close().catch(() => undefined);
+    session.context = null;
+    session.page = null;
   }
 
-  private markConnected(): void {
-    this.setStatus('connected', this.login?.userId ?? null, null);
+  private markConnected(session: NpaxSession): void {
+    this.setStatus(session, 'connected', null);
   }
 
   private setStatus(
+    session: NpaxSession,
     state: NpaxSessionState,
-    userId: string | null,
     message: string | null,
   ): void {
-    this.status = {
+    session.status = {
       state,
-      userId,
+      userId: session.login.loginId,
       checkedAt:
         state === 'connected'
           ? new Date().toISOString()
-          : this.status.checkedAt,
+          : session.status.checkedAt,
       message,
     };
   }
 
-  /** The connected login; there is none until someone connects from the desktop. */
-  private getLogin(): NpaxLogin {
-    if (this.login) return this.login;
+  /** The user's session; there is none until they connect from the desktop. */
+  private getSession(user: string): NpaxSession {
+    const session = this.sessions.get(user);
+    if (session) return session;
     throw new ServiceUnavailableException(
       'Not connected to N-PAX. Connect from the desktop app first.',
     );
   }
 
-  private openJobSplitPage(): Promise<Page> {
-    return this.openSignedInPage(JOB_SPLIT_PATH);
+  private openJobSplitPage(session: NpaxSession): Promise<Page> {
+    return this.openSignedInPage(session, JOB_SPLIT_PATH);
   }
 
-  /** Loads a site page on the shared session, logging in first if it has expired. */
-  private async openSignedInPage(path: string): Promise<Page> {
-    const page = await this.getPage();
+  /** Loads a site page on the user's session, logging in first if it has expired. */
+  private async openSignedInPage(
+    session: NpaxSession,
+    path: string,
+  ): Promise<Page> {
+    const page = await this.getPage(session);
     await page.goto(this.baseUrl + path, { waitUntil: 'load' });
     if (this.isOnLoginPage(page)) {
-      const { userId, password } = this.getLogin();
-      await this.signIn(page, userId, password);
+      const { loginId, password } = session.login;
+      await this.signIn(page, loginId, password);
       await page.goto(this.baseUrl + path, { waitUntil: 'load' });
       if (this.isOnLoginPage(page)) {
         throw new ServiceUnavailableException('N-PAX login failed');

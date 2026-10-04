@@ -11,7 +11,7 @@ import { CredentialsService } from './credentials-service';
 const DEFAULT_KEEPALIVE_MS = 30_000;
 
 /**
- * Checks the connected N-PAX session on a fixed interval. Each check loads a
+ * Checks every connected user's N-PAX session on a fixed interval. Each check loads a
  * signed-in page (which resets the site's idle timer) and logs in again with
  * retries if the site has already expired the session.
  */
@@ -33,7 +33,7 @@ export class SessionKeepaliveScheduler
       this.config.get('NPAX_KEEPALIVE_MS') ?? DEFAULT_KEEPALIVE_MS,
     );
     this.timer = setInterval(() => void this.tick(), intervalMs);
-    this.logger.log(`Checking the N-PAX session every ${intervalMs / 1000}s`);
+    this.logger.log(`Checking N-PAX sessions every ${intervalMs / 1000}s`);
   }
 
   onModuleDestroy(): void {
@@ -46,11 +46,7 @@ export class SessionKeepaliveScheduler
     if (this.running) return;
     this.running = true;
     try {
-      await this.credentials.check();
-    } catch (error) {
-      this.logger.warn(
-        `N-PAX keep-alive failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      await this.credentials.checkAll();
     } finally {
       this.running = false;
     }

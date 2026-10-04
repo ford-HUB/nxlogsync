@@ -3,44 +3,47 @@ import { LogEntry } from '../../../infrastructures/prisma/common/client';
 import { PrismaService } from '../../../infrastructures/prisma/prisma-service';
 import { CreateLogEntryDto, UpdateLogEntryDto } from '../dto/log-entries-dto';
 
+/** Every query is scoped to one user (their key, see toUserKey); no user sees another's entries. */
 @Injectable()
 export class LogEntriesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findBetween(from: string, to: string): Promise<LogEntry[]> {
+  findBetween(userId: string, from: string, to: string): Promise<LogEntry[]> {
     return this.prisma.logEntry.findMany({
-      where: { date: { gte: from, lte: to } },
+      where: { userId, date: { gte: from, lte: to } },
       orderBy: [{ date: 'asc' }, { startMinutes: 'asc' }],
     });
   }
 
-  findByDate(date: string): Promise<LogEntry[]> {
+  findByDate(userId: string, date: string): Promise<LogEntry[]> {
     return this.prisma.logEntry.findMany({
-      where: { date },
+      where: { userId, date },
       orderBy: { startMinutes: 'asc' },
     });
   }
 
-  findById(id: string): Promise<LogEntry | null> {
-    return this.prisma.logEntry.findUnique({ where: { id } });
+  findById(userId: string, id: string): Promise<LogEntry | null> {
+    return this.prisma.logEntry.findFirst({ where: { id, userId } });
   }
 
-  /** Entries not yet saved to N-PAX, up to and including `throughDate`. */
-  findUnsynced(throughDate: string): Promise<LogEntry[]> {
+  /** The user's entries not yet saved to N-PAX, up to and including `throughDate`. */
+  findUnsynced(userId: string, throughDate: string): Promise<LogEntry[]> {
     return this.prisma.logEntry.findMany({
-      where: { syncedAt: null, date: { lte: throughDate } },
+      where: { userId, syncedAt: null, date: { lte: throughDate } },
       orderBy: [{ date: 'asc' }, { startMinutes: 'asc' }],
     });
   }
 
-  create(data: CreateLogEntryDto): Promise<LogEntry> {
-    return this.prisma.logEntry.create({ data });
+  create(userId: string, data: CreateLogEntryDto): Promise<LogEntry> {
+    return this.prisma.logEntry.create({ data: { ...data, userId } });
   }
 
+  /** Callers check ownership with findById first. */
   update(id: string, data: UpdateLogEntryDto): Promise<LogEntry> {
     return this.prisma.logEntry.update({ where: { id }, data });
   }
 
+  /** Callers check ownership with findById first. */
   delete(id: string): Promise<LogEntry> {
     return this.prisma.logEntry.delete({ where: { id } });
   }

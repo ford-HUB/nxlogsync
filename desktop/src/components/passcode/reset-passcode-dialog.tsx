@@ -19,9 +19,10 @@ const DIGITS_ONLY = /\D/g
 interface ResetPasscodeDialogProps {
   /** Resolves to false when the current passcode is wrong; on success the app switches to choosing a new one. */
   onReset: (current: string) => Promise<boolean>
+  disabled?: boolean
 }
 
-export function ResetPasscodeDialog({ onReset }: ResetPasscodeDialogProps) {
+export function ResetPasscodeDialog({ onReset, disabled = false }: ResetPasscodeDialogProps) {
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState('')
   const [checking, setChecking] = useState(false)
@@ -54,7 +55,7 @@ export function ResetPasscodeDialog({ onReset }: ResetPasscodeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button type="button" variant="outline">
+        <Button type="button" variant="outline" disabled={disabled}>
           <KeyRound />
           Reset passcode
         </Button>

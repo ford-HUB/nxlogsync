@@ -2,30 +2,32 @@ import { Injectable } from '@nestjs/common';
 import { NpaxCredential } from '../../../infrastructures/prisma/common/client';
 import { PrismaService } from '../../../infrastructures/prisma/prisma-service';
 
-// One saved login: whoever connected last.
-const CREDENTIAL_ID = 1;
-
+/** One saved N-PAX login per user, keyed by the user's key (see toUserKey). */
 @Injectable()
 export class CredentialsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  find(): Promise<NpaxCredential | null> {
-    return this.prisma.npaxCredential.findUnique({
-      where: { id: CREDENTIAL_ID },
-    });
+  find(userId: string): Promise<NpaxCredential | null> {
+    return this.prisma.npaxCredential.findUnique({ where: { userId } });
   }
 
-  save(userId: string, passwordEncrypted: string): Promise<NpaxCredential> {
+  findAll(): Promise<NpaxCredential[]> {
+    return this.prisma.npaxCredential.findMany();
+  }
+
+  save(
+    userId: string,
+    loginId: string,
+    passwordEncrypted: string,
+  ): Promise<NpaxCredential> {
     return this.prisma.npaxCredential.upsert({
-      where: { id: CREDENTIAL_ID },
-      create: { id: CREDENTIAL_ID, userId, passwordEncrypted },
-      update: { userId, passwordEncrypted },
+      where: { userId },
+      create: { userId, loginId, passwordEncrypted },
+      update: { loginId, passwordEncrypted },
     });
   }
 
-  async delete(): Promise<void> {
-    await this.prisma.npaxCredential.deleteMany({
-      where: { id: CREDENTIAL_ID },
-    });
+  async delete(userId: string): Promise<void> {
+    await this.prisma.npaxCredential.deleteMany({ where: { userId } });
   }
 }

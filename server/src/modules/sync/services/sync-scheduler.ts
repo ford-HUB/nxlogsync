@@ -4,14 +4,16 @@ import {
   OnApplicationBootstrap,
   OnModuleDestroy,
 } from '@nestjs/common';
+import { NpaxWorkflowClient } from '../../../infrastructures/npax-workflow/npax-workflow-client';
 import { SyncScheduleDto } from '../dto/sync-dto';
 import { SyncService } from './sync-service';
 
 const TICK_MS = 60_000;
 
 /**
- * Fires a scheduled sync when a run time from the saved schedule falls between
- * two ticks. Times are the server machine's local time, the same clock the
+ * Fires a user's scheduled sync when a run time from their saved schedule falls
+ * between two ticks. Users who aren't connected to N-PAX are skipped (their
+ * run would only fail); their entries go up on the first run after they reconnect. Times are the server machine's local time, the same clock the
  * desktop uses to show "Next sync".
  */
 @Injectable()
@@ -20,7 +22,10 @@ export class SyncScheduler implements OnApplicationBootstrap, OnModuleDestroy {
   private timer: NodeJS.Timeout | null = null;
   private lastTick = new Date();
 
-  constructor(private readonly syncService: SyncService) {}
+  constructor(
+    private readonly syncService: SyncService,
+    private readonly npax: NpaxWorkflowClient,
+  ) {}
 
   onApplicationBootstrap(): void {
     this.lastTick = new Date();
@@ -36,18 +41,32 @@ export class SyncScheduler implements OnApplicationBootstrap, OnModuleDestroy {
     const from = this.lastTick;
     const to = new Date();
     this.lastTick = to;
+    let schedules: Map<string, SyncScheduleDto>;
     try {
-      const schedule = await this.syncService.getSchedule();
-      if (!hasRunBetween(schedule, from, to)) return;
-      if (this.syncService.isRunning) {
-        this.logger.warn('Scheduled sync skipped: a sync is already running');
-        return;
-      }
-      await this.syncService.startRun('scheduled');
+      schedules = await this.syncService.listSchedules();
     } catch (error) {
       this.logger.warn(
-        `Scheduled sync failed to start: ${error instanceof Error ? error.message : String(error)}`,
+        `Couldn't read sync schedules: ${error instanceof Error ? error.message : String(error)}`,
       );
+      return;
+    }
+    for (const [user, schedule] of schedules) {
+      if (!hasRunBetween(schedule, from, to) || !this.npax.hasLogin(user)) {
+        continue;
+      }
+      if (this.syncService.isRunning(user)) {
+        this.logger.warn(
+          `Scheduled sync for ${user} skipped: a sync is already running`,
+        );
+        continue;
+      }
+      try {
+        await this.syncService.startRun(user, 'scheduled');
+      } catch (error) {
+        this.logger.warn(
+          `Scheduled sync for ${user} failed to start: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     }
   }
 }

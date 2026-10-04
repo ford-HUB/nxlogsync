@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model SyncSchedule
- * Single row (id = 1): when the server uploads entries to N-PAX.
+ * One row per user: when the server uploads that user's entries to N-PAX.
  */
 export type SyncScheduleModel = runtime.Types.Result.DefaultSelection<Prisma.$SyncSchedulePayload>
 
@@ -27,7 +27,6 @@ export type AggregateSyncSchedule = {
 }
 
 export type SyncScheduleAvgAggregateOutputType = {
-  id: number | null
   dailyAtMinutes: number | null
   intervalHours: number | null
   windowStartMinutes: number | null
@@ -38,7 +37,6 @@ export type SyncScheduleAvgAggregateOutputType = {
 }
 
 export type SyncScheduleSumAggregateOutputType = {
-  id: number | null
   dailyAtMinutes: number | null
   intervalHours: number | null
   windowStartMinutes: number | null
@@ -49,7 +47,7 @@ export type SyncScheduleSumAggregateOutputType = {
 }
 
 export type SyncScheduleMinAggregateOutputType = {
-  id: number | null
+  userId: string | null
   enabled: boolean | null
   mode: string | null
   dailyAtMinutes: number | null
@@ -65,7 +63,7 @@ export type SyncScheduleMinAggregateOutputType = {
 }
 
 export type SyncScheduleMaxAggregateOutputType = {
-  id: number | null
+  userId: string | null
   enabled: boolean | null
   mode: string | null
   dailyAtMinutes: number | null
@@ -81,7 +79,7 @@ export type SyncScheduleMaxAggregateOutputType = {
 }
 
 export type SyncScheduleCountAggregateOutputType = {
-  id: number
+  userId: number
   enabled: number
   mode: number
   dailyAtMinutes: number
@@ -100,7 +98,6 @@ export type SyncScheduleCountAggregateOutputType = {
 
 
 export type SyncScheduleAvgAggregateInputType = {
-  id?: true
   dailyAtMinutes?: true
   intervalHours?: true
   windowStartMinutes?: true
@@ -111,7 +108,6 @@ export type SyncScheduleAvgAggregateInputType = {
 }
 
 export type SyncScheduleSumAggregateInputType = {
-  id?: true
   dailyAtMinutes?: true
   intervalHours?: true
   windowStartMinutes?: true
@@ -122,7 +118,7 @@ export type SyncScheduleSumAggregateInputType = {
 }
 
 export type SyncScheduleMinAggregateInputType = {
-  id?: true
+  userId?: true
   enabled?: true
   mode?: true
   dailyAtMinutes?: true
@@ -138,7 +134,7 @@ export type SyncScheduleMinAggregateInputType = {
 }
 
 export type SyncScheduleMaxAggregateInputType = {
-  id?: true
+  userId?: true
   enabled?: true
   mode?: true
   dailyAtMinutes?: true
@@ -154,7 +150,7 @@ export type SyncScheduleMaxAggregateInputType = {
 }
 
 export type SyncScheduleCountAggregateInputType = {
-  id?: true
+  userId?: true
   enabled?: true
   mode?: true
   dailyAtMinutes?: true
@@ -258,7 +254,7 @@ export type SyncScheduleGroupByArgs<ExtArgs extends runtime.Types.Extensions.Int
 }
 
 export type SyncScheduleGroupByOutputType = {
-  id: number
+  userId: string
   enabled: boolean
   mode: string
   dailyAtMinutes: number
@@ -298,7 +294,7 @@ export type SyncScheduleWhereInput = {
   AND?: Prisma.SyncScheduleWhereInput | Prisma.SyncScheduleWhereInput[]
   OR?: Prisma.SyncScheduleWhereInput[]
   NOT?: Prisma.SyncScheduleWhereInput | Prisma.SyncScheduleWhereInput[]
-  id?: Prisma.IntFilter<"SyncSchedule"> | number
+  userId?: Prisma.StringFilter<"SyncSchedule"> | string
   enabled?: Prisma.BoolFilter<"SyncSchedule"> | boolean
   mode?: Prisma.StringFilter<"SyncSchedule"> | string
   dailyAtMinutes?: Prisma.IntFilter<"SyncSchedule"> | number
@@ -315,7 +311,7 @@ export type SyncScheduleWhereInput = {
 }
 
 export type SyncScheduleOrderByWithRelationInput = {
-  id?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   mode?: Prisma.SortOrder
   dailyAtMinutes?: Prisma.SortOrder
@@ -332,7 +328,7 @@ export type SyncScheduleOrderByWithRelationInput = {
 }
 
 export type SyncScheduleWhereUniqueInput = Prisma.AtLeast<{
-  id?: number
+  userId?: string
   AND?: Prisma.SyncScheduleWhereInput | Prisma.SyncScheduleWhereInput[]
   OR?: Prisma.SyncScheduleWhereInput[]
   NOT?: Prisma.SyncScheduleWhereInput | Prisma.SyncScheduleWhereInput[]
@@ -349,10 +345,10 @@ export type SyncScheduleWhereUniqueInput = Prisma.AtLeast<{
   retryAttempts?: Prisma.IntFilter<"SyncSchedule"> | number
   skipEmptyDays?: Prisma.BoolFilter<"SyncSchedule"> | boolean
   updatedAt?: Prisma.DateTimeFilter<"SyncSchedule"> | Date | string
-}, "id">
+}, "userId">
 
 export type SyncScheduleOrderByWithAggregationInput = {
-  id?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   mode?: Prisma.SortOrder
   dailyAtMinutes?: Prisma.SortOrder
@@ -377,7 +373,7 @@ export type SyncScheduleScalarWhereWithAggregatesInput = {
   AND?: Prisma.SyncScheduleScalarWhereWithAggregatesInput | Prisma.SyncScheduleScalarWhereWithAggregatesInput[]
   OR?: Prisma.SyncScheduleScalarWhereWithAggregatesInput[]
   NOT?: Prisma.SyncScheduleScalarWhereWithAggregatesInput | Prisma.SyncScheduleScalarWhereWithAggregatesInput[]
-  id?: Prisma.IntWithAggregatesFilter<"SyncSchedule"> | number
+  userId?: Prisma.StringWithAggregatesFilter<"SyncSchedule"> | string
   enabled?: Prisma.BoolWithAggregatesFilter<"SyncSchedule"> | boolean
   mode?: Prisma.StringWithAggregatesFilter<"SyncSchedule"> | string
   dailyAtMinutes?: Prisma.IntWithAggregatesFilter<"SyncSchedule"> | number
@@ -394,7 +390,7 @@ export type SyncScheduleScalarWhereWithAggregatesInput = {
 }
 
 export type SyncScheduleCreateInput = {
-  id?: number
+  userId: string
   enabled?: boolean
   mode?: string
   dailyAtMinutes?: number
@@ -411,7 +407,7 @@ export type SyncScheduleCreateInput = {
 }
 
 export type SyncScheduleUncheckedCreateInput = {
-  id?: number
+  userId: string
   enabled?: boolean
   mode?: string
   dailyAtMinutes?: number
@@ -428,7 +424,7 @@ export type SyncScheduleUncheckedCreateInput = {
 }
 
 export type SyncScheduleUpdateInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mode?: Prisma.StringFieldUpdateOperationsInput | string
   dailyAtMinutes?: Prisma.IntFieldUpdateOperationsInput | number
@@ -445,7 +441,7 @@ export type SyncScheduleUpdateInput = {
 }
 
 export type SyncScheduleUncheckedUpdateInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mode?: Prisma.StringFieldUpdateOperationsInput | string
   dailyAtMinutes?: Prisma.IntFieldUpdateOperationsInput | number
@@ -462,7 +458,7 @@ export type SyncScheduleUncheckedUpdateInput = {
 }
 
 export type SyncScheduleCreateManyInput = {
-  id?: number
+  userId: string
   enabled?: boolean
   mode?: string
   dailyAtMinutes?: number
@@ -479,7 +475,7 @@ export type SyncScheduleCreateManyInput = {
 }
 
 export type SyncScheduleUpdateManyMutationInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mode?: Prisma.StringFieldUpdateOperationsInput | string
   dailyAtMinutes?: Prisma.IntFieldUpdateOperationsInput | number
@@ -496,7 +492,7 @@ export type SyncScheduleUpdateManyMutationInput = {
 }
 
 export type SyncScheduleUncheckedUpdateManyInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   mode?: Prisma.StringFieldUpdateOperationsInput | string
   dailyAtMinutes?: Prisma.IntFieldUpdateOperationsInput | number
@@ -521,7 +517,7 @@ export type IntNullableListFilter<$PrismaModel = never> = {
 }
 
 export type SyncScheduleCountOrderByAggregateInput = {
-  id?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   mode?: Prisma.SortOrder
   dailyAtMinutes?: Prisma.SortOrder
@@ -538,7 +534,6 @@ export type SyncScheduleCountOrderByAggregateInput = {
 }
 
 export type SyncScheduleAvgOrderByAggregateInput = {
-  id?: Prisma.SortOrder
   dailyAtMinutes?: Prisma.SortOrder
   intervalHours?: Prisma.SortOrder
   windowStartMinutes?: Prisma.SortOrder
@@ -549,7 +544,7 @@ export type SyncScheduleAvgOrderByAggregateInput = {
 }
 
 export type SyncScheduleMaxOrderByAggregateInput = {
-  id?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   mode?: Prisma.SortOrder
   dailyAtMinutes?: Prisma.SortOrder
@@ -565,7 +560,7 @@ export type SyncScheduleMaxOrderByAggregateInput = {
 }
 
 export type SyncScheduleMinOrderByAggregateInput = {
-  id?: Prisma.SortOrder
+  userId?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   mode?: Prisma.SortOrder
   dailyAtMinutes?: Prisma.SortOrder
@@ -581,7 +576,6 @@ export type SyncScheduleMinOrderByAggregateInput = {
 }
 
 export type SyncScheduleSumOrderByAggregateInput = {
-  id?: Prisma.SortOrder
   dailyAtMinutes?: Prisma.SortOrder
   intervalHours?: Prisma.SortOrder
   windowStartMinutes?: Prisma.SortOrder
@@ -607,7 +601,7 @@ export type SyncScheduleUpdatedaysInput = {
 
 
 export type SyncScheduleSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
+  userId?: boolean
   enabled?: boolean
   mode?: boolean
   dailyAtMinutes?: boolean
@@ -624,7 +618,7 @@ export type SyncScheduleSelect<ExtArgs extends runtime.Types.Extensions.Internal
 }, ExtArgs["result"]["syncSchedule"]>
 
 export type SyncScheduleSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
+  userId?: boolean
   enabled?: boolean
   mode?: boolean
   dailyAtMinutes?: boolean
@@ -641,7 +635,7 @@ export type SyncScheduleSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
 }, ExtArgs["result"]["syncSchedule"]>
 
 export type SyncScheduleSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  id?: boolean
+  userId?: boolean
   enabled?: boolean
   mode?: boolean
   dailyAtMinutes?: boolean
@@ -658,7 +652,7 @@ export type SyncScheduleSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
 }, ExtArgs["result"]["syncSchedule"]>
 
 export type SyncScheduleSelectScalar = {
-  id?: boolean
+  userId?: boolean
   enabled?: boolean
   mode?: boolean
   dailyAtMinutes?: boolean
@@ -674,13 +668,13 @@ export type SyncScheduleSelectScalar = {
   updatedAt?: boolean
 }
 
-export type SyncScheduleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "enabled" | "mode" | "dailyAtMinutes" | "intervalHours" | "windowStartMinutes" | "windowEndMinutes" | "days" | "monthlyDaysBeforeEnd" | "monthlyWeekdaysOnly" | "targetUrl" | "retryAttempts" | "skipEmptyDays" | "updatedAt", ExtArgs["result"]["syncSchedule"]>
+export type SyncScheduleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"userId" | "enabled" | "mode" | "dailyAtMinutes" | "intervalHours" | "windowStartMinutes" | "windowEndMinutes" | "days" | "monthlyDaysBeforeEnd" | "monthlyWeekdaysOnly" | "targetUrl" | "retryAttempts" | "skipEmptyDays" | "updatedAt", ExtArgs["result"]["syncSchedule"]>
 
 export type $SyncSchedulePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "SyncSchedule"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
-    id: number
+    userId: string
     enabled: boolean
     /**
      * 'daily' | 'interval' | 'monthly' | 'manual'
@@ -783,8 +777,8 @@ export interface SyncScheduleDelegate<ExtArgs extends runtime.Types.Extensions.I
    * // Get first 10 SyncSchedules
    * const syncSchedules = await prisma.syncSchedule.findMany({ take: 10 })
    * 
-   * // Only select the `id`
-   * const syncScheduleWithIdOnly = await prisma.syncSchedule.findMany({ select: { id: true } })
+   * // Only select the `userId`
+   * const syncScheduleWithUserIdOnly = await prisma.syncSchedule.findMany({ select: { userId: true } })
    * 
    */
   findMany<T extends SyncScheduleFindManyArgs>(args?: Prisma.SelectSubset<T, SyncScheduleFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SyncSchedulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -828,9 +822,9 @@ export interface SyncScheduleDelegate<ExtArgs extends runtime.Types.Extensions.I
    *   ]
    * })
    * 
-   * // Create many SyncSchedules and only return the `id`
-   * const syncScheduleWithIdOnly = await prisma.syncSchedule.createManyAndReturn({
-   *   select: { id: true },
+   * // Create many SyncSchedules and only return the `userId`
+   * const syncScheduleWithUserIdOnly = await prisma.syncSchedule.createManyAndReturn({
+   *   select: { userId: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -919,9 +913,9 @@ export interface SyncScheduleDelegate<ExtArgs extends runtime.Types.Extensions.I
    *   ]
    * })
    * 
-   * // Update zero or more SyncSchedules and only return the `id`
-   * const syncScheduleWithIdOnly = await prisma.syncSchedule.updateManyAndReturn({
-   *   select: { id: true },
+   * // Update zero or more SyncSchedules and only return the `userId`
+   * const syncScheduleWithUserIdOnly = await prisma.syncSchedule.updateManyAndReturn({
+   *   select: { userId: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -1123,7 +1117,7 @@ export interface Prisma__SyncScheduleClient<T, Null = never, ExtArgs extends run
  * Fields of the SyncSchedule model
  */
 export interface SyncScheduleFieldRefs {
-  readonly id: Prisma.FieldRef<"SyncSchedule", 'Int'>
+  readonly userId: Prisma.FieldRef<"SyncSchedule", 'String'>
   readonly enabled: Prisma.FieldRef<"SyncSchedule", 'Boolean'>
   readonly mode: Prisma.FieldRef<"SyncSchedule", 'String'>
   readonly dailyAtMinutes: Prisma.FieldRef<"SyncSchedule", 'Int'>

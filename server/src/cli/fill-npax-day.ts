@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { LogEntriesRepository } from '../modules/log-entries/repositories/log-entries-repository';
-import { connectSavedLogin, NpaxCliModule } from './npax-cli-module';
+import { connectSavedLogin, NpaxCliModule, userArg } from './npax-cli-module';
 
 /**
  * Fills one day's entries into the N-PAX Allocation Entry page and saves a
@@ -12,6 +12,7 @@ import { connectSavedLogin, NpaxCliModule } from './npax-cli-module';
  *
  *   pnpm npax:fill 2026-10-05          (fill + screenshot, nothing saved)
  *   pnpm npax:fill 2026-10-05 --save   (fill + screenshot + SAVE)
+ *   add --user=<User ID> when several logins are saved; that user's entries are filled
  *
  * It does not mark entries as synced; the scheduled sync still owns that.
  */
@@ -20,17 +21,19 @@ async function main(): Promise<void> {
   const date = process.argv[2];
   const save = process.argv.includes('--save');
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    throw new Error('Usage: pnpm npax:fill YYYY-MM-DD [--save]');
+    throw new Error(
+      'Usage: pnpm npax:fill YYYY-MM-DD [--save] [--user=<User ID>]',
+    );
   }
 
   const app = await NestFactory.createApplicationContext(NpaxCliModule, {
     logger: ['log', 'warn', 'error'],
   });
   try {
-    const entries = await app.get(LogEntriesRepository).findByDate(date);
+    const { npax, user } = await connectSavedLogin(app, userArg());
+    const entries = await app.get(LogEntriesRepository).findByDate(user, date);
     if (entries.length === 0) throw new Error(`No entries logged on ${date}.`);
 
-    const npax = await connectSavedLogin(app);
     const dir = join(process.cwd(), 'captures');
     await mkdir(dir, { recursive: true });
     const screenshotPath = join(
@@ -38,6 +41,7 @@ async function main(): Promise<void> {
       `fill-${date}-${new Date().toISOString().replace(/[:.]/g, '-')}.png`,
     );
     const outcome = await npax.saveAllocationDay(
+      user,
       { date, entries },
       { dryRun: !save, screenshotPath },
     );

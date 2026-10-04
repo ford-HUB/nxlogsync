@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ACTIVITY_WEEKS, DAILY_LIMIT_MINUTES, NEAR_LIMIT_MINUTES } from '@/constants/daily-log'
 import { shiftDateKey, toDateKey } from '@/constants/time-format'
 import { useNow } from '@/hooks/use-now'
+import { useSiteSessionStore } from '@/store/site-session-store'
 import { useDailyLogStore } from '@/store/daily-log-store'
 import type { DayStatus, EntryDraft } from '@/types/daily-log'
 
@@ -29,14 +30,19 @@ export function useDailyLog() {
   const saveChange = useDailyLogStore((s) => s.updateEntry)
   const remove = useDailyLogStore((s) => s.removeEntry)
   const dismissError = useDailyLogStore((s) => s.dismissError)
+  const reset = useDailyLogStore((s) => s.reset)
 
   const reload = useCallback(
     () => fetchEntries(shiftDateKey(todayKey, -ACTIVITY_WEEKS * 7), todayKey),
     [fetchEntries, todayKey],
   )
+  // Entries belong to the signed-in site user: load once one connects, again if the user
+  // changes, and drop them on sign-out.
+  const userId = useSiteSessionStore((s) => s.target.userId)
   useEffect(() => {
-    void reload()
-  }, [reload])
+    if (userId !== null) void reload()
+    else reset()
+  }, [reload, reset, userId])
 
   const entries = useMemo(
     () => [...(entriesByDate[dateKey] ?? [])].sort((a, b) => a.startMinutes - b.startMinutes),

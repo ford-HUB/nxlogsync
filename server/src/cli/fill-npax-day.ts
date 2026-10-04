@@ -49,9 +49,10 @@ async function main(): Promise<void> {
       'dry-run': `Filled ${entries.length} row(s); NOT saved (add --save to save).`,
       saved: `Saved ${entries.length} row(s) on N-PAX (not submitted).`,
       'already-recorded': `N-PAX already has allocations on ${date}; nothing changed.`,
+      'no-time-record': `N-PAX has no time record for ${date} yet, so it can't compute work hours; nothing was filled. Try again once the day's time in/out is on N-PAX.`,
     }[outcome];
     logger.log(result);
-    if (outcome !== 'already-recorded')
+    if (outcome === 'saved' || outcome === 'dry-run')
       logger.log(`Screenshot: ${screenshotPath}`);
   } finally {
     await app.close();

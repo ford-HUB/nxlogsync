@@ -32,4 +32,14 @@ export default tseslint.config(
       "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },
+  {
+    // Plain JS config files (e.g. .puppeteerrc.cjs) are not part of any
+    // tsconfig, so typed linting can't parse them.
+    // Kept last so the typed rules enabled above stay off for them.
+    files: ['**/*.{js,cjs,mjs}'],
+    extends: [tseslint.configs.disableTypeChecked],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
 );

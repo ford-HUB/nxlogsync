@@ -701,7 +701,12 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
     if (!this.browser?.connected) {
       this.context = null;
       this.page = null;
-      this.browser = await puppeteer.launch({ headless: true });
+      this.browser = await puppeteer.launch({
+        headless: true,
+        executablePath:
+          this.config.get<string>('PUPPETEER_EXECUTABLE_PATH') || undefined,
+        args: ['--no-sandbox', '--disable-dev-shm-usage'],
+      });
     }
     return this.browser;
   }

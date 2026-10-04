@@ -1,7 +1,7 @@
 // @see - https://www.electron.build/configuration/configuration
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "YourAppID",
+  "appId": "com.de4rd.nxlogsync",
   "asar": true,
   "productName": "NXLogSync",
   "directories": {
@@ -30,11 +30,17 @@
     ],
     "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
   },
+  "portable": {
+    "artifactName": "${productName}-Windows-${version}-Portable.${ext}"
+  },
   "nsis": {
     "oneClick": false,
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
-    "deleteAppDataOnUninstall": false
+    "deleteAppDataOnUninstall": false,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "NXLogSync"
   },
   "linux": {
     "icon": "public/logo-nxlogsync.png",

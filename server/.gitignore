@@ -73,3 +73,6 @@ src/generated/
 
 # N-PAX page captures (contain personal data)
 /captures
+
+# Puppeteer browser download (see .puppeteerrc.cjs)
+/.cache

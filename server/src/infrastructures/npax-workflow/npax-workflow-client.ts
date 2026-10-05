@@ -1068,7 +1068,9 @@ function readAllocationForm(page: Page): Promise<{
       date: value('txtDate'),
       dayFlag: value('hiddenDFlag'),
       status: value('hiddenStatus'),
-      existing: value('txtJStart'),
+      // A saved allocation always has a Job No.; Start Time alone isn't proof,
+      // since Allocation Entry pre-fills it from the day's Time In.
+      existing: value('txtJJobCode'),
       shift: value('txtShift'),
     };
   });

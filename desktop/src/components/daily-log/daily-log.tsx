@@ -47,10 +47,13 @@ export function DailyLog({ onOpenSettings }: DailyLogProps) {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
       <DayHeader
         dateKey={log.dateKey}
+        todayKey={log.todayKey}
         isToday={log.isToday}
+        minutesByDate={log.minutesByDate}
         onPrevious={() => changeDay(log.goToPreviousDay)}
         onNext={() => changeDay(log.goToNextDay)}
         onToday={() => changeDay(log.goToToday)}
+        onSelectDay={openDay}
         onOpenActivity={() => setActivityOpen(true)}
         onOpenSettings={onOpenSettings}
         locked={!signedIn}

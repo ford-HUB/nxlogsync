@@ -102,6 +102,8 @@ export function EntryForm({
   // Weekends take no entries at all; a full day only blocks new ones.
   const isWeekend = isWeekendKey(dateKey)
   const locked = isWeekend || draft.isDayFull
+  // A run timing this form (paused or not) holds back saving until Stop fills in its times.
+  const timing = isToday && timer.running && (editingEntry === null || timesEdit)
 
   // A running timer owns the Started wheel: set it when the timer starts (or is
   // restored after a reload, or an edit ends), with the finish one step after.
@@ -147,14 +149,14 @@ export function EntryForm({
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    if (!isWeekend) draft.submit()
+    if (!isWeekend && !timing) draft.submit()
   }
 
   // Enter adds the entry; Shift+Enter keeps a newline in the description.
   const handleDescriptionKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
     event.preventDefault()
-    if (!isWeekend) draft.submit()
+    if (!isWeekend && !timing) draft.submit()
   }
 
   const handleFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
@@ -322,7 +324,12 @@ export function EntryForm({
                   Cancel
                 </Button>
               )}
-              <Button type="submit" className="flex-1 sm:flex-none" disabled={isWeekend || !draft.canSubmit}>
+              <Button
+                type="submit"
+                className="flex-1 sm:flex-none"
+                disabled={isWeekend || timing || !draft.canSubmit}
+                title={timing ? 'Stop the timer first' : undefined}
+              >
                 {draft.isEditing ? <Check /> : <Plus />}
                 {draft.isEditing ? 'Update entry' : 'Add entry'}
               </Button>

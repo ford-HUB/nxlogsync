@@ -5,11 +5,35 @@ export const DAILY_LIMIT_MINUTES = DAILY_LIMIT_HOURS * 60
 /** Remaining time at or below this flips the day to "near limit". */
 export const NEAR_LIMIT_MINUTES = 60
 
+/** The shift's unpaid break, which N-PAX leaves out of Work Hours. */
+export const BREAK_START_MINUTES = 12 * 60
+export const BREAK_END_MINUTES = 13 * 60
+
+/**
+ * Minutes that count toward the day, as N-PAX counts them: the span less any part
+ * of the break it covers — 10:45–15:55 is 4h 10m, not 5h 10m.
+ */
+export function workMinutes(startMinutes: number, endMinutes: number): number {
+  const onBreak = Math.max(
+    0,
+    Math.min(endMinutes, BREAK_END_MINUTES) - Math.max(startMinutes, BREAK_START_MINUTES),
+  )
+  return Math.max(0, endMinutes - startMinutes - onBreak)
+}
+
 export const MINUTES_PER_DAY = 24 * 60
 export const TIME_STEP_MINUTES = 1
 export const LAST_SELECTABLE_MINUTE = MINUTES_PER_DAY - TIME_STEP_MINUTES
 export const DEFAULT_START_MINUTES = 9 * 60
 export const DEFAULT_DRAFT_DURATION_MINUTES = 60
+
+/** N-PAX starts a shift on the next 10-minute mark at or after the time in. */
+export const SHIFT_START_STEP_MINUTES = 10
+
+/** The shift start N-PAX assigns a time in: 08:13 → 08:20, 08:20 → 08:20, 08:21 → 08:30. */
+export function shiftStartMinutes(timeInMinutes: number): number {
+  return Math.ceil(timeInMinutes / SHIFT_START_STEP_MINUTES) * SHIFT_START_STEP_MINUTES
+}
 
 export const DESCRIPTION_MAX_LENGTH = 500
 

@@ -38,9 +38,50 @@ export class LogEntriesRepository {
     return this.prisma.logEntry.create({ data: { ...data, userId } });
   }
 
-  /** Callers check ownership with findById first. */
+  /**
+   * Every entry on each day, up to and including `throughDate`, that has at
+   * least one entry not yet saved to N-PAX. A sync replaces the whole day on
+   * N-PAX, so it must send the day's synced entries along with the new ones.
+   */
+  async findDaysToSync(
+    userId: string,
+    throughDate: string,
+  ): Promise<LogEntry[]> {
+    const days = await this.prisma.logEntry.findMany({
+      where: { userId, syncedAt: null, date: { lte: throughDate } },
+      select: { date: true },
+      distinct: ['date'],
+    });
+    return this.prisma.logEntry.findMany({
+      where: { userId, date: { in: days.map((d) => d.date) } },
+      orderBy: [{ date: 'asc' }, { startMinutes: 'asc' }],
+    });
+  }
+
+  /** Callers check ownership with findById first. An edited entry must be uploaded again. */
   update(id: string, data: UpdateLogEntryDto): Promise<LogEntry> {
-    return this.prisma.logEntry.update({ where: { id }, data });
+    return this.prisma.logEntry.update({
+      where: { id },
+      data: { ...data, syncedAt: null },
+    });
+  }
+
+  /** Marks a day's entries as not yet on N-PAX, so the next sync uploads the day again. */
+  async markDayUnsynced(userId: string, date: string): Promise<void> {
+    await this.markDaysUnsynced(userId, [date]);
+  }
+
+  /** As markDayUnsynced, for several days; resolves to the entries marked. */
+  async markDaysUnsynced(
+    userId: string,
+    dates: string[],
+  ): Promise<{ date: string }[]> {
+    const where = { userId, date: { in: dates } };
+    const [, entries] = await this.prisma.$transaction([
+      this.prisma.logEntry.updateMany({ where, data: { syncedAt: null } }),
+      this.prisma.logEntry.findMany({ where, select: { date: true } }),
+    ]);
+    return entries;
   }
 
   /** Callers check ownership with findById first. */

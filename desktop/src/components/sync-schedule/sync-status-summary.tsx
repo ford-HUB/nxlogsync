@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { CalendarSync, RefreshCw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
@@ -16,6 +16,7 @@ import {
 import { formatDuration } from '@/constants/time-format'
 import type { SyncScheduleState } from '@/hooks/use-sync-schedule'
 import { cn } from '@/lib/utils'
+import { ResyncDaysDialog } from './resync-days-dialog'
 
 interface SyncStatusSummaryProps {
   schedule: SyncScheduleState
@@ -23,6 +24,7 @@ interface SyncStatusSummaryProps {
 
 export function SyncStatusSummary({ schedule: s }: SyncStatusSummaryProps) {
   const { nextRun, lastRun, pending, now } = s
+  const [resyncOpen, setResyncOpen] = useState(false)
   const minutesUntil = nextRun ? Math.max(1, Math.round((nextRun.getTime() - now.getTime()) / 60_000)) : 0
 
   return (
@@ -96,11 +98,18 @@ export function SyncStatusSummary({ schedule: s }: SyncStatusSummaryProps) {
             </span>
           </Label>
         </div>
-        <Button type="button" onClick={s.syncNow} disabled={s.isSyncing}>
-          <RefreshCw className={cn(s.isSyncing && 'animate-spin')} />
-          {s.isSyncing ? 'Syncing…' : 'Sync now'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => setResyncOpen(true)} disabled={s.isSyncing}>
+            <CalendarSync />
+            Resync days
+          </Button>
+          <Button type="button" onClick={s.syncNow} disabled={s.isSyncing}>
+            <RefreshCw className={cn(s.isSyncing && 'animate-spin')} />
+            {s.isSyncing ? 'Syncing…' : 'Sync now'}
+          </Button>
+        </div>
       </CardFooter>
+      <ResyncDaysDialog open={resyncOpen} onOpenChange={setResyncOpen} />
     </Card>
   )
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { shiftStartMinutes } from '@/constants/daily-log'
 import { getTimeIn } from '@/services/attendance-service'
 
 // A recorded time in never changes, so each day is read from N-PAX at most once per session.
@@ -17,7 +18,8 @@ function parseTimeIn(value: string): number | null {
 }
 
 /**
- * The day's actual time in from the N-PAX workflow, in minutes of the day. Null
+ * The day's shift start from the N-PAX workflow time in (rounded up to the next
+ * 10-minute mark, as N-PAX does), in minutes of the day. Null
  * until it loads, when the day has none yet, or when it can't be fetched (the
  * form then falls back to its default start).
  */
@@ -28,7 +30,8 @@ export function useTimeIn(dateKey: string, enabled: boolean): number | null {
     if (!enabled || timeInCache.has(dateKey)) return
     let cancelled = false
     void getTimeIn(dateKey).then((result) => {
-      const minutes = result.success && result.data.timeIn ? parseTimeIn(result.data.timeIn) : null
+      const timeIn = result.success && result.data.timeIn ? parseTimeIn(result.data.timeIn) : null
+      const minutes = timeIn === null ? null : shiftStartMinutes(timeIn)
       if (minutes !== null) timeInCache.set(dateKey, minutes)
       if (!cancelled) setLoaded({ dateKey, minutes })
     })

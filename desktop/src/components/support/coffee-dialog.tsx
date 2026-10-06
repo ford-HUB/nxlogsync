@@ -18,7 +18,8 @@ export function CoffeeDialog() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="gap-5 sm:max-w-sm">
-          <DialogHeader className="items-center text-center">
+          {/* Top padding keeps the description clear of the close button. */}
+          <DialogHeader className="items-center px-4 pt-6 text-center">
             {/* Radix needs a title for screen readers; it stays hidden on screen. */}
             <DialogTitle className="sr-only">Buy onedev a coffee</DialogTitle>
             <DialogDescription>

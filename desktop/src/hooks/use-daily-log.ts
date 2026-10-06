@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ACTIVITY_WEEKS, DAILY_LIMIT_MINUTES, NEAR_LIMIT_MINUTES } from '@/constants/daily-log'
+import { ACTIVITY_WEEKS, DAILY_LIMIT_MINUTES, NEAR_LIMIT_MINUTES, workMinutes } from '@/constants/daily-log'
 import { shiftDateKey, toDateKey } from '@/constants/time-format'
 import { useNow } from '@/hooks/use-now'
 import { useSiteSessionStore } from '@/store/site-session-store'
 import { useDailyLogStore } from '@/store/daily-log-store'
+import { useSyncScheduleStore } from '@/store/sync-schedule-store'
 import type { DayStatus, EntryDraft } from '@/types/daily-log'
 
 function getDayStatus(totalMinutes: number, entryCount: number): DayStatus {
@@ -44,6 +45,16 @@ export function useDailyLog() {
     else reset()
   }, [reload, reset, userId])
 
+  // A finished sync changes which entries are synced; reload to show it.
+  const latestRun = useSyncScheduleStore((s) => s.runs[0])
+  const finishedRunKey = latestRun && latestRun.status !== 'running' ? `${latestRun.id}:${latestRun.status}` : null
+  const [seenRunKey, setSeenRunKey] = useState(finishedRunKey)
+  useEffect(() => {
+    if (finishedRunKey === seenRunKey) return
+    setSeenRunKey(finishedRunKey)
+    if (seenRunKey !== null && userId !== null) void reload()
+  }, [finishedRunKey, seenRunKey, reload, userId])
+
   const entries = useMemo(
     () => [...(entriesByDate[dateKey] ?? [])].sort((a, b) => a.startMinutes - b.startMinutes),
     [entriesByDate, dateKey],
@@ -52,12 +63,12 @@ export function useDailyLog() {
   const minutesByDate = useMemo(() => {
     const totals: Record<string, number> = {}
     for (const [key, dayEntries] of Object.entries(entriesByDate)) {
-      totals[key] = dayEntries.reduce((sum, e) => sum + (e.endMinutes - e.startMinutes), 0)
+      totals[key] = dayEntries.reduce((sum, e) => sum + workMinutes(e.startMinutes, e.endMinutes), 0)
     }
     return totals
   }, [entriesByDate])
 
-  const totalMinutes = entries.reduce((sum, e) => sum + (e.endMinutes - e.startMinutes), 0)
+  const totalMinutes = entries.reduce((sum, e) => sum + workMinutes(e.startMinutes, e.endMinutes), 0)
   const remainingMinutes = Math.max(0, DAILY_LIMIT_MINUTES - totalMinutes)
   const overtimeMinutes = Math.max(0, totalMinutes - DAILY_LIMIT_MINUTES)
   const status = getDayStatus(totalMinutes, entries.length)

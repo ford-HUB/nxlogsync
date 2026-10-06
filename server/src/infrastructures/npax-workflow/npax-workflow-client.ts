@@ -20,14 +20,18 @@ const ALLOCATION_ENTRY_PATH =
   '/Transactions/ManhourAllocation/pgeWorkRecord.aspx';
 // SAVE only; the page's Submit/Endorse buttons are never pressed.
 const SAVE_BUTTON = '#ctl00_ContentPlaceHolder1_btnZ';
-// CLEAR (CANCEL on some statuses) wipes the day's saved, not-yet-endorsed allocation.
+// CLEAR, only on Allocation Modification: wipes a day's saved, not-yet-endorsed allocation.
 const CLEAR_BUTTON = '#ctl00_ContentPlaceHolder1_btnY';
+// How long to let the page's onload setup finish after CLEAR before filling anyway.
+const CLEAR_SETTLE_MS = 15_000;
 // Positions of a row's <input>s, as the site's _manhour.js counts them.
 const RBL_BILLABLE_YES_INPUT = 11;
 const HBILLABLE_INPUT = 18;
-// The free-tier host is slow to drive Chrome and N-PAX itself can take a while to
-// answer, so 30s was routinely exceeded. Override with NPAX_NAV_TIMEOUT_MS.
-const DEFAULT_NAV_TIMEOUT_MS = 90_000;
+// N-PAX can take minutes to answer (e.g. after CLEAR), so navigations wait as
+// long as it takes: 0 is Puppeteer's "no limit". Set NPAX_NAV_TIMEOUT_MS to cap them.
+const DEFAULT_NAV_TIMEOUT_MS = 0;
+// A lookup popup may never open at all, so waiting for one stays bounded.
+const POPUP_TIMEOUT_MS = 90_000;
 // How long to wait for the User ID box's autopostback before assuming there is none.
 const POSTBACK_GRACE_MS = 2_000;
 const DEFAULT_RELOGIN_ATTEMPTS = 3;
@@ -123,10 +127,10 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
   constructor(private readonly config: ConfigService) {}
 
   private get navTimeoutMs(): number {
-    return Math.max(
-      10_000,
-      Number(this.config.get('NPAX_NAV_TIMEOUT_MS')) || DEFAULT_NAV_TIMEOUT_MS,
-    );
+    const configured = Number(this.config.get('NPAX_NAV_TIMEOUT_MS'));
+    return configured > 0
+      ? Math.max(10_000, configured)
+      : DEFAULT_NAV_TIMEOUT_MS;
   }
 
   /** Returns the "Time In 1" value (HH:mm) for a date, or null if blank. */
@@ -156,8 +160,8 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
    * person would: times typed in, Job and Work Activity picked through their
    * lookup popups, description in Particulars. Then presses SAVE, never
    * SUBMIT, so nothing is endorsed. A day that already has a saved allocation
-   * is cleared first (the page's CLEAR button) so NXLogSync's entries replace
-   * it; an endorsed day keeps CLEAR disabled and is never touched.
+   * is cleared first (CLEAR on Allocation Modification) so NXLogSync's
+   * entries replace it; an endorsed day keeps CLEAR disabled and is never touched.
    *
    * With `dryRun` the form is filled and screenshotted but not saved, and an
    * existing allocation is not cleared.
@@ -192,13 +196,7 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
       const replacing = form.existing.trim() !== '';
       if (replacing) {
         if (options.dryRun) return 'already-recorded';
-        page = await this.clearAllocationDay(
-          session,
-          page,
-          day0,
-          expected,
-          form.status,
-        );
+        page = await this.clearAllocationDay(session, page, day0, expected);
         form = await readAllocationForm(page);
       }
       // Work Hours are computed from the day's shift ("... [HH:mm ... HH:mm]");
@@ -238,43 +236,28 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
           : dialog.dismiss();
       });
       try {
+        let lastRowIndex = -1;
         for (const [i, entry] of entries.entries()) {
           if (i > 0) await page.evaluate('Addk("tst")');
-          const rowIndex = await page.evaluate((n) => {
+          // Addk appends the new row last; an earlier row may have been split
+          // in two by an accepted overtime prompt, so don't count rows.
+          const rowIndex = await page.evaluate((first) => {
             const table = document.getElementById('tst') as HTMLTableElement;
             // Row 0 is the column header, which also has more than 5 cells.
             const rows = Array.from(table.rows).filter(
               (r) => r.rowIndex > 0 && r.cells.length > 5,
             );
-            return rows[n]?.rowIndex ?? -1;
-          }, i);
-          if (rowIndex < 0) {
+            return (first ? rows[0] : rows[rows.length - 1])?.rowIndex ?? -1;
+          }, i === 0);
+          if (rowIndex < 0 || (i > 0 && rowIndex === lastRowIndex)) {
             throw new ServiceUnavailableException(
               `N-PAX would not add row ${i + 1} for ${day.date}${alerts.length ? `: ${alerts.join(' / ')}` : ''}`,
             );
           }
+          lastRowIndex = rowIndex;
 
-          // A person types Start and Work Hours and the page derives End
-          // (autoEndtime); NXLogSync has both times, so it types all three.
-          await page.evaluate(
-            (row, start, end, hours) => {
-              const w = window as unknown as {
-                position: number;
-                formatCompute: () => void;
-              };
-              w.position = row;
-              const table = document.getElementById('tst') as HTMLTableElement;
-              const inputs = table.rows[row].getElementsByTagName('input');
-              inputs[1].value = start;
-              inputs[2].value = end;
-              inputs[3].value = hours;
-              w.formatCompute();
-            },
-            rowIndex,
-            toClock24(entry.startMinutes),
-            toClock24(entry.endMinutes),
-            workHours(entry.startMinutes, entry.endMinutes, form.shift),
-          );
+          // Job, activity and particulars go in before the times: an accepted
+          // overtime prompt splits the row in two, copying what it holds.
           await this.pickFromLookup(
             page,
             rowIndex,
@@ -305,6 +288,28 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
             // "|$|" separates rows when the page posts them; keep it out of the text.
             // N-PAX keeps particulars in uppercase, including entries saved before the form enforced it.
             entry.description.replace(/\|\$\|/g, '| $ |').toUpperCase(),
+          );
+
+          // A person types Start and Work Hours and the page derives End
+          // (autoEndtime); NXLogSync has both times, so it types all three.
+          await page.evaluate(
+            (row, start, end, hours) => {
+              const w = window as unknown as {
+                position: number;
+                formatCompute: () => void;
+              };
+              w.position = row;
+              const table = document.getElementById('tst') as HTMLTableElement;
+              const inputs = table.rows[row].getElementsByTagName('input');
+              inputs[1].value = start;
+              inputs[2].value = end;
+              inputs[3].value = hours;
+              w.formatCompute();
+            },
+            rowIndex,
+            toClock24(entry.startMinutes),
+            toClock24(entry.endMinutes),
+            workHours(entry.startMinutes, entry.endMinutes, form.shift),
           );
         }
 
@@ -371,7 +376,24 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
             (el) => (el as HTMLInputElement).value,
           )
           .catch(() => '');
-        if (!saved.includes(toClock24(entries[0].startMinutes))) {
+        // The saved page lists every row's start, comma-separated.
+        // An overtime split adds a row that starts inside one of ours; any
+        // other start is a row left over from before.
+        const savedStarts = saved
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean);
+        const missing = entries.filter(
+          (e) => !savedStarts.includes(toClock24(e.startMinutes)),
+        );
+        const stray = savedStarts.filter((t) => {
+          const [h, m] = t.split(':').map(Number);
+          const at = h * 60 + m;
+          return !entries.some(
+            (e) => at >= e.startMinutes && at < e.endMinutes,
+          );
+        });
+        if (missing.length > 0 || stray.length > 0) {
           throw new ServiceUnavailableException(
             `N-PAX did not keep the ${day.date} allocation${alerts.length ? `: ${alerts.join(' / ')}` : ''}`,
           );
@@ -384,37 +406,68 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
   }
 
   /**
-   * Presses CLEAR on a day's saved allocation and returns the page showing
-   * that day again, now empty. Refuses when the site keeps CLEAR disabled
-   * (the allocation is endorsed or routed to a checker).
+   * Presses CLEAR once on a day's saved allocation and returns that page, its
+   * form now empty, to be filled and saved over the allocation. CLEAR only
+   * exists on Allocation Modification: when `page` is already that page for
+   * the day (any day but today) it is cleared in place; otherwise (today, on
+   * Allocation Entry) the day is opened there first. Refuses when the site
+   * keeps CLEAR disabled (the allocation is endorsed or routed to a checker).
    */
   private async clearAllocationDay(
     session: NpaxSession,
-    page: Page,
+    current: Page,
     date: Date,
     expected: string,
-    status: string,
   ): Promise<Page> {
+    let page = current;
+    if (!page.url().includes(JOB_SPLIT_PATH)) {
+      page = await this.openJobSplitPage(session);
+      await this.selectDate(page, date);
+    }
+    const form = await readAllocationForm(page);
+    if (form.date.trim() !== expected) {
+      throw new ServiceUnavailableException(
+        `N-PAX Allocation Modification showed ${form.date || '(none)'} instead of ${expected}`,
+      );
+    }
+    // Nothing saved on Allocation Modification: no CLEAR needed, go straight to the entry.
+    if (form.existing.trim() === '') return page;
     const clearDisabled = await page
       .$eval(CLEAR_BUTTON, (el) => (el as HTMLInputElement).disabled)
       .catch(() => true);
     if (clearDisabled) {
       throw new ServiceUnavailableException(
-        `N-PAX won't clear the saved allocation on ${expected} (status ${status || 'none'}); it may already be endorsed`,
+        `N-PAX won't clear the saved allocation on ${expected} (status ${form.status || 'none'}); it may already be endorsed`,
       );
     }
     this.logger.log(`Clearing the saved N-PAX allocation on ${expected}`);
-    await Promise.all([
-      page.waitForNavigation({ waitUntil: 'load' }),
-      page.click(CLEAR_BUTTON),
-    ]);
+    const startedAt = Date.now();
+    // CLEAR is a plain form submit. Click it through the DOM rather than the
+    // mouse, which can land on whatever overlaps the button and never submit,
+    // and go on once the new form is parsed instead of waiting for every
+    // script and stylesheet to finish loading.
+    const navigation = page.waitForNavigation({
+      waitUntil: 'domcontentloaded',
+    });
+    await page
+      .$eval(CLEAR_BUTTON, (el) => (el as HTMLInputElement).click())
+      .catch(ignoreNavigationError);
+    await navigation;
+    // The form's onload setup still has to run before rows are added; give it
+    // a moment, but don't hang on a straggling resource.
+    await page
+      .waitForFunction(() => document.readyState === 'complete', {
+        timeout: CLEAR_SETTLE_MS,
+      })
+      .catch(() => undefined);
+    this.logger.log(
+      `Cleared ${expected} in ${((Date.now() - startedAt) / 1000).toFixed(1)}s`,
+    );
 
-    let form = await readAllocationForm(page);
-    if (form.date.trim() !== expected) {
-      page = await this.openAllocationForm(session, date, expected);
-      form = await readAllocationForm(page);
-    }
-    if (form.date.trim() !== expected || form.existing.trim() !== '') {
+    // CLEAR only empties this form; the saved allocation is replaced when
+    // the day is filled and saved here. Reopening the day would bring it back.
+    const after = await readAllocationForm(page);
+    if (after.date.trim() !== expected || after.existing.trim() !== '') {
       throw new ServiceUnavailableException(
         `N-PAX still shows the saved allocation on ${expected} after Clear`,
       );
@@ -435,7 +488,7 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
     code: string,
     label: string,
   ): Promise<void> {
-    const popupPromise = waitForPopup(page, this.navTimeoutMs);
+    const popupPromise = waitForPopup(page, POPUP_TIMEOUT_MS, this.navTimeoutMs);
     await page.evaluate(
       (row, fn) => {
         const w = window as unknown as Record<string, unknown> & {
@@ -557,7 +610,7 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
       // The Job lookup only lists jobs when the form opens it, so open it the
       // way the row's search button does and save the popup (nothing is picked).
       const popup = new Promise<Page | null>((resolve) => {
-        const timer = setTimeout(() => resolve(null), this.navTimeoutMs);
+        const timer = setTimeout(() => resolve(null), POPUP_TIMEOUT_MS);
         page.browserContext().once('targetcreated', (target) => {
           clearTimeout(timer);
           void target.page().then(resolve, () => resolve(null));
@@ -1224,7 +1277,9 @@ function fitToShift<T extends { startMinutes: number; endMinutes: number }>(
   overtime: boolean,
 ): (T & { original: T })[] {
   const step = NPAX_TIME_STEP_MINUTES;
-  const round = (minutes: number) => Math.round(minutes / step) * step;
+  // 23:59 would round to 24:00, which N-PAX can't take; 23:55 is the last mark.
+  const round = (minutes: number) =>
+    Math.min(Math.round(minutes / step) * step, 24 * 60 - step);
   let cursor = 0;
   const fitted = [...entries]
     .sort((a, b) => a.startMinutes - b.startMinutes)
@@ -1278,9 +1333,13 @@ function workHours(start: number, end: number, shift: string): string {
 }
 
 /** Resolves with the next window the page opens (null if none opens in time). */
-function waitForPopup(page: Page, timeoutMs: number): Promise<Page | null> {
+function waitForPopup(
+  page: Page,
+  openWithinMs: number,
+  timeoutMs: number,
+): Promise<Page | null> {
   return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(null), timeoutMs);
+    const timer = setTimeout(() => resolve(null), openWithinMs);
     page.once('popup', (popup) => {
       clearTimeout(timer);
       if (!popup) return resolve(null);

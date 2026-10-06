@@ -7,6 +7,7 @@ import {
   DAY_STATUS_BADGE,
   DAY_STATUS_BAR,
   DAY_STATUS_LABEL,
+  workMinutes,
 } from '@/constants/daily-log'
 import { formatClock, formatDuration } from '@/constants/time-format'
 import { cn } from '@/lib/utils'
@@ -81,7 +82,7 @@ export function HoursSummary({
             aria-label={`${formatDuration(totalMinutes)} logged of ${DAILY_LIMIT_HOURS} hour limit${overtimeMinutes > 0 ? `, ${formatDuration(overtimeMinutes)} overtime` : ''}`}
           >
             {entries.map((entry) => {
-              const minutes = entry.endMinutes - entry.startMinutes
+              const minutes = workMinutes(entry.startMinutes, entry.endMinutes)
               const dimmed = highlightedId !== null && highlightedId !== entry.id
               // Overtime: the part of the day past 9h is red, splitting the entry it starts in.
               const withinLimit = Math.min(minutes, Math.max(0, DAILY_LIMIT_MINUTES - loggedBefore))

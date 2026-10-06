@@ -4,7 +4,6 @@ import {
   OnApplicationBootstrap,
   OnModuleDestroy,
 } from '@nestjs/common';
-import { NpaxWorkflowClient } from '../../../infrastructures/npax-workflow/npax-workflow-client';
 import { SyncScheduleDto } from '../dto/sync-dto';
 import { SyncService } from './sync-service';
 
@@ -12,9 +11,11 @@ const TICK_MS = 60_000;
 
 /**
  * Fires a user's scheduled sync when a run time from their saved schedule falls
- * between two ticks. Users who aren't connected to N-PAX are skipped (their
- * run would only fail); their entries go up on the first run after they reconnect. Times are the server machine's local time, the same clock the
- * desktop uses to show "Next sync".
+ * between two ticks. A run that comes due while the user's N-PAX session isn't
+ * connected (expired, re-logging in, or signed out) would only fail, so it is
+ * deferred and started on the first tick after the session is logged in again,
+ * along with any run the session ending cut short. Times are the server
+ * machine's local time, the same clock the desktop uses to show "Next sync".
  */
 @Injectable()
 export class SyncScheduler implements OnApplicationBootstrap, OnModuleDestroy {
@@ -22,10 +23,7 @@ export class SyncScheduler implements OnApplicationBootstrap, OnModuleDestroy {
   private timer: NodeJS.Timeout | null = null;
   private lastTick = new Date();
 
-  constructor(
-    private readonly syncService: SyncService,
-    private readonly npax: NpaxWorkflowClient,
-  ) {}
+  constructor(private readonly syncService: SyncService) {}
 
   onApplicationBootstrap(): void {
     this.lastTick = new Date();
@@ -41,6 +39,7 @@ export class SyncScheduler implements OnApplicationBootstrap, OnModuleDestroy {
     const from = this.lastTick;
     const to = new Date();
     this.lastTick = to;
+    await this.syncService.resumeDeferred();
     let schedules: Map<string, SyncScheduleDto>;
     try {
       schedules = await this.syncService.listSchedules();
@@ -51,7 +50,9 @@ export class SyncScheduler implements OnApplicationBootstrap, OnModuleDestroy {
       return;
     }
     for (const [user, schedule] of schedules) {
-      if (!hasRunBetween(schedule, from, to) || !this.npax.hasLogin(user)) {
+      if (!hasRunBetween(schedule, from, to)) continue;
+      if (!this.syncService.isConnected(user)) {
+        this.syncService.deferUntilConnected(user);
         continue;
       }
       if (this.syncService.isRunning(user)) {

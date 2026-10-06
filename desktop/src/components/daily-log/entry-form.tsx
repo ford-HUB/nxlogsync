@@ -13,7 +13,7 @@ import {
   WHEEL_ITEM_HEIGHT,
   WHEEL_VISIBLE_ITEMS,
 } from '@/constants/daily-log'
-import { formatClock, formatDuration } from '@/constants/time-format'
+import { formatClock, formatDuration, isWeekendKey } from '@/constants/time-format'
 import { useEntryDraft } from '@/hooks/use-entry-draft'
 import { useTaskTimer } from '@/hooks/use-task-timer'
 import type { EntryDraft, LogEntry } from '@/types/daily-log'
@@ -99,6 +99,9 @@ export function EntryForm({
   // The entry being edited when Start was pressed: that run only moves its finish.
   const [timedEntryId, setTimedEntryId] = useState<string | null>(null)
   const timesEdit = timer.running && editingEntry !== null && timedEntryId === editingEntry.id
+  // Weekends take no entries at all; a full day only blocks new ones.
+  const isWeekend = isWeekendKey(dateKey)
+  const locked = isWeekend || draft.isDayFull
 
   // A running timer owns the Started wheel: set it when the timer starts (or is
   // restored after a reload, or an edit ends), with the finish one step after.
@@ -144,14 +147,14 @@ export function EntryForm({
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    draft.submit()
+    if (!isWeekend) draft.submit()
   }
 
   // Enter adds the entry; Shift+Enter keeps a newline in the description.
   const handleDescriptionKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
     event.preventDefault()
-    draft.submit()
+    if (!isWeekend) draft.submit()
   }
 
   const handleFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
@@ -167,7 +170,9 @@ export function EntryForm({
         <CardHeader className="border-b py-4">
           <CardTitle>{editingEntry ? 'Edit entry' : 'New entry'}</CardTitle>
           <CardDescription className="text-[12px]">
-            {timesEdit
+            {isWeekend
+              ? 'Weekends are off; tasks can only be logged Monday to Friday.'
+              : timesEdit
               ? timer.paused
                 ? 'Timer paused; paused time is not counted. Press Resume to continue, or Stop to fill in the finish.'
                 : 'Timer running; the saved Started time stays. Press Stop when the task is done to fill in its finish, then Update.'
@@ -192,7 +197,7 @@ export function EntryForm({
                   onPause={timer.pause}
                   onResume={timer.resume}
                   onStop={stopTimer}
-                  startBlockedReason={draft.isDayFull ? `${DAILY_LIMIT_HOURS}h already logged for this day` : undefined}
+                  startBlockedReason={isWeekend ? 'Tasks can’t be logged on weekends' : draft.isDayFull ? `${DAILY_LIMIT_HOURS}h already logged for this day` : undefined}
                   stopBlockedReason={editingEntry && !timesEdit ? 'Finish or cancel the edit first' : undefined}
                 />
               )}
@@ -210,7 +215,7 @@ export function EntryForm({
                 id="entry-job"
                 icon={BriefcaseBusiness}
                 onClick={() => setJobLookupOpen(true)}
-                disabled={draft.isDayFull}
+                disabled={locked}
               >
                 {draft.job ? (
                   <>
@@ -232,7 +237,7 @@ export function EntryForm({
                 id="entry-work-activity"
                 icon={ListChecks}
                 onClick={() => setActivityLookupOpen(true)}
-                disabled={!draft.job || draft.isDayFull}
+                disabled={!draft.job || locked}
               >
                 {!draft.job ? (
                   <span className="text-muted-foreground">Select a job first</span>
@@ -256,11 +261,11 @@ export function EntryForm({
 
           <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
             <div className="flex items-end gap-3">
-              <TimePicker label="Started" value={draft.startMinutes} onChange={draft.setStartMinutes} isTaken={draft.isStartTaken} invalid={draft.issue !== null && !draft.limitMet} complete={draft.limitMet} disabled={draft.isDayFull} />
+              <TimePicker label="Started" value={draft.startMinutes} onChange={draft.setStartMinutes} isTaken={draft.isStartTaken} invalid={draft.issue !== null && !draft.limitMet} complete={draft.limitMet} disabled={locked} />
               <div aria-hidden className="flex items-center" style={{ height: WHEEL_BOX_HEIGHT }}>
                 <ArrowRight className="size-4 text-muted-foreground" />
               </div>
-              <TimePicker label="Finished" value={draft.endMinutes} onChange={draft.setEndMinutes} isTaken={draft.isEndTaken} invalid={draft.issue !== null && !draft.limitMet} complete={draft.limitMet} disabled={draft.isDayFull} />
+              <TimePicker label="Finished" value={draft.endMinutes} onChange={draft.setEndMinutes} isTaken={draft.isEndTaken} invalid={draft.issue !== null && !draft.limitMet} complete={draft.limitMet} disabled={locked} />
             </div>
 
             <div className="flex min-w-60 flex-1 flex-col gap-1.5">
@@ -281,8 +286,8 @@ export function EntryForm({
                 onKeyDown={handleDescriptionKeyDown}
                 maxLength={DESCRIPTION_MAX_LENGTH}
                 // The 9h are logged: nothing more to describe until an entry is shortened or removed.
-                disabled={draft.isDayFull}
-                placeholder={draft.isDayFull ? `${DAILY_LIMIT_HOURS}h logged for this day` : 'What did you work on?'}
+                disabled={locked}
+                placeholder={isWeekend ? 'No tasks on weekends' : draft.isDayFull ? `${DAILY_LIMIT_HOURS}h logged for this day` : 'What did you work on?'}
                 className="min-h-0 resize-none text-[13px]"
                 style={{ height: WHEEL_BOX_HEIGHT }}
               />
@@ -295,7 +300,9 @@ export function EntryForm({
               Duration <span className="font-semibold text-foreground tabular-nums">{formatDuration(draft.durationMinutes)}</span>
             </span>
             <span aria-hidden className="h-3 w-px bg-border" />
-            {draft.issue ? (
+            {isWeekend ? (
+              <span className="truncate text-muted-foreground">Weekend · no task entries</span>
+            ) : draft.issue ? (
               <span
                 role={draft.limitMet ? 'status' : 'alert'}
                 className={cn('flex min-w-0 items-center gap-1.5', draft.limitMet ? 'text-success' : 'text-destructive')}
@@ -315,7 +322,7 @@ export function EntryForm({
                   Cancel
                 </Button>
               )}
-              <Button type="submit" className="flex-1 sm:flex-none" disabled={!draft.canSubmit}>
+              <Button type="submit" className="flex-1 sm:flex-none" disabled={isWeekend || !draft.canSubmit}>
                 {draft.isEditing ? <Check /> : <Plus />}
                 {draft.isEditing ? 'Update entry' : 'Add entry'}
               </Button>

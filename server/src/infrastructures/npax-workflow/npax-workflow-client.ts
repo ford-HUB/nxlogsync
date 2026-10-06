@@ -20,6 +20,8 @@ const ALLOCATION_ENTRY_PATH =
   '/Transactions/ManhourAllocation/pgeWorkRecord.aspx';
 // SAVE only; the page's Submit/Endorse buttons are never pressed.
 const SAVE_BUTTON = '#ctl00_ContentPlaceHolder1_btnZ';
+// CLEAR (CANCEL on some statuses) wipes the day's saved, not-yet-endorsed allocation.
+const CLEAR_BUTTON = '#ctl00_ContentPlaceHolder1_btnY';
 // Positions of a row's <input>s, as the site's _manhour.js counts them.
 const RBL_BILLABLE_YES_INPUT = 11;
 const HBILLABLE_INPUT = 18;
@@ -31,6 +33,14 @@ const POSTBACK_GRACE_MS = 2_000;
 const DEFAULT_RELOGIN_ATTEMPTS = 3;
 // Waits between re-login attempts double from here: 2s, 4s, 8s, …
 const RELOGIN_BACKOFF_MS = 2_000;
+// Allocation times must sit on 5-minute marks ("System only allows minutes for every 5").
+const NPAX_TIME_STEP_MINUTES = 5;
+// A day only counts as overtime once its logged task time goes past this.
+const OVERTIME_AFTER_MINUTES = 9 * 60;
+// N-PAX confirm()s overtime when a row starts before or ends after the shift.
+const OVERTIME_PROMPT = /overtime/i;
+// Dialog handlers that replace openPage's dismiss-everything default on a page.
+const dialogHandlers = new WeakMap<Page, (dialog: Dialog) => Promise<void>>();
 
 export type NpaxSessionState =
   'connected' | 'reconnecting' | 'unreachable' | 'disconnected';
@@ -60,13 +70,16 @@ export interface NpaxAllocationDay {
 }
 
 /**
- * 'already-recorded' = N-PAX had allocations for that day, so nothing was added;
+ * 'replaced' = N-PAX had allocations for that day; they were cleared and the
+ * day's entries saved in their place;
+ * 'already-recorded' = (dry run only) N-PAX has allocations for that day, which
+ * a real run would clear and replace;
  * 'no-time-record' = N-PAX has no time record (shift) for that day yet, so it
  * can't compute work hours and nothing was filled;
  * 'dry-run' = the form was filled but not saved.
  */
 export type NpaxAllocationOutcome =
-  'saved' | 'already-recorded' | 'no-time-record' | 'dry-run';
+  'saved' | 'replaced' | 'already-recorded' | 'no-time-record' | 'dry-run';
 
 /** One page's HTML as captured by `capturePages`. */
 export interface NpaxCapturedPage {
@@ -142,10 +155,12 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
    * Records one day's entries on the N-PAX Allocation Entry page the way a
    * person would: times typed in, Job and Work Activity picked through their
    * lookup popups, description in Particulars. Then presses SAVE, never
-   * SUBMIT, so nothing is endorsed. Days that already have allocations on
-   * N-PAX are left untouched.
+   * SUBMIT, so nothing is endorsed. A day that already has a saved allocation
+   * is cleared first (the page's CLEAR button) so NXLogSync's entries replace
+   * it; an endorsed day keeps CLEAR disabled and is never touched.
    *
-   * With `dryRun` the form is filled and screenshotted but not saved.
+   * With `dryRun` the form is filled and screenshotted but not saved, and an
+   * existing allocation is not cleared.
    */
   saveAllocationDay(
     user: string,
@@ -164,19 +179,28 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
 
       const [year, month, date] = day.date.split('-').map(Number);
       const expected = `${String(month).padStart(2, '0')}/${String(date).padStart(2, '0')}/${year}`;
-      const page = await this.openAllocationForm(
-        this.getSession(user),
-        new Date(year, month - 1, date),
-        expected,
-      );
+      const session = this.getSession(user);
+      const day0 = new Date(year, month - 1, date);
+      let page = await this.openAllocationForm(session, day0, expected);
 
-      const form = await readAllocationForm(page);
+      let form = await readAllocationForm(page);
       if (form.date.trim() !== expected) {
         throw new ServiceUnavailableException(
           `N-PAX showed date ${form.date || '(none)'} instead of ${expected}`,
         );
       }
-      if (form.existing.trim() !== '') return 'already-recorded';
+      const replacing = form.existing.trim() !== '';
+      if (replacing) {
+        if (options.dryRun) return 'already-recorded';
+        page = await this.clearAllocationDay(
+          session,
+          page,
+          day0,
+          expected,
+          form.status,
+        );
+        form = await readAllocationForm(page);
+      }
       // Work Hours are computed from the day's shift ("... [HH:mm ... HH:mm]");
       // without one (no time record yet, e.g. a rest day) every row stays incomplete.
       if (!/\d{2}:\d{2}/.test(form.shift)) return 'no-time-record';
@@ -187,13 +211,33 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
         );
       }
 
-      const alerts: string[] = [];
-      const onDialog = (dialog: Dialog) => void alerts.push(dialog.message());
-      page.on('dialog', onDialog);
-      try {
-        const entries = [...day.entries].sort(
-          (a, b) => a.startMinutes - b.startMinutes,
+      const loggedMinutes = day.entries.reduce(
+        (sum, e) => sum + (e.endMinutes - e.startMinutes),
+        0,
+      );
+      const overtime = loggedMinutes > OVERTIME_AFTER_MINUTES;
+      const entries = fitToShift(day.entries, form.shift, overtime);
+      const moved = entries.some(
+        (e) =>
+          e.startMinutes !== e.original.startMinutes ||
+          e.endMinutes !== e.original.endMinutes,
+      );
+      if (moved) {
+        this.logger.log(
+          `${day.date}: entries moved to fit N-PAX (${entries.map((e) => `${toClock24(e.startMinutes)}-${toClock24(e.endMinutes)}`).join(', ')})`,
         );
+      }
+
+      const alerts: string[] = [];
+      // Only a day logged past 9h is overtime; otherwise N-PAX's overtime
+      // prompt is declined like every other dialog.
+      dialogHandlers.set(page, (dialog) => {
+        alerts.push(dialog.message());
+        return overtime && OVERTIME_PROMPT.test(dialog.message())
+          ? dialog.accept()
+          : dialog.dismiss();
+      });
+      try {
         for (const [i, entry] of entries.entries()) {
           if (i > 0) await page.evaluate('Addk("tst")');
           const rowIndex = await page.evaluate((n) => {
@@ -332,11 +376,50 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
             `N-PAX did not keep the ${day.date} allocation${alerts.length ? `: ${alerts.join(' / ')}` : ''}`,
           );
         }
-        return 'saved';
+        return replacing ? 'replaced' : 'saved';
       } finally {
-        page.off('dialog', onDialog);
+        dialogHandlers.delete(page);
       }
     });
+  }
+
+  /**
+   * Presses CLEAR on a day's saved allocation and returns the page showing
+   * that day again, now empty. Refuses when the site keeps CLEAR disabled
+   * (the allocation is endorsed or routed to a checker).
+   */
+  private async clearAllocationDay(
+    session: NpaxSession,
+    page: Page,
+    date: Date,
+    expected: string,
+    status: string,
+  ): Promise<Page> {
+    const clearDisabled = await page
+      .$eval(CLEAR_BUTTON, (el) => (el as HTMLInputElement).disabled)
+      .catch(() => true);
+    if (clearDisabled) {
+      throw new ServiceUnavailableException(
+        `N-PAX won't clear the saved allocation on ${expected} (status ${status || 'none'}); it may already be endorsed`,
+      );
+    }
+    this.logger.log(`Clearing the saved N-PAX allocation on ${expected}`);
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'load' }),
+      page.click(CLEAR_BUTTON),
+    ]);
+
+    let form = await readAllocationForm(page);
+    if (form.date.trim() !== expected) {
+      page = await this.openAllocationForm(session, date, expected);
+      form = await readAllocationForm(page);
+    }
+    if (form.date.trim() !== expected || form.existing.trim() !== '') {
+      throw new ServiceUnavailableException(
+        `N-PAX still shows the saved allocation on ${expected} after Clear`,
+      );
+    }
+    return page;
   }
 
   /**
@@ -1100,7 +1183,10 @@ async function openPage(
 ): Promise<Page> {
   const page = await context.newPage();
   page.setDefaultTimeout(timeoutMs);
-  page.on('dialog', (dialog) => void dialog.dismiss().catch(() => undefined));
+  page.on('dialog', (dialog) => {
+    const handle = dialogHandlers.get(page);
+    void (handle ? handle(dialog) : dialog.dismiss()).catch(() => undefined);
+  });
   return page;
 }
 
@@ -1123,6 +1209,55 @@ function delay(ms: number): Promise<void> {
 function toClock24(minutes: number): string {
   const hours = String(Math.floor(minutes / 60)).padStart(2, '0');
   return `${hours}:${String(minutes % 60).padStart(2, '0')}`;
+}
+
+/**
+ * The day's entries, sorted, as N-PAX will take them: every time on a 5-minute
+ * mark (adjacent entries stay adjacent) and, unless the day is `overtime`, the
+ * whole day moved later or earlier so it sits inside the shift, keeping each
+ * entry's length and the gaps between them. A day too spread out to fit is
+ * packed back to back from the shift's start. `original` is the entry as logged.
+ */
+function fitToShift<T extends { startMinutes: number; endMinutes: number }>(
+  entries: T[],
+  shift: string,
+  overtime: boolean,
+): (T & { original: T })[] {
+  const step = NPAX_TIME_STEP_MINUTES;
+  const round = (minutes: number) => Math.round(minutes / step) * step;
+  let cursor = 0;
+  const fitted = [...entries]
+    .sort((a, b) => a.startMinutes - b.startMinutes)
+    .map((entry) => {
+      const startMinutes = Math.max(round(entry.startMinutes), cursor);
+      const endMinutes = Math.max(round(entry.endMinutes), startMinutes + step);
+      cursor = endMinutes;
+      return { ...entry, startMinutes, endMinutes, original: entry };
+    });
+  if (overtime || fitted.length === 0) return fitted;
+
+  const times = [...shift.matchAll(/(\d{2}):(\d{2})/g)].map(
+    ([, h, m]) => Number(h) * 60 + Number(m),
+  );
+  if (times.length < 2) return fitted;
+  const shiftStart = Math.ceil(times[0] / step) * step;
+  const shiftEnd = Math.floor(times[times.length - 1] / step) * step;
+  const earliest = shiftStart - fitted[0].startMinutes;
+  const latest = shiftEnd - fitted[fitted.length - 1].endMinutes;
+  if (earliest <= latest) {
+    const offset = Math.min(Math.max(0, earliest), latest);
+    return fitted.map((e) => ({
+      ...e,
+      startMinutes: e.startMinutes + offset,
+      endMinutes: e.endMinutes + offset,
+    }));
+  }
+  cursor = shiftStart;
+  return fitted.map((e) => {
+    const startMinutes = cursor;
+    cursor += e.endMinutes - e.startMinutes;
+    return { ...e, startMinutes, endMinutes: cursor };
+  });
 }
 
 /**

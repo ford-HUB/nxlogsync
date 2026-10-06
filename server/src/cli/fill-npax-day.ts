@@ -48,11 +48,12 @@ async function main(): Promise<void> {
     const result = {
       'dry-run': `Filled ${entries.length} row(s); NOT saved (add --save to save).`,
       saved: `Saved ${entries.length} row(s) on N-PAX (not submitted).`,
-      'already-recorded': `N-PAX already has allocations on ${date}; nothing changed.`,
+      replaced: `Cleared the existing allocation on ${date} and saved ${entries.length} row(s) in its place (not submitted).`,
+      'already-recorded': `N-PAX already has allocations on ${date}; --save would clear and replace them. Nothing changed.`,
       'no-time-record': `N-PAX has no time record for ${date} yet, so it can't compute work hours; nothing was filled. Try again once the day's time in/out is on N-PAX.`,
     }[outcome];
     logger.log(result);
-    if (outcome === 'saved' || outcome === 'dry-run')
+    if (outcome !== 'already-recorded' && outcome !== 'no-time-record')
       logger.log(`Screenshot: ${screenshotPath}`);
   } finally {
     await app.close();

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
-import { AlertCircle, ArrowRight, BriefcaseBusiness, Check, ChevronRight, ListChecks, Plus, type LucideIcon } from 'lucide-react'
+import { AlertCircle, ArrowRight, BriefcaseBusiness, Check, ChevronRight, CircleCheck, ListChecks, Plus, type LucideIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
+  DAILY_LIMIT_HOURS,
   DESCRIPTION_MAX_LENGTH,
   LAST_SELECTABLE_MINUTE,
   TIME_STEP_MINUTES,
@@ -45,9 +46,30 @@ function timerRange(startedAt: Date, stoppedAt: Date) {
   return { start, end }
 }
 
+/**
+ * Where a new task's timer starts: the end of the last entry before now (or the
+ * time in when nothing is logged yet), so a task begun without pressing Start
+ * picks up the empty time it was done in. Now when no gap comes before it, or now
+ * sits inside a logged entry.
+ */
+function gapStart(entries: LogEntry[], timeInMinutes: number | null, now: Date): Date {
+  const nowMinutes = minutesOfDay(now)
+  if (entries.some((e) => nowMinutes >= e.startMinutes && nowMinutes < e.endMinutes)) return now
+  const lastEnd = entries.reduce((max, e) => (e.endMinutes <= nowMinutes ? Math.max(max, e.endMinutes) : max), -1)
+  const from = lastEnd >= 0 ? lastEnd : timeInMinutes
+  if (from === null || from >= nowMinutes) return now
+  const start = new Date(now)
+  start.setHours(0, from, 0, 0)
+  return start
+}
+
 interface EntryFormProps {
+  dateKey: string
   entries: LogEntry[]
   remainingMinutes: number
+  overtimeMinutes: number
+  /** The day's actual time in from N-PAX; the first task's suggested start. */
+  timeInMinutes: number | null
   /** The task timer only runs against today's log. */
   isToday: boolean
   editingEntry: LogEntry | null
@@ -57,20 +79,26 @@ interface EntryFormProps {
 }
 
 export function EntryForm({
+  dateKey,
   entries,
   remainingMinutes,
+  overtimeMinutes,
+  timeInMinutes,
   isToday,
   editingEntry,
   onAdd,
   onUpdate,
   onCancelEdit,
 }: EntryFormProps) {
-  const draft = useEntryDraft({ entries, remainingMinutes, editingEntry, onAdd, onUpdate })
+  const draft = useEntryDraft({ dateKey, entries, remainingMinutes, overtimeMinutes, timeInMinutes, editingEntry, onAdd, onUpdate })
   const formRef = useRef<HTMLFormElement>(null)
   const descriptionRef = useRef<HTMLTextAreaElement>(null)
   const [jobLookupOpen, setJobLookupOpen] = useState(false)
   const [activityLookupOpen, setActivityLookupOpen] = useState(false)
   const timer = useTaskTimer()
+  // The entry being edited when Start was pressed: that run only moves its finish.
+  const [timedEntryId, setTimedEntryId] = useState<string | null>(null)
+  const timesEdit = timer.running && editingEntry !== null && timedEntryId === editingEntry.id
 
   // A running timer owns the Started wheel: set it when the timer starts (or is
   // restored after a reload, or an edit ends), with the finish one step after.
@@ -85,12 +113,24 @@ export function EntryForm({
     }
   }
 
+  // While editing, the saved Started time stays and the timer runs from now. A new
+  // task starts from the empty time since the last entry instead of from now.
+  const startTimer = () => {
+    setTimedEntryId(editingEntry?.id ?? null)
+    timer.start(editingEntry ? Date.now() : gapStart(entries, timeInMinutes, new Date()).getTime())
+  }
+
   // Stop fills the wheels with the timed run, then hands over to the description.
+  // A timed edit only gets its finish.
   const stopTimer = () => {
     const run = timer.stop()
     if (!run) return
     const { start, end } = timerRange(run.startedAt, run.stoppedAt)
-    draft.setTimes(start, end)
+    if (timesEdit) {
+      draft.setTimes(draft.startMinutes, Math.min(Math.max(end, draft.startMinutes + TIME_STEP_MINUTES), LAST_SELECTABLE_MINUTE))
+    } else {
+      draft.setTimes(start, end)
+    }
     descriptionRef.current?.focus()
   }
 
@@ -127,10 +167,16 @@ export function EntryForm({
         <CardHeader className="border-b py-4">
           <CardTitle>{editingEntry ? 'Edit entry' : 'New entry'}</CardTitle>
           <CardDescription className="text-[12px]">
-            {editingEntry
+            {timesEdit
+              ? timer.paused
+                ? 'Timer paused; paused time is not counted. Press Resume to continue, or Stop to fill in the finish.'
+                : 'Timer running; the saved Started time stays. Press Stop when the task is done to fill in its finish, then Update.'
+              : editingEntry
               ? `Changing the ${formatClock(editingEntry.startMinutes)} – ${formatClock(editingEntry.endMinutes)} task. Press Update to save, or Esc to cancel.`
               : timer.running && isToday
-                ? 'Timer running from the Started time. Press Stop when the task is done to fill in its finish.'
+                ? timer.paused
+                  ? 'Timer paused; paused time is not counted. Press Resume to continue, or Stop to fill in its finish.'
+                  : 'Timer running from the Started time. Press Pause for a break, or Stop when the task is done to fill in its finish.'
                 : 'Scroll the wheels to set the time, or press Start to time the task. Describe it, then press Enter or Add. Times already logged are crossed out.'}
           </CardDescription>
           {(editingEntry || isToday) && (
@@ -139,11 +185,15 @@ export function EntryForm({
               {isToday && (
                 <TaskTimer
                   running={timer.running}
+                  paused={timer.paused}
                   startedAt={timer.startedAt}
                   elapsedMs={timer.elapsedMs}
-                  onStart={timer.start}
+                  onStart={startTimer}
+                  onPause={timer.pause}
+                  onResume={timer.resume}
                   onStop={stopTimer}
-                  stopBlockedReason={editingEntry ? 'Finish or cancel the edit first' : undefined}
+                  startBlockedReason={draft.isDayFull ? `${DAILY_LIMIT_HOURS}h already logged for this day` : undefined}
+                  stopBlockedReason={editingEntry && !timesEdit ? 'Finish or cancel the edit first' : undefined}
                 />
               )}
             </CardAction>
@@ -156,7 +206,12 @@ export function EntryForm({
               <Label htmlFor="entry-job" className="text-[11px] tracking-wider text-muted-foreground uppercase">
                 Job
               </Label>
-              <LookupButton id="entry-job" icon={BriefcaseBusiness} onClick={() => setJobLookupOpen(true)}>
+              <LookupButton
+                id="entry-job"
+                icon={BriefcaseBusiness}
+                onClick={() => setJobLookupOpen(true)}
+                disabled={draft.isDayFull}
+              >
                 {draft.job ? (
                   <>
                     <span className="shrink-0 font-medium tabular-nums">{draft.job.code}</span>
@@ -177,7 +232,7 @@ export function EntryForm({
                 id="entry-work-activity"
                 icon={ListChecks}
                 onClick={() => setActivityLookupOpen(true)}
-                disabled={!draft.job}
+                disabled={!draft.job || draft.isDayFull}
               >
                 {!draft.job ? (
                   <span className="text-muted-foreground">Select a job first</span>
@@ -201,11 +256,11 @@ export function EntryForm({
 
           <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
             <div className="flex items-end gap-3">
-              <TimePicker label="Started" value={draft.startMinutes} onChange={draft.setStartMinutes} isTaken={draft.isStartTaken} invalid={draft.issue !== null} />
+              <TimePicker label="Started" value={draft.startMinutes} onChange={draft.setStartMinutes} isTaken={draft.isStartTaken} invalid={draft.issue !== null && !draft.limitMet} complete={draft.limitMet} disabled={draft.isDayFull} />
               <div aria-hidden className="flex items-center" style={{ height: WHEEL_BOX_HEIGHT }}>
                 <ArrowRight className="size-4 text-muted-foreground" />
               </div>
-              <TimePicker label="Finished" value={draft.endMinutes} onChange={draft.setEndMinutes} isTaken={draft.isEndTaken} invalid={draft.issue !== null} />
+              <TimePicker label="Finished" value={draft.endMinutes} onChange={draft.setEndMinutes} isTaken={draft.isEndTaken} invalid={draft.issue !== null && !draft.limitMet} complete={draft.limitMet} disabled={draft.isDayFull} />
             </div>
 
             <div className="flex min-w-60 flex-1 flex-col gap-1.5">
@@ -225,7 +280,9 @@ export function EntryForm({
                 onChange={(e) => draft.setDescription(e.target.value.toUpperCase())}
                 onKeyDown={handleDescriptionKeyDown}
                 maxLength={DESCRIPTION_MAX_LENGTH}
-                placeholder="What did you work on?"
+                // The 9h are logged: nothing more to describe until an entry is shortened or removed.
+                disabled={draft.isDayFull}
+                placeholder={draft.isDayFull ? `${DAILY_LIMIT_HOURS}h logged for this day` : 'What did you work on?'}
                 className="min-h-0 resize-none text-[13px]"
                 style={{ height: WHEEL_BOX_HEIGHT }}
               />
@@ -239,8 +296,11 @@ export function EntryForm({
             </span>
             <span aria-hidden className="h-3 w-px bg-border" />
             {draft.issue ? (
-              <span role="alert" className="flex min-w-0 items-center gap-1.5 text-destructive">
-                <AlertCircle className="size-3.5 shrink-0" />
+              <span
+                role={draft.limitMet ? 'status' : 'alert'}
+                className={cn('flex min-w-0 items-center gap-1.5', draft.limitMet ? 'text-success' : 'text-destructive')}
+              >
+                {draft.limitMet ? <CircleCheck className="size-3.5 shrink-0" /> : <AlertCircle className="size-3.5 shrink-0" />}
                 <span className="truncate">{draft.issue}</span>
               </span>
             ) : (

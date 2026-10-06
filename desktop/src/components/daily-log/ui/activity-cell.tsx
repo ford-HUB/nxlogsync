@@ -38,9 +38,7 @@ export const ActivityCell = memo(function ActivityCell({
           className={cn(
             'size-3 cursor-pointer rounded-[3px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
             ACTIVITY_LEVEL_CELL[level],
-            selected
-              ? 'ring-2 ring-foreground ring-offset-1 ring-offset-popover'
-              : isToday && 'ring-1 ring-foreground/40',
+            !selected && isToday && 'ring-1 ring-foreground/40',
           )}
         />
       </TooltipTrigger>

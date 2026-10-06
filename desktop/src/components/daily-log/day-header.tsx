@@ -1,13 +1,21 @@
+import { useState } from 'react'
 import { CalendarDays, ChevronLeft, ChevronRight, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { formatDayLabel } from '@/constants/time-format'
+import { Calendar } from '@/components/ui/calendar'
+import { ThemeToggle } from '@/components/theme/theme-toggle'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { formatDayLabel, fromDateKey, toDateKey } from '@/constants/time-format'
 
 interface DayHeaderProps {
   dateKey: string
+  todayKey: string
   isToday: boolean
+  /** Logged minutes per date key; days with any are marked in the month picker. */
+  minutesByDate: Record<string, number>
   onPrevious: () => void
   onNext: () => void
   onToday: () => void
+  onSelectDay: (key: string) => void
   onOpenActivity: () => void
   onOpenSettings: () => void
   /** Disables everything except Settings (no site user signed in yet). */
@@ -16,14 +24,25 @@ interface DayHeaderProps {
 
 export function DayHeader({
   dateKey,
+  todayKey,
   isToday,
+  minutesByDate,
   onPrevious,
   onNext,
   onToday,
+  onSelectDay,
   onOpenActivity,
   onOpenSettings,
   locked = false,
 }: DayHeaderProps) {
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const today = fromDateKey(todayKey)
+  const selected = fromDateKey(dateKey)
+  const pick = (go: () => void) => {
+    go()
+    setPickerOpen(false)
+  }
+
   return (
     <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 flex-col gap-0.5">
@@ -35,9 +54,39 @@ export function DayHeader({
         <Button type="button" variant="outline" size="icon" aria-label="Previous day" onClick={onPrevious} disabled={locked}>
           <ChevronLeft />
         </Button>
-        <Button type="button" variant="outline" onClick={onToday} disabled={isToday || locked}>
+        <Button type="button" variant="outline" onClick={() => setPickerOpen(true)} disabled={locked}>
           Today
         </Button>
+        <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+          <DialogContent className="w-full gap-3 sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Pick a day</DialogTitle>
+              <DialogDescription className="text-[12px]">Dotted days have logged entries.</DialogDescription>
+            </DialogHeader>
+            {/* Remount on open so the grid starts on the month being viewed. */}
+            <Calendar
+              key={String(pickerOpen)}
+              mode="single"
+              required
+              selected={selected}
+              defaultMonth={selected}
+              endMonth={today}
+              disabled={{ after: today }}
+              className="w-full! p-0 [--cell-size:--spacing(9)] **:[.rdp-day]:aspect-auto **:data-day:aspect-auto **:data-day:h-10"
+              modifiers={{ logged: (day) => (minutesByDate[toDateKey(day)] ?? 0) > 0 }}
+              modifiersClassNames={{
+                logged:
+                  'after:pointer-events-none after:absolute after:bottom-0.5 after:left-1/2 after:size-1 after:-translate-x-1/2 after:rounded-full after:bg-current after:opacity-60',
+              }}
+              onSelect={(day) => pick(() => onSelectDay(toDateKey(day)))}
+            />
+            <div className="flex justify-end border-t pt-3">
+              <Button type="button" variant="ghost" size="sm" onClick={() => pick(onToday)} disabled={isToday}>
+                Go to today
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         <Button type="button" variant="outline" size="icon" aria-label="Next day" onClick={onNext} disabled={isToday || locked}>
           <ChevronRight />
         </Button>
@@ -50,6 +99,7 @@ export function DayHeader({
           <Settings />
           Settings
         </Button>
+        <ThemeToggle />
       </div>
     </header>
   )

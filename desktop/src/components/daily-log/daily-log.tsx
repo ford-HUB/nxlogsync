@@ -3,6 +3,7 @@ import { ConnectNotice } from '@/components/feedback/connect-notice'
 import { ErrorBanner } from '@/components/feedback/error-banner'
 import { useDailyLog } from '@/hooks/use-daily-log'
 import { useIsSignedIn } from '@/hooks/use-site-session'
+import { useTimeIn } from '@/hooks/use-time-in'
 import { cn } from '@/lib/utils'
 import { useSiteSessionStore } from '@/store/site-session-store'
 import { ActivityDialog } from './activity-dialog'
@@ -18,6 +19,7 @@ interface DailyLogProps {
 export function DailyLog({ onOpenSettings }: DailyLogProps) {
   const log = useDailyLog()
   const signedIn = useIsSignedIn()
+  const timeInMinutes = useTimeIn(log.dateKey, signedIn)
   const sessionLoaded = useSiteSessionStore((s) => s.loaded)
   const [highlightedId, setHighlightedId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -47,10 +49,13 @@ export function DailyLog({ onOpenSettings }: DailyLogProps) {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
       <DayHeader
         dateKey={log.dateKey}
+        todayKey={log.todayKey}
         isToday={log.isToday}
+        minutesByDate={log.minutesByDate}
         onPrevious={() => changeDay(log.goToPreviousDay)}
         onNext={() => changeDay(log.goToNextDay)}
         onToday={() => changeDay(log.goToToday)}
+        onSelectDay={openDay}
         onOpenActivity={() => setActivityOpen(true)}
         onOpenSettings={onOpenSettings}
         locked={!signedIn}
@@ -81,16 +86,21 @@ export function DailyLog({ onOpenSettings }: DailyLogProps) {
           entries={log.entries}
           totalMinutes={log.totalMinutes}
           remainingMinutes={log.remainingMinutes}
+          overtimeMinutes={log.overtimeMinutes}
           status={log.status}
           highlightedId={highlightedId}
           onHighlight={setHighlightedId}
         />
 
-        {/* Remount per day so the draft re-suggests times from that day's entries. */}
+        {/* Remount per day so the draft re-suggests times from that day's entries
+            (an unsaved description is cached per day and comes back). */}
         <EntryForm
           key={log.dateKey}
+          dateKey={log.dateKey}
           entries={log.entries}
           remainingMinutes={log.remainingMinutes}
+          overtimeMinutes={log.overtimeMinutes}
+          timeInMinutes={timeInMinutes}
           isToday={log.isToday}
           editingEntry={editingEntry}
           onAdd={log.addEntry}

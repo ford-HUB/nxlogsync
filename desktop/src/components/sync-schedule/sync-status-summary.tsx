@@ -38,6 +38,11 @@ export function SyncStatusSummary({ schedule: s }: SyncStatusSummaryProps) {
               <span className="text-sm text-muted-foreground tabular-nums">in {formatUntil(minutesUntil)}</span>
             )}
             <Badge className={cn('ml-1', SCHEDULE_STATE_BADGE[s.state])}>{SCHEDULE_STATE_LABEL[s.state]}</Badge>
+            {s.isDirty && (
+              <Badge variant="outline" className="font-normal text-muted-foreground">
+                Unsaved
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -80,14 +85,14 @@ export function SyncStatusSummary({ schedule: s }: SyncStatusSummaryProps) {
         <div className="flex items-center gap-2.5">
           <Switch
             id="auto-sync"
-            checked={s.saved.enabled}
-            disabled={s.saved.mode === 'manual'}
+            checked={s.draft.enabled}
+            disabled={s.draft.mode === 'manual' || s.saving}
             onCheckedChange={s.setEnabled}
           />
           <Label htmlFor="auto-sync" className="text-[13px] font-normal">
             Automatic sync
             <span className="text-muted-foreground">
-              {s.saved.mode === 'manual' ? ' · off in manual mode' : s.saved.enabled ? '' : ' · paused'}
+              {s.draft.mode === 'manual' ? ' · off in manual mode' : s.draft.enabled ? '' : ' · paused'}
             </span>
           </Label>
         </div>

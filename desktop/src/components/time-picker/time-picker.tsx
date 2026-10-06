@@ -17,6 +17,9 @@ interface TimePickerProps {
   /** Times already covered by a logged entry; shown struck out and never selectable. */
   isTaken?: (minutes: number) => boolean
   invalid?: boolean
+  /** The day's hours are exactly met; outlined in green. */
+  complete?: boolean
+  disabled?: boolean
 }
 
 const NEVER_TAKEN = () => false
@@ -55,7 +58,7 @@ function nearestFree(target: number, isTaken: (minutes: number) => boolean): num
   return target
 }
 
-export function TimePicker({ label, value, onChange, isTaken = NEVER_TAKEN, invalid }: TimePickerProps) {
+export function TimePicker({ label, value, onChange, isTaken = NEVER_TAKEN, invalid, complete, disabled }: TimePickerProps) {
   // Wheels can settle in the same tick; read the latest value, not the render closure.
   const latest = useRef(value)
   latest.current = value
@@ -88,17 +91,19 @@ export function TimePicker({ label, value, onChange, isTaken = NEVER_TAKEN, inva
       <Label className="text-[11px] tracking-wider text-muted-foreground uppercase">{label}</Label>
       <div
         data-invalid={invalid || undefined}
-        className="relative grid w-fit grid-cols-[2rem_0.5rem_2rem_2.25rem] items-center rounded-lg border bg-background px-1 transition-colors data-invalid:border-destructive/50"
+        data-complete={complete || undefined}
+        data-disabled={disabled || undefined}
+        className="relative grid w-fit grid-cols-[2rem_0.5rem_2rem_2.25rem] items-center rounded-lg border bg-background px-1 transition-colors data-invalid:border-destructive/50 data-complete:border-success/50 data-disabled:pointer-events-none data-disabled:bg-muted/40 data-disabled:opacity-60"
       >
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-1 top-1/2 -translate-y-1/2 rounded-md bg-muted"
           style={{ height: WHEEL_ITEM_HEIGHT }}
         />
-        <TimeWheel className="relative" label={`${label} hour`} options={HOUR_OPTIONS} disabledValues={disabledHours} value={parts.hour12} onChange={(hour12) => update({ hour12 })} />
+        <TimeWheel className="relative" label={`${label} hour`} options={HOUR_OPTIONS} disabledValues={disabledHours} disabled={disabled} value={parts.hour12} onChange={(hour12) => update({ hour12 })} />
         <span aria-hidden className="relative text-center text-sm font-semibold text-muted-foreground">:</span>
-        <TimeWheel className="relative" label={`${label} minute`} options={MINUTE_OPTIONS} disabledValues={disabledMinutes} value={parts.minute} onChange={(minute) => update({ minute })} />
-        <TimeWheel className="relative" label={`${label} AM or PM`} options={PERIOD_OPTIONS} disabledValues={disabledPeriods} value={parts.period} onChange={(period) => update({ period })} />
+        <TimeWheel className="relative" label={`${label} minute`} options={MINUTE_OPTIONS} disabledValues={disabledMinutes} disabled={disabled} value={parts.minute} onChange={(minute) => update({ minute })} />
+        <TimeWheel className="relative" label={`${label} AM or PM`} options={PERIOD_OPTIONS} disabledValues={disabledPeriods} disabled={disabled} value={parts.period} onChange={(period) => update({ period })} />
       </div>
     </div>
   )

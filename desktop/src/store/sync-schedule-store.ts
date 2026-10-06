@@ -63,7 +63,14 @@ export const useSyncScheduleStore = create<SyncScheduleState>((set) => ({
   startRun: async () => {
     set({ error: null })
     const result = await startRun()
-    if (result.success) set((s) => ({ runs: [result.data, ...s.runs] }))
+    if (result.success) {
+      set((s) => ({ runs: [result.data, ...s.runs] }))
+      return
+    }
+    // The server may have started a run on its own (scheduled, or resumed after
+    // N-PAX logged in again) since the last poll; show that one instead of an error.
+    const runs = await listRuns()
+    if (runs.success && runs.data[0]?.status === 'running') set({ runs: runs.data })
     else set({ error: result.message })
   },
 

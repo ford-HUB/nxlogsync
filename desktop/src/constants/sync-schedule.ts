@@ -46,6 +46,9 @@ export const UPCOMING_LOOKAHEAD_DAYS = 14
 export const UPCOMING_PREVIEW_COUNT = 4
 export const UPCOMING_LOOKAHEAD_MONTHS = 12
 
+/** Recent syncs shown before "Show all". */
+export const RUN_HISTORY_PAGE_SIZE = 5
+
 /** 0 = last day of the month. */
 export const MONTHLY_OFFSET_OPTIONS = Array.from({ length: 8 }, (_, i) => i)
 

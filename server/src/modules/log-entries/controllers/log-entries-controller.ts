@@ -14,12 +14,14 @@ import { ZodValidationPipe } from '../../../shared/pipes/zod-validation-pipe';
 import type {
   CreateLogEntryDto,
   ListLogEntriesQueryDto,
+  ResyncDaysDto,
   UpdateLogEntryDto,
 } from '../dto/log-entries-dto';
 import { LogEntriesService } from '../services/log-entries-service';
 import {
   CreateLogEntrySchema,
   ListLogEntriesQuerySchema,
+  ResyncDaysSchema,
   UpdateLogEntrySchema,
 } from '../validators/log-entries-validator';
 
@@ -45,6 +47,16 @@ export class LogEntriesController {
     @Body(new ZodValidationPipe(CreateLogEntrySchema)) body: CreateLogEntryDto,
   ) {
     return await this.logEntriesService.create(user, body);
+  }
+
+  // POST /api/v1/log-entries/resync { dates } → { dates, entryCount }
+  // Only marks the days' entries unsynced; the next sync replaces those days on N-PAX.
+  @Post('resync')
+  async resyncDays(
+    @CurrentUser() user: string,
+    @Body(new ZodValidationPipe(ResyncDaysSchema)) body: ResyncDaysDto,
+  ) {
+    return await this.logEntriesService.resyncDays(user, body.dates);
   }
 
   // PATCH /api/v1/log-entries/:id { startMinutes, endMinutes, description } → entry

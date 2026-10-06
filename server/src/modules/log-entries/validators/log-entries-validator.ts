@@ -52,6 +52,10 @@ export const ListLogEntriesQuerySchema = z
     path: ['from'],
   });
 
+export const ResyncDaysSchema = z
+  .object({ dates: z.array(DateKeySchema).min(1).max(366) })
+  .strict();
+
 export const LogEntryResponseSchema = z.object({
   id: z.string(),
   date: z.string(),

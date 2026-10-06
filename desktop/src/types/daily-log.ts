@@ -8,6 +8,8 @@ export interface LogEntry {
   jobCode: string | null
   /** N-PAX Work Activity code; null on entries logged before activities were picked. */
   workActivityCode: string | null
+  /** Saved to N-PAX by a sync and unchanged since; false until the next sync uploads it. */
+  synced: boolean
 }
 
 export interface EntryDraft {

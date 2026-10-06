@@ -48,9 +48,29 @@ export class LogEntriesService {
   }
 
   async remove(user: string, id: string): Promise<{ id: string }> {
-    await this.getOrThrow(user, id);
+    const entry = await this.getOrThrow(user, id);
     await this.repository.delete(id);
+    // N-PAX still has the deleted entry; upload the rest of the day to replace it.
+    if (entry.syncedAt) await this.repository.markDayUnsynced(user, entry.date);
     return { id };
+  }
+
+  /**
+   * Marks every entry on the given days unsynced, so the next sync uploads
+   * those days again. Days without entries are left out of the result.
+   */
+  async resyncDays(
+    user: string,
+    dates: string[],
+  ): Promise<{ dates: string[]; entryCount: number }> {
+    const entries = await this.repository.markDaysUnsynced(user, dates);
+    if (entries.length === 0) {
+      throw new NotFoundException('No entries on those days to sync');
+    }
+    return {
+      dates: [...new Set(entries.map((e) => e.date))].sort(),
+      entryCount: entries.length,
+    };
   }
 
   /** Another user's entry is reported as not found, the same as a missing one. */

@@ -5,6 +5,7 @@ import {
   DEFAULT_START_MINUTES,
   LAST_SELECTABLE_MINUTE,
   TIME_STEP_MINUTES,
+  workMinutes,
 } from '@/constants/daily-log'
 import { findJob } from '@/constants/jobs'
 import { formatClock, formatDuration } from '@/constants/time-format'
@@ -32,8 +33,8 @@ function writeCachedDescription(dateKey: string, value: string) {
 }
 
 /**
- * The first task of a day starts at the actual time in (rounded up to the wheel
- * step) when N-PAX has one, else the default start; later tasks follow the last entry.
+ * The first task of a day starts at the shift start (from the N-PAX time in)
+ * when N-PAX has one, else the default start; later tasks follow the last entry.
  */
 function suggestRange(entries: LogEntry[], remainingMinutes: number, timeInMinutes: number | null) {
   const lastEnd = entries.reduce((max, e) => Math.max(max, e.endMinutes), 0)
@@ -63,7 +64,7 @@ function findIssue(
   if (clash) {
     return `Overlaps ${formatClock(clash.startMinutes)} – ${formatClock(clash.endMinutes)} entry.`
   }
-  if (endMinutes - startMinutes > remainingMinutes) {
+  if (workMinutes(startMinutes, endMinutes) > remainingMinutes) {
     return `Only ${formatDuration(remainingMinutes)} left of the ${DAILY_LIMIT_HOURS}h daily limit.`
   }
   return null
@@ -126,7 +127,7 @@ export function useEntryDraft({
   // While editing, the entry's own slot and hours are free to reuse.
   const otherEntries = editingEntry ? entries.filter((e) => e.id !== editingEntry.id) : entries
   const availableMinutes = editingEntry
-    ? remainingMinutes + (editingEntry.endMinutes - editingEntry.startMinutes)
+    ? remainingMinutes + workMinutes(editingEntry.startMinutes, editingEntry.endMinutes)
     : remainingMinutes
 
   const [range, setRange] = useState(() =>
@@ -175,7 +176,8 @@ export function useEntryDraft({
     }
   }
 
-  const durationMinutes = Math.max(0, range.endMinutes - range.startMinutes)
+  // Lunch doesn't count, so a task spanning it is shorter than its clock span.
+  const durationMinutes = workMinutes(range.startMinutes, range.endMinutes)
   const issue = findIssue(range.startMinutes, range.endMinutes, otherEntries, availableMinutes, overtimeMinutes)
   // Exactly at the limit is the goal, not an error: the form shows it in green.
   const limitMet = availableMinutes === 0 && overtimeMinutes === 0

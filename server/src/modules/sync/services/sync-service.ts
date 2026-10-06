@@ -29,11 +29,19 @@ const RETRY_BACKOFF_MS = 5_000;
  * Uploads a user's unsynced log entries to N-PAX on that user's session, one
  * day at a time. Each user has at most one active run; it is recorded in
  * sync_runs as it starts and finishes. `user` is always the user's key.
+ *
+ * A run cut short by the N-PAX session ending (expired, rejected or
+ * unreachable) is resumed by `resumeDeferred` once the session is logged in
+ * again, as is a scheduled run that came due while it was down. The waiting
+ * list lives in memory, so on start-up every user whose last run failed (a
+ * restart mid-sync included) is put back on it.
  */
 @Injectable()
 export class SyncService implements OnApplicationBootstrap {
   private readonly logger = new Logger(SyncService.name);
   private readonly activeRuns = new Set<string>();
+  /** Users with a sync waiting for their N-PAX session to be logged in again. */
+  private readonly deferredRuns = new Set<string>();
 
   constructor(
     private readonly repository: SyncRepository,
@@ -43,6 +51,38 @@ export class SyncService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap(): Promise<void> {
     await this.repository.failInterruptedRuns();
+    for (const user of await this.repository.usersWithFailedLastRun()) {
+      this.deferUntilConnected(user);
+    }
+  }
+
+  /** Runs a sync for `user` as soon as their N-PAX session is connected. */
+  deferUntilConnected(user: string): void {
+    if (this.deferredRuns.has(user)) return;
+    this.deferredRuns.add(user);
+    this.logger.log(
+      `Sync for ${user} will resume once N-PAX is logged in again`,
+    );
+  }
+
+  /** Starts every deferred sync whose user's session is connected again. */
+  async resumeDeferred(): Promise<void> {
+    for (const user of [...this.deferredRuns]) {
+      if (!this.isConnected(user) || this.activeRuns.has(user)) continue;
+      this.deferredRuns.delete(user);
+      this.logger.log(`N-PAX is logged in again; resuming sync for ${user}`);
+      try {
+        await this.startRun(user, 'scheduled');
+      } catch (error) {
+        this.logger.warn(
+          `Resumed sync for ${user} failed to start: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+  }
+
+  isConnected(user: string): boolean {
+    return this.npax.getStatus(user).state === 'connected';
   }
 
   async getSchedule(user: string): Promise<SyncScheduleDto> {
@@ -109,7 +149,7 @@ export class SyncService implements OnApplicationBootstrap {
   private async execute(user: string, run: SyncRun): Promise<void> {
     try {
       const schedule = await this.repository.getSchedule(user);
-      const entries = await this.logEntries.findUnsynced(
+      const entries = await this.logEntries.findDaysToSync(
         user,
         toDateKey(new Date()),
       );
@@ -146,7 +186,11 @@ export class SyncService implements OnApplicationBootstrap {
               noTimeRecord.push(date);
               continue;
             }
-            // Either way the day is on N-PAX now; it no longer counts as pending.
+            // Only a save N-PAX confirmed keeping marks the day synced; any
+            // other outcome leaves it pending for the next run.
+            if (outcome !== 'saved' && outcome !== 'replaced') {
+              throw new Error(`N-PAX did not save ${date} (${outcome})`);
+            }
             await this.logEntries.markSynced(
               dayEntries.map((e) => e.id),
               new Date(),
@@ -163,7 +207,11 @@ export class SyncService implements OnApplicationBootstrap {
         }
         remaining = failed;
         if (remaining.length === 0) break;
+        // Retrying can't help until the session is back; resume after re-login instead.
+        if (!this.isConnected(user)) break;
       }
+      const deferred = remaining.length > 0 && !this.isConnected(user);
+      if (deferred) this.deferUntilConnected(user);
 
       const notes: string[] = [];
       if (incomplete.length > 0) {
@@ -184,7 +232,9 @@ export class SyncService implements OnApplicationBootstrap {
       if (remaining.length > 0) {
         const tries = schedule.retryAttempts + 1;
         notes.unshift(
-          `${remaining.length} ${remaining.length === 1 ? 'day' : 'days'} not uploaded after ${tries} ${tries === 1 ? 'try' : 'tries'}: ${lastError}`,
+          deferred
+            ? `${remaining.length} ${remaining.length === 1 ? 'day' : 'days'} not uploaded because the N-PAX session ended (${lastError}); the sync resumes once it is logged in again`
+            : `${remaining.length} ${remaining.length === 1 ? 'day' : 'days'} not uploaded after ${tries} ${tries === 1 ? 'try' : 'tries'}: ${lastError}`,
         );
         await this.finish(run, 'failed', uploaded, notes.join('. '));
       } else if (uploaded.length === 0) {
@@ -195,6 +245,7 @@ export class SyncService implements OnApplicationBootstrap {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(`Sync run ${run.id} crashed: ${message}`);
+      if (!this.isConnected(user)) this.deferUntilConnected(user);
       await this.finish(run, 'failed', [], message).catch(() => undefined);
     }
   }

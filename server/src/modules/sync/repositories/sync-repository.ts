@@ -72,8 +72,21 @@ export class SyncRepository {
       data: {
         status: 'failed',
         finishedAt: new Date(),
-        message: 'The server stopped before this sync finished',
+        message:
+          'The server stopped before this sync finished; it resumes once N-PAX is logged in again',
       },
     });
+  }
+
+  /** Users whose most recent run failed, interrupted runs included. */
+  async usersWithFailedLastRun(): Promise<string[]> {
+    const latest = await this.prisma.syncRun.findMany({
+      orderBy: [{ userId: 'asc' }, { startedAt: 'desc' }],
+      distinct: ['userId'],
+      select: { userId: true, status: true },
+    });
+    return latest
+      .filter((run) => run.status === 'failed')
+      .map((run) => run.userId);
   }
 }

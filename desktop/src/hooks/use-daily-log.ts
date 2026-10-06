@@ -59,6 +59,7 @@ export function useDailyLog() {
 
   const totalMinutes = entries.reduce((sum, e) => sum + (e.endMinutes - e.startMinutes), 0)
   const remainingMinutes = Math.max(0, DAILY_LIMIT_MINUTES - totalMinutes)
+  const overtimeMinutes = Math.max(0, totalMinutes - DAILY_LIMIT_MINUTES)
   const status = getDayStatus(totalMinutes, entries.length)
 
   const addEntry = useCallback((draft: EntryDraft) => void saveNew(dateKey, draft), [saveNew, dateKey])
@@ -85,6 +86,7 @@ export function useDailyLog() {
     entries,
     totalMinutes,
     remainingMinutes,
+    overtimeMinutes,
     status,
     addEntry,
     updateEntry,

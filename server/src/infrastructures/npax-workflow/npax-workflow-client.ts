@@ -21,11 +21,11 @@ const ALLOCATION_ENTRY_PATH =
 // SAVE only; the page's Submit/Endorse buttons are never pressed.
 const SAVE_BUTTON = '#ctl00_ContentPlaceHolder1_btnZ';
 // Positions of a row's <input>s, as the site's _manhour.js counts them.
-const BTN_MENU_INPUT = 9;
-const TXT_MENU_INPUT = 10;
 const RBL_BILLABLE_YES_INPUT = 11;
 const HBILLABLE_INPUT = 18;
-const NAV_TIMEOUT_MS = 30_000;
+// The free-tier host is slow to drive Chrome and N-PAX itself can take a while to
+// answer, so 30s was routinely exceeded. Override with NPAX_NAV_TIMEOUT_MS.
+const DEFAULT_NAV_TIMEOUT_MS = 90_000;
 // How long to wait for the User ID box's autopostback before assuming there is none.
 const POSTBACK_GRACE_MS = 2_000;
 const DEFAULT_RELOGIN_ATTEMPTS = 3;
@@ -108,6 +108,13 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
   private queue: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly config: ConfigService) {}
+
+  private get navTimeoutMs(): number {
+    return Math.max(
+      10_000,
+      Number(this.config.get('NPAX_NAV_TIMEOUT_MS')) || DEFAULT_NAV_TIMEOUT_MS,
+    );
+  }
 
   /** Returns the "Time In 1" value (HH:mm) for a date, or null if blank. */
   getTimeIn(user: string, date: Date): Promise<string | null> {
@@ -203,8 +210,10 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
             );
           }
 
+          // A person types Start and Work Hours and the page derives End
+          // (autoEndtime); NXLogSync has both times, so it types all three.
           await page.evaluate(
-            (row, start, end) => {
+            (row, start, end, hours) => {
               const w = window as unknown as {
                 position: number;
                 formatCompute: () => void;
@@ -214,11 +223,13 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
               const inputs = table.rows[row].getElementsByTagName('input');
               inputs[1].value = start;
               inputs[2].value = end;
+              inputs[3].value = hours;
               w.formatCompute();
             },
             rowIndex,
             toClock24(entry.startMinutes),
             toClock24(entry.endMinutes),
+            workHours(entry.startMinutes, entry.endMinutes, form.shift),
           );
           await this.pickFromLookup(
             page,
@@ -236,25 +247,9 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
             entry.workActivityCode as string,
             'Work Activity',
           );
-          // Activities whose FBS code ends in |$| also need a Sub Act. Code,
-          // which NXLogSync does not pick; stop rather than save the row without it.
-          const needsSubAct = await page.evaluate(
-            (row, btnInput, txtInput) => {
-              const table = document.getElementById('tst') as HTMLTableElement;
-              const inputs = table.rows[row].getElementsByTagName('input');
-              return (
-                !inputs[btnInput].disabled && inputs[txtInput].value === ''
-              );
-            },
-            rowIndex,
-            BTN_MENU_INPUT,
-            TXT_MENU_INPUT,
-          );
-          if (needsSubAct) {
-            throw new ServiceUnavailableException(
-              `${day.date}: work activity ${entry.workActivityCode} needs a Sub Act. Code on N-PAX, which NXLogSync can't pick yet`,
-            );
-          }
+          // Activities whose FBS code ends in |$| (e.g. DEV, QA) offer a Sub Act.
+          // Code. It is optional: the site's checkEntry() never looks at it and
+          // a manual entry saves with it blank, so it is left blank here too.
           await page.evaluate(
             (row, particulars) => {
               const table = document.getElementById('tst') as HTMLTableElement;
@@ -357,7 +352,7 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
     code: string,
     label: string,
   ): Promise<void> {
-    const popupPromise = waitForPopup(page);
+    const popupPromise = waitForPopup(page, this.navTimeoutMs);
     await page.evaluate(
       (row, fn) => {
         const w = window as unknown as Record<string, unknown> & {
@@ -479,7 +474,7 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
       // The Job lookup only lists jobs when the form opens it, so open it the
       // way the row's search button does and save the popup (nothing is picked).
       const popup = new Promise<Page | null>((resolve) => {
-        const timer = setTimeout(() => resolve(null), NAV_TIMEOUT_MS);
+        const timer = setTimeout(() => resolve(null), this.navTimeoutMs);
         page.browserContext().once('targetcreated', (target) => {
           clearTimeout(timer);
           void target.page().then(resolve, () => resolve(null));
@@ -492,7 +487,7 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
       if (jobLookup) {
         try {
           await jobLookup
-            .waitForNetworkIdle({ timeout: NAV_TIMEOUT_MS })
+            .waitForNetworkIdle({ timeout: this.navTimeoutMs })
             .catch(() => undefined);
           captured.push({
             name: 'job-lookup-from-form',
@@ -525,7 +520,10 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
         );
       }
 
-      const extraPage = await openPage(page.browserContext());
+      const extraPage = await openPage(
+        page.browserContext(),
+        this.navTimeoutMs,
+      );
       try {
         // The site's own scripts (not ASP.NET's WebResource.axd bundles).
         const scriptUrls = new Set<string>();
@@ -598,7 +596,7 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
     return this.enqueue(async () => {
       const context = await (await this.getBrowser()).createBrowserContext();
       try {
-        const page = await openPage(context);
+        const page = await openPage(context, this.navTimeoutMs);
         await page.goto(this.baseUrl + LOGIN_PATH, { waitUntil: 'load' });
         await this.signIn(page, loginId, password);
         return !this.isOnLoginPage(page);
@@ -645,7 +643,7 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
     return this.enqueue(async () => {
       const context = await (await this.getBrowser()).createBrowserContext();
       try {
-        const page = await openPage(context);
+        const page = await openPage(context, this.navTimeoutMs);
         await page.goto(this.baseUrl + LOGIN_PATH, { waitUntil: 'load' });
         await this.signIn(page, loginId, password);
         if (this.isOnLoginPage(page)) {
@@ -729,7 +727,11 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
         if (attempt > 1) await delay(RELOGIN_BACKOFF_MS * 2 ** (attempt - 2));
         try {
           const page = await this.getPage(session);
-          await page.goto(this.baseUrl + JOB_SPLIT_PATH, { waitUntil: 'load' });
+          // The request alone resets the idle timer and the URL shows whether we
+          // were bounced to login, so don't wait for every script and image.
+          await page.goto(this.baseUrl + JOB_SPLIT_PATH, {
+            waitUntil: 'domcontentloaded',
+          });
           if (!this.isOnLoginPage(page)) {
             this.markConnected(session);
             return this.getStatus(user);
@@ -740,7 +742,9 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
           );
           this.setStatus(session, 'reconnecting', 'Session expired');
           await this.signIn(page, login.loginId, login.password);
-          await page.goto(this.baseUrl + JOB_SPLIT_PATH, { waitUntil: 'load' });
+          await page.goto(this.baseUrl + JOB_SPLIT_PATH, {
+            waitUntil: 'domcontentloaded',
+          });
           if (!this.isOnLoginPage(page)) {
             this.markConnected(session);
             return this.getStatus(user);
@@ -797,7 +801,15 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
         headless: true,
         executablePath:
           this.config.get<string>('PUPPETEER_EXECUTABLE_PATH') || undefined,
-        args: ['--no-sandbox', '--disable-dev-shm-usage'],
+        // Trimmed for a small, CPU-starved host.
+        args: [
+          '--no-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--disable-extensions',
+          '--disable-background-networking',
+          '--mute-audio',
+        ],
       });
     }
     return this.browser;
@@ -807,7 +819,7 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
     if (session.page && !session.page.isClosed()) return session.page;
     const browser = await this.getBrowser();
     session.context ??= await browser.createBrowserContext();
-    session.page = await openPage(session.context);
+    session.page = await openPage(session.context, this.navTimeoutMs);
     return session.page;
   }
 
@@ -1082,9 +1094,12 @@ function readAllocationForm(page: Page): Promise<{
  * to the login page; an unanswered alert blocks the page, so its load event
  * never fires and every navigation times out.
  */
-async function openPage(context: BrowserContext): Promise<Page> {
+async function openPage(
+  context: BrowserContext,
+  timeoutMs: number,
+): Promise<Page> {
   const page = await context.newPage();
-  page.setDefaultTimeout(NAV_TIMEOUT_MS);
+  page.setDefaultTimeout(timeoutMs);
   page.on('dialog', (dialog) => void dialog.dismiss().catch(() => undefined));
   return page;
 }
@@ -1110,14 +1125,31 @@ function toClock24(minutes: number): string {
   return `${hours}:${String(minutes % 60).padStart(2, '0')}`;
 }
 
+/**
+ * Work Hours as N-PAX counts them: the entry's length less any part of the
+ * shift's break it covers, in hours to 2 decimals (e.g. "3.83"). `shift` is the
+ * form's "Shift of the Day", e.g. " [F26-] 08:10 - 12:00  13:00 - 18:10",
+ * whose middle two times are the break.
+ */
+function workHours(start: number, end: number, shift: string): string {
+  const [, breakStart, breakEnd] = [...shift.matchAll(/(\d{2}):(\d{2})/g)].map(
+    ([, h, m]) => Number(h) * 60 + Number(m),
+  );
+  const onBreak =
+    breakEnd > breakStart
+      ? Math.max(0, Math.min(end, breakEnd) - Math.max(start, breakStart))
+      : 0;
+  return String(Math.round(((end - start - onBreak) / 60) * 100) / 100);
+}
+
 /** Resolves with the next window the page opens (null if none opens in time). */
-function waitForPopup(page: Page): Promise<Page | null> {
+function waitForPopup(page: Page, timeoutMs: number): Promise<Page | null> {
   return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(null), NAV_TIMEOUT_MS);
+    const timer = setTimeout(() => resolve(null), timeoutMs);
     page.once('popup', (popup) => {
       clearTimeout(timer);
       if (!popup) return resolve(null);
-      popup.setDefaultTimeout(NAV_TIMEOUT_MS);
+      popup.setDefaultTimeout(timeoutMs);
       popup.on('dialog', (d) => void d.dismiss().catch(() => undefined));
       resolve(popup);
     });

@@ -1,5 +1,6 @@
 import { ArrowLeft, LogOut } from 'lucide-react'
 import { ResetPasscodeDialog } from '@/components/passcode/reset-passcode-dialog'
+import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { Button } from '@/components/ui/button'
 
 interface ScheduleHeaderProps {
@@ -28,6 +29,7 @@ export function ScheduleHeader({ onBack, onLogout, onResetPasscode, locked = fal
         <LogOut />
         Log out
       </Button>
+      <ThemeToggle />
     </header>
   )
 }

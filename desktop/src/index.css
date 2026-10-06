@@ -134,3 +134,23 @@
     @apply font-sans;
     }
 }
+/* Theme switch: the new palette is revealed by a clip-path from theme-toggle.tsx. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) {
+  z-index: 1;
+}
+
+.theme-ripple {
+  position: fixed;
+  z-index: 2147483647;
+  width: 240vmax;
+  height: 240vmax;
+  border-radius: 9999px;
+  pointer-events: none;
+  border: 2px solid color-mix(in oklch, var(--foreground) 35%, transparent);
+  box-shadow: 0 0 40px 6px color-mix(in oklch, var(--foreground) 12%, transparent);
+}

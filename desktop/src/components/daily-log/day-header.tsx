@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { CalendarDays, ChevronLeft, ChevronRight, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { ThemeToggle } from '@/components/theme/theme-toggle'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { formatDayLabel, fromDateKey, toDateKey } from '@/constants/time-format'
 
 interface DayHeaderProps {
@@ -53,13 +54,15 @@ export function DayHeader({
         <Button type="button" variant="outline" size="icon" aria-label="Previous day" onClick={onPrevious} disabled={locked}>
           <ChevronLeft />
         </Button>
-        <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-          <PopoverTrigger asChild>
-            <Button type="button" variant="outline" disabled={locked}>
-              Today
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-auto p-0">
+        <Button type="button" variant="outline" onClick={() => setPickerOpen(true)} disabled={locked}>
+          Today
+        </Button>
+        <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+          <DialogContent className="w-full gap-3 sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Pick a day</DialogTitle>
+              <DialogDescription className="text-[12px]">Dotted days have logged entries.</DialogDescription>
+            </DialogHeader>
             {/* Remount on open so the grid starts on the month being viewed. */}
             <Calendar
               key={String(pickerOpen)}
@@ -69,6 +72,7 @@ export function DayHeader({
               defaultMonth={selected}
               endMonth={today}
               disabled={{ after: today }}
+              className="w-full! p-0 [--cell-size:--spacing(9)] **:[.rdp-day]:aspect-auto **:data-day:aspect-auto **:data-day:h-10"
               modifiers={{ logged: (day) => (minutesByDate[toDateKey(day)] ?? 0) > 0 }}
               modifiersClassNames={{
                 logged:
@@ -76,13 +80,13 @@ export function DayHeader({
               }}
               onSelect={(day) => pick(() => onSelectDay(toDateKey(day)))}
             />
-            <div className="flex justify-end border-t p-2">
+            <div className="flex justify-end border-t pt-3">
               <Button type="button" variant="ghost" size="sm" onClick={() => pick(onToday)} disabled={isToday}>
                 Go to today
               </Button>
             </div>
-          </PopoverContent>
-        </Popover>
+          </DialogContent>
+        </Dialog>
         <Button type="button" variant="outline" size="icon" aria-label="Next day" onClick={onNext} disabled={isToday || locked}>
           <ChevronRight />
         </Button>
@@ -95,6 +99,7 @@ export function DayHeader({
           <Settings />
           Settings
         </Button>
+        <ThemeToggle />
       </div>
     </header>
   )

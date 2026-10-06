@@ -15,6 +15,8 @@ interface TimeWheelProps {
   label: string
   /** Values that cannot be picked; the wheel skips over them and never settles on one. */
   disabledValues?: ReadonlySet<number>
+  /** Locks the whole wheel: no scrolling, clicking or keyboard focus. */
+  disabled?: boolean
   className?: string
 }
 
@@ -34,6 +36,7 @@ export function TimeWheel({
   onChange,
   label,
   disabledValues = NO_DISABLED,
+  disabled: wheelDisabled = false,
   className,
 }: TimeWheelProps) {
   const id = useId()
@@ -170,7 +173,8 @@ export function TimeWheel({
         role="listbox"
         aria-label={label}
         aria-activedescendant={`${id}-${activeIndex}`}
-        tabIndex={0}
+        aria-disabled={wheelDisabled || undefined}
+        tabIndex={wheelDisabled ? -1 : 0}
         onScroll={handleScroll}
         onKeyDown={handleKeyDown}
         className="relative snap-y snap-mandatory overflow-y-scroll overscroll-contain outline-none [scrollbar-width:none] [mask-image:linear-gradient(to_bottom,transparent,black_35%,black_65%,transparent)] [&::-webkit-scrollbar]:hidden"

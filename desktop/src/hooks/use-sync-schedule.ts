@@ -118,7 +118,15 @@ export function useSyncSchedule() {
     else reset()
   }, [fetchAll, reset, signedIn, target.userId])
 
-  const update = useCallback((patch: Partial<SyncSchedule>) => setDraft((d) => ({ ...d, ...patch })), [])
+  const update = useCallback(
+    (patch: Partial<SyncSchedule>) =>
+      setDraft((d) => {
+        // Leaving manual for a timed mode means the user wants it to run, so switch it on.
+        const turnsOn = patch.mode !== undefined && patch.mode !== 'manual' && d.mode === 'manual'
+        return { ...d, ...(turnsOn && { enabled: true }), ...patch }
+      }),
+    [],
+  )
 
   const toggleDay = useCallback((day: Weekday) => {
     setDraft((d) => ({ ...d, days: d.days.includes(day) ? d.days.filter((x) => x !== day) : [...d.days, day] }))
@@ -159,8 +167,9 @@ export function useSyncSchedule() {
     issue,
     isDirty,
     isSyncing,
-    state: getScheduleState(saved),
-    nextRun: getUpcomingRuns(saved, now, 1)[0] ?? null,
+    // The summary follows the draft so a mode change shows up before Save; isDirty marks it unsaved.
+    state: getScheduleState(draft),
+    nextRun: getUpcomingRuns(draft, now, 1)[0] ?? null,
     previewRuns: getUpcomingRuns(draft, now, UPCOMING_PREVIEW_COUNT),
     successCount: finishedRuns.filter((r) => r.status === 'success').length,
     finishedCount: finishedRuns.length,
@@ -170,12 +179,12 @@ export function useSyncSchedule() {
       if (issue === null && !saving) void persist(draft)
     },
     discard: () => setDraft(saved),
-    // The header switch takes effect immediately, like a pause button, not via Save.
-    // Other unsaved edits survive: the reset after the save only follows the server's copy.
-    setEnabled: async (enabled: boolean) => {
-      if (!serverSchedule) return
-      const pendingEdits = draft
-      if (await persist({ ...serverSchedule, enabled })) setDraft({ ...pendingEdits, enabled })
+    // With nothing else pending, the header switch takes effect immediately, like a pause
+    // button. With unsaved edits (e.g. a new mode) it joins the draft and goes in with Save,
+    // so it never saves the old mode behind the user's back.
+    setEnabled: (enabled: boolean) => {
+      if (isDirty || !serverSchedule) update({ enabled })
+      else void persist({ ...serverSchedule, enabled })
     },
     syncNow,
     testConnection,

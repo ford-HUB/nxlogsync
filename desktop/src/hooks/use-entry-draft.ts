@@ -11,10 +11,36 @@ import { formatClock, formatDuration } from '@/constants/time-format'
 import { findWorkActivity } from '@/constants/work-activities'
 import type { EntryDraft, Job, LogEntry, WorkActivity } from '@/types/daily-log'
 
-function suggestRange(entries: LogEntry[], remainingMinutes: number) {
+const DESCRIPTION_KEY_PREFIX = 'nxlogsync.entry-draft.description.'
+
+/** The unsaved new-entry description for a day, so changing day doesn't erase it. */
+function readCachedDescription(dateKey: string): string {
+  try {
+    return localStorage.getItem(DESCRIPTION_KEY_PREFIX + dateKey) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function writeCachedDescription(dateKey: string, value: string) {
+  try {
+    if (value.trim()) localStorage.setItem(DESCRIPTION_KEY_PREFIX + dateKey, value)
+    else localStorage.removeItem(DESCRIPTION_KEY_PREFIX + dateKey)
+  } catch {
+    // Storage blocked: the draft still lives until the day changes.
+  }
+}
+
+/**
+ * The first task of a day starts at the actual time in (rounded up to the wheel
+ * step) when N-PAX has one, else the default start; later tasks follow the last entry.
+ */
+function suggestRange(entries: LogEntry[], remainingMinutes: number, timeInMinutes: number | null) {
   const lastEnd = entries.reduce((max, e) => Math.max(max, e.endMinutes), 0)
   const duration = Math.min(DEFAULT_DRAFT_DURATION_MINUTES, remainingMinutes) || DEFAULT_DRAFT_DURATION_MINUTES
-  const start = Math.min(lastEnd || DEFAULT_START_MINUTES, LAST_SELECTABLE_MINUTE - duration)
+  const firstStart =
+    timeInMinutes === null ? DEFAULT_START_MINUTES : Math.ceil(timeInMinutes / TIME_STEP_MINUTES) * TIME_STEP_MINUTES
+  const start = Math.min(lastEnd || firstStart, LAST_SELECTABLE_MINUTE - duration)
   return { startMinutes: start, endMinutes: start + duration }
 }
 
@@ -23,9 +49,12 @@ function findIssue(
   endMinutes: number,
   entries: LogEntry[],
   remainingMinutes: number,
+  overtimeMinutes: number,
 ): string | null {
   if (remainingMinutes === 0) {
-    return `The ${DAILY_LIMIT_HOURS}h daily limit is already reached.`
+    return overtimeMinutes > 0
+      ? `${formatDuration(overtimeMinutes)} over the ${DAILY_LIMIT_HOURS}h daily limit.`
+      : `The ${DAILY_LIMIT_HOURS}h daily limit is reached.`
   }
   // Unreachable from the UI (the finish follows the start); kept as a guard.
   if (endMinutes <= startMinutes) return 'End time must be after the start time.'
@@ -70,15 +99,30 @@ function followStart(range: { startMinutes: number; endMinutes: number }, startM
 }
 
 interface UseEntryDraftOptions {
+  /** The day being logged; its unsaved description is cached under this key. */
+  dateKey: string
   entries: LogEntry[]
   remainingMinutes: number
+  /** Logged time past the daily limit; 0 unless the day is over it. */
+  overtimeMinutes: number
+  /** The day's actual time in from N-PAX (minutes of the day), or null if unknown. */
+  timeInMinutes: number | null
   /** When set, the draft edits this entry instead of creating a new one. */
   editingEntry: LogEntry | null
   onAdd: (draft: EntryDraft) => void
   onUpdate: (id: string, draft: EntryDraft) => void
 }
 
-export function useEntryDraft({ entries, remainingMinutes, editingEntry, onAdd, onUpdate }: UseEntryDraftOptions) {
+export function useEntryDraft({
+  dateKey,
+  entries,
+  remainingMinutes,
+  overtimeMinutes,
+  timeInMinutes,
+  editingEntry,
+  onAdd,
+  onUpdate,
+}: UseEntryDraftOptions) {
   // While editing, the entry's own slot and hours are free to reuse.
   const otherEntries = editingEntry ? entries.filter((e) => e.id !== editingEntry.id) : entries
   const availableMinutes = editingEntry
@@ -88,9 +132,14 @@ export function useEntryDraft({ entries, remainingMinutes, editingEntry, onAdd, 
   const [range, setRange] = useState(() =>
     editingEntry
       ? { startMinutes: editingEntry.startMinutes, endMinutes: editingEntry.endMinutes }
-      : suggestRange(entries, remainingMinutes),
+      : suggestRange(entries, remainingMinutes, timeInMinutes),
   )
-  const [description, setDescription] = useState(editingEntry?.description ?? '')
+  const [description, setDescriptionState] = useState(() => editingEntry?.description ?? readCachedDescription(dateKey))
+  // Only a new entry's text is cached; an edit starts from the saved entry.
+  const setDescription = (value: string) => {
+    setDescriptionState(value)
+    if (!editingEntry) writeCachedDescription(dateKey, value)
+  }
   const [job, setJob] = useState<Job | null>(() => findJob(editingEntry?.jobCode ?? null))
   const [workActivity, setWorkActivity] = useState<WorkActivity | null>(() =>
     findWorkActivity(editingEntry?.workActivityCode ?? null),
@@ -105,9 +154,9 @@ export function useEntryDraft({ entries, remainingMinutes, editingEntry, onAdd, 
     setRange(
       editingEntry
         ? { startMinutes: editingEntry.startMinutes, endMinutes: editingEntry.endMinutes }
-        : suggestRange(entries, remainingMinutes),
+        : suggestRange(entries, remainingMinutes, timeInMinutes),
     )
-    setDescription(editingEntry?.description ?? '')
+    setDescriptionState(editingEntry?.description ?? readCachedDescription(dateKey))
     // A fresh entry keeps the last job and activity; most tasks in a row share them.
     if (editingEntry) {
       setJob(findJob(editingEntry.jobCode))
@@ -115,8 +164,21 @@ export function useEntryDraft({ entries, remainingMinutes, editingEntry, onAdd, 
     }
   }
 
+  // The time in loads after the form opens: move the suggestion to it, unless the
+  // wheels were already moved (by hand or by the timer) or an entry is being edited.
+  const [syncedTimeIn, setSyncedTimeIn] = useState(timeInMinutes)
+  if (timeInMinutes !== syncedTimeIn) {
+    setSyncedTimeIn(timeInMinutes)
+    const previous = suggestRange(entries, remainingMinutes, syncedTimeIn)
+    if (!editingEntry && range.startMinutes === previous.startMinutes && range.endMinutes === previous.endMinutes) {
+      setRange(suggestRange(entries, remainingMinutes, timeInMinutes))
+    }
+  }
+
   const durationMinutes = Math.max(0, range.endMinutes - range.startMinutes)
-  const issue = findIssue(range.startMinutes, range.endMinutes, otherEntries, availableMinutes)
+  const issue = findIssue(range.startMinutes, range.endMinutes, otherEntries, availableMinutes, overtimeMinutes)
+  // Exactly at the limit is the goal, not an error: the form shows it in green.
+  const limitMet = availableMinutes === 0 && overtimeMinutes === 0
   const isDirty =
     editingEntry === null ||
     range.startMinutes !== editingEntry.startMinutes ||
@@ -153,6 +215,8 @@ export function useEntryDraft({ entries, remainingMinutes, editingEntry, onAdd, 
 
   return {
     isEditing: editingEntry !== null,
+    /** The daily limit is used up, so a new entry can't be written (editing one still can). */
+    isDayFull: editingEntry === null && availableMinutes === 0,
     startMinutes: range.startMinutes,
     endMinutes: range.endMinutes,
     setStartMinutes: (startMinutes: number) => setRange((r) => followStart(r, startMinutes, otherEntries)),
@@ -172,6 +236,8 @@ export function useEntryDraft({ entries, remainingMinutes, editingEntry, onAdd, 
     durationMinutes,
     availableMinutes,
     issue,
+    /** The issue is only that the day's hours are exactly met. */
+    limitMet,
     canSubmit,
     submit,
   }

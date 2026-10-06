@@ -6,7 +6,7 @@ export const DAILY_LIMIT_MINUTES = DAILY_LIMIT_HOURS * 60
 export const NEAR_LIMIT_MINUTES = 60
 
 export const MINUTES_PER_DAY = 24 * 60
-export const TIME_STEP_MINUTES = 5
+export const TIME_STEP_MINUTES = 1
 export const LAST_SELECTABLE_MINUTE = MINUTES_PER_DAY - TIME_STEP_MINUTES
 export const DEFAULT_START_MINUTES = 9 * 60
 export const DEFAULT_DRAFT_DURATION_MINUTES = 60
@@ -21,7 +21,7 @@ export const DAY_STATUS_LABEL: Record<DayStatus, string> = {
   'in-progress': 'In progress',
   'near-limit': 'Near limit',
   full: 'Limit reached',
-  'over-limit': 'Over limit',
+  'over-limit': 'Overtime',
 }
 
 export const DAY_STATUS_BADGE: Record<DayStatus, string> = {
@@ -37,7 +37,8 @@ export const DAY_STATUS_BAR: Record<DayStatus, string> = {
   'in-progress': 'bg-primary',
   'near-limit': 'bg-warning',
   full: 'bg-success',
-  'over-limit': 'bg-destructive',
+  // Over the limit the bar is green up to 9h and red past it; see HoursSummary.
+  'over-limit': 'bg-success',
 }
 
 // Activity heatmap

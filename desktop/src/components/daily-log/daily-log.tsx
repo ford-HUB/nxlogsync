@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { ConnectNotice } from '@/components/feedback/connect-notice'
 import { ErrorBanner } from '@/components/feedback/error-banner'
+import { CoffeeDialog } from '@/components/support/coffee-dialog'
 import { useDailyLog } from '@/hooks/use-daily-log'
 import { useIsSignedIn } from '@/hooks/use-site-session'
 import { useTimeIn } from '@/hooks/use-time-in'
@@ -80,6 +81,8 @@ export function DailyLog({ onOpenSettings }: DailyLogProps) {
         onSelectDay={openDay}
       />
 
+      <CoffeeDialog />
+
       {/* Entries belong to the signed-in site user, so nothing below works until one connects. */}
       <fieldset disabled={!signedIn} className={cn('contents', !signedIn && 'pointer-events-none')}>
         <HoursSummary
@@ -112,6 +115,7 @@ export function DailyLog({ onOpenSettings }: DailyLogProps) {
         />
 
         <EntryList
+          dateKey={log.dateKey}
           entries={log.entries}
           initialized={log.initialized}
           highlightedId={highlightedId}

@@ -120,7 +120,7 @@ export class SyncService implements OnApplicationBootstrap {
 
       const days = groupByDate(entries);
       const uploaded: LogEntry[] = [];
-      const alreadyOnSite: string[] = [];
+      const replacedOnSite: string[] = [];
       const noTimeRecord: string[] = [];
       // N-PAX needs a job and work activity on every row; those days wait.
       const incomplete = [...days.keys()].filter((date) =>
@@ -151,8 +151,8 @@ export class SyncService implements OnApplicationBootstrap {
               dayEntries.map((e) => e.id),
               new Date(),
             );
-            if (outcome === 'already-recorded') alreadyOnSite.push(date);
-            else uploaded.push(...dayEntries);
+            if (outcome === 'replaced') replacedOnSite.push(date);
+            uploaded.push(...dayEntries);
           } catch (error) {
             lastError = error instanceof Error ? error.message : String(error);
             this.logger.warn(
@@ -171,9 +171,9 @@ export class SyncService implements OnApplicationBootstrap {
           `${incomplete.length} ${incomplete.length === 1 ? 'day needs' : 'days need'} a job and work activity on every entry (${incomplete.join(', ')})`,
         );
       }
-      if (alreadyOnSite.length > 0) {
+      if (replacedOnSite.length > 0) {
         notes.push(
-          `${alreadyOnSite.length} ${alreadyOnSite.length === 1 ? 'day was' : 'days were'} already on N-PAX (${alreadyOnSite.join(', ')})`,
+          `${replacedOnSite.length} ${replacedOnSite.length === 1 ? 'day was' : 'days were'} already on N-PAX and replaced (${replacedOnSite.join(', ')})`,
         );
       }
       if (noTimeRecord.length > 0) {

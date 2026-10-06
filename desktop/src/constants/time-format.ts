@@ -43,3 +43,9 @@ export function shiftDateKey(key: string, days: number): string {
 export function formatDayLabel(key: string): string {
   return DAY_LABEL_FORMAT.format(fromDateKey(key))
 }
+
+/** Saturday or Sunday: no work is logged on these days. */
+export function isWeekendKey(key: string): boolean {
+  const day = fromDateKey(key).getDay()
+  return day === 0 || day === 6
+}

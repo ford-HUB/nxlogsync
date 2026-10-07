@@ -4,10 +4,12 @@ import {
   DEFAULT_DRAFT_DURATION_MINUTES,
   DEFAULT_START_MINUTES,
   LAST_SELECTABLE_MINUTE,
+  finishForWork,
   TIME_STEP_MINUTES,
   workMinutes,
 } from '@/constants/daily-log'
 import { findJob } from '@/constants/jobs'
+import { useJobsStore } from '@/store/jobs-store'
 import { formatClock, formatDuration } from '@/constants/time-format'
 import { findWorkActivity } from '@/constants/work-activities'
 import type { EntryDraft, Job, LogEntry, WorkActivity } from '@/types/daily-log'
@@ -71,11 +73,12 @@ function findIssue(
 }
 
 /**
- * A start can't sit inside an entry (it may begin exactly when one ends), and needs
- * at least one step left in the day to finish.
+ * A start can't sit inside an entry (it may begin exactly when one ends), needs at
+ * least one step left in the day to finish, and can't come before `earliest`.
  */
-function isStartTaken(entries: LogEntry[], minutes: number) {
+function isStartTaken(entries: LogEntry[], minutes: number, earliest: number | null) {
   if (minutes >= LAST_SELECTABLE_MINUTE) return true
+  if (earliest !== null && minutes < earliest) return true
   return entries.some((e) => minutes >= e.startMinutes && minutes < e.endMinutes)
 }
 
@@ -130,6 +133,9 @@ export function useEntryDraft({
     ? remainingMinutes + workMinutes(editingEntry.startMinutes, editingEntry.endMinutes)
     : remainingMinutes
 
+  // The day's first entry can't start before the N-PAX shift start; later ones can.
+  const earliestStart = otherEntries.length === 0 ? timeInMinutes : null
+
   const [range, setRange] = useState(() =>
     editingEntry
       ? { startMinutes: editingEntry.startMinutes, endMinutes: editingEntry.endMinutes }
@@ -141,7 +147,8 @@ export function useEntryDraft({
     setDescriptionState(value)
     if (!editingEntry) writeCachedDescription(dateKey, value)
   }
-  const [job, setJob] = useState<Job | null>(() => findJob(editingEntry?.jobCode ?? null))
+  const jobs = useJobsStore((s) => s.jobs)
+  const [job, setJob] = useState<Job | null>(() => findJob(jobs, editingEntry?.jobCode ?? null))
   const [workActivity, setWorkActivity] = useState<WorkActivity | null>(() =>
     findWorkActivity(editingEntry?.workActivityCode ?? null),
   )
@@ -160,7 +167,7 @@ export function useEntryDraft({
     setDescriptionState(editingEntry?.description ?? readCachedDescription(dateKey))
     // A fresh entry keeps the last job and activity; most tasks in a row share them.
     if (editingEntry) {
-      setJob(findJob(editingEntry.jobCode))
+      setJob(findJob(jobs, editingEntry.jobCode))
       setWorkActivity(findWorkActivity(editingEntry.workActivityCode))
     }
   }
@@ -223,9 +230,12 @@ export function useEntryDraft({
     endMinutes: range.endMinutes,
     setStartMinutes: (startMinutes: number) => setRange((r) => followStart(r, startMinutes, otherEntries)),
     setEndMinutes: (endMinutes: number) => setRange((r) => ({ ...r, endMinutes })),
+    /** Keeps the start and moves the finish so the task counts `minutes` of work. */
+    setDurationMinutes: (minutes: number) =>
+      setRange((r) => ({ ...r, endMinutes: finishForWork(r.startMinutes, minutes) })),
     /** Sets both times at once (e.g. from the task timer). */
     setTimes: (startMinutes: number, endMinutes: number) => setRange({ startMinutes, endMinutes }),
-    isStartTaken: (minutes: number) => isStartTaken(otherEntries, minutes),
+    isStartTaken: (minutes: number) => isStartTaken(otherEntries, minutes, earliestStart),
     isEndTaken: (minutes: number) => isEndTaken(otherEntries, range.startMinutes, minutes),
     description,
     setDescription,

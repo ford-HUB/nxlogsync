@@ -4,6 +4,7 @@ import { shiftDateKey, toDateKey } from '@/constants/time-format'
 import { useNow } from '@/hooks/use-now'
 import { useSiteSessionStore } from '@/store/site-session-store'
 import { useDailyLogStore } from '@/store/daily-log-store'
+import { useJobsStore } from '@/store/jobs-store'
 import { useSyncScheduleStore } from '@/store/sync-schedule-store'
 import type { DayStatus, EntryDraft } from '@/types/daily-log'
 
@@ -44,6 +45,14 @@ export function useDailyLog() {
     if (userId !== null) void reload()
     else reset()
   }, [reload, reset, userId])
+
+  // N-PAX lists different jobs per employee, so the Job lookup is the user's own.
+  const fetchJobs = useJobsStore((s) => s.fetchJobs)
+  const resetJobs = useJobsStore((s) => s.reset)
+  useEffect(() => {
+    if (userId !== null) void fetchJobs()
+    else resetJobs()
+  }, [fetchJobs, resetJobs, userId])
 
   // A finished sync changes which entries are synced; reload to show it.
   const latestRun = useSyncScheduleStore((s) => s.runs[0])

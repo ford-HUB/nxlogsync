@@ -1,5 +1,6 @@
 import type {
   ConnectionStatus,
+  EndorseOutcome,
   ScheduleIssue,
   ScheduleMode,
   ScheduleState,
@@ -171,4 +172,11 @@ export function formatRunTime(date: Date, now: Date): string {
   if (dayDiff === 1) return `Tomorrow, ${time}`
   if (dayDiff === -1) return `Yesterday, ${time}`
   return `${RUN_DAY_FORMAT.format(date)}, ${time}`
+}
+
+export const ENDORSE_OUTCOME_LABEL: Record<EndorseOutcome, string> = {
+  endorsed: 'Endorsed',
+  'short-day': 'Skipped · under 9h logged',
+  'not-saved': 'Skipped · not saved on N-PAX',
+  'no-time-record': 'Skipped · no time record on N-PAX',
 }

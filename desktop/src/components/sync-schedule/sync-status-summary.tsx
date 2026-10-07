@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { CalendarSync, RefreshCw } from 'lucide-react'
+import { CalendarSync, RefreshCw, Stamp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
@@ -16,6 +16,7 @@ import {
 import { formatDuration } from '@/constants/time-format'
 import type { SyncScheduleState } from '@/hooks/use-sync-schedule'
 import { cn } from '@/lib/utils'
+import { EndorseDaysDialog } from './endorse-days-dialog'
 import { ResyncDaysDialog } from './resync-days-dialog'
 
 interface SyncStatusSummaryProps {
@@ -25,6 +26,7 @@ interface SyncStatusSummaryProps {
 export function SyncStatusSummary({ schedule: s }: SyncStatusSummaryProps) {
   const { nextRun, lastRun, pending, now } = s
   const [resyncOpen, setResyncOpen] = useState(false)
+  const [endorseOpen, setEndorseOpen] = useState(false)
   const minutesUntil = nextRun ? Math.max(1, Math.round((nextRun.getTime() - now.getTime()) / 60_000)) : 0
 
   return (
@@ -99,6 +101,10 @@ export function SyncStatusSummary({ schedule: s }: SyncStatusSummaryProps) {
           </Label>
         </div>
         <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => setEndorseOpen(true)} disabled={s.isSyncing}>
+            <Stamp />
+            Endorse days
+          </Button>
           <Button type="button" variant="outline" onClick={() => setResyncOpen(true)} disabled={s.isSyncing}>
             <CalendarSync />
             Resync days
@@ -110,6 +116,7 @@ export function SyncStatusSummary({ schedule: s }: SyncStatusSummaryProps) {
         </div>
       </CardFooter>
       <ResyncDaysDialog open={resyncOpen} onOpenChange={setResyncOpen} />
+      <EndorseDaysDialog open={endorseOpen} onOpenChange={setEndorseOpen} />
     </Card>
   )
 }

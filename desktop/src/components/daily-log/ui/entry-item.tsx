@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { workMinutes } from '@/constants/daily-log'
 import { findJob } from '@/constants/jobs'
+import { useJobsStore } from '@/store/jobs-store'
 import { formatClock, formatDuration } from '@/constants/time-format'
 import { findWorkActivity } from '@/constants/work-activities'
 import { cn } from '@/lib/utils'
@@ -31,7 +32,8 @@ interface EntryItemProps {
 
 export function EntryItem({ entry, highlighted, selected, onHighlight, onSelect, onRemove }: EntryItemProps) {
   const minutes = workMinutes(entry.startMinutes, entry.endMinutes)
-  const job = findJob(entry.jobCode)
+  const jobs = useJobsStore((s) => s.jobs)
+  const job = findJob(jobs, entry.jobCode)
   const activity = findWorkActivity(entry.workActivityCode)
 
   return (

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
@@ -13,6 +14,7 @@ import { NpaxWorkflowClient } from '../../../infrastructures/npax-workflow/npax-
 import { toDateKey } from '../../../shared/utils/date-key-utils';
 import { LogEntriesRepository } from '../../log-entries/repositories/log-entries-repository';
 import {
+  EndorseDayResponseDto,
   PendingUploadResponseDto,
   SyncRunResponseDto,
   SyncRunStatus,
@@ -121,6 +123,40 @@ export class SyncService implements OnApplicationBootstrap {
       days: new Set(entries.map((e) => e.date)).size,
       minutes: sumMinutes(entries),
     };
+  }
+
+  /**
+   * Endorses one synced day to its checker on N-PAX. Only a day whose entries
+   * are all synced can be endorsed (N-PAX must hold what was logged), and not
+   * while a sync for the user is running. Endorsing can't be undone here: the
+   * day can no longer be cleared or saved over on N-PAX.
+   */
+  async endorseDay(user: string, date: string): Promise<EndorseDayResponseDto> {
+    if (this.activeRuns.has(user)) {
+      throw new ConflictException(
+        'A sync is running; endorse once it finishes',
+      );
+    }
+    const entries = await this.logEntries.findByDate(user, date);
+    if (entries.length === 0) {
+      throw new BadRequestException(`Nothing is logged on ${date}`);
+    }
+    if (entries.some((e) => e.syncedAt === null)) {
+      throw new BadRequestException(
+        `${date} has entries not yet synced to N-PAX; sync it before endorsing`,
+      );
+    }
+    const outcome = await this.npax.endorseAllocationDay(
+      user,
+      { date, entries },
+      { dryRun: false },
+    );
+    // Only a dry run reports 'ready'; this one never is.
+    if (outcome === 'ready') {
+      throw new Error(`N-PAX endorse of ${date} ran as a dry run`);
+    }
+    this.logger.log(`Endorse of ${date} for ${user}: ${outcome}`);
+    return { date, outcome };
   }
 
   isRunning(user: string): boolean {

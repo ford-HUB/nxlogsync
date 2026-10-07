@@ -1,5 +1,6 @@
+import { ENDORSE_TIMEOUT_MS } from '@/constants/api'
 import { get, post, put, type ApiResult } from './api-client'
-import type { PendingUpload, SyncRun, SyncSchedule } from '@/types/sync-schedule'
+import type { EndorseOutcome, PendingUpload, SyncRun, SyncSchedule } from '@/types/sync-schedule'
 
 interface SyncRunWire extends Omit<SyncRun, 'startedAt' | 'message'> {
   startedAt: string
@@ -33,4 +34,9 @@ export async function startRun(): Promise<ApiResult<SyncRun>> {
 
 export function getPending(): Promise<ApiResult<PendingUpload>> {
   return get('/v1/sync/pending')
+}
+
+/** Endorses one synced day to its checker on N-PAX. This can't be undone. */
+export function endorseDay(date: string): Promise<ApiResult<{ date: string; outcome: EndorseOutcome }>> {
+  return post('/v1/sync/endorse', { date }, { timeoutMs: ENDORSE_TIMEOUT_MS })
 }

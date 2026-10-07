@@ -100,7 +100,7 @@ export function TimePicker({ label, value, onChange, isTaken = NEVER_TAKEN, inva
           className="pointer-events-none absolute inset-x-1 top-1/2 -translate-y-1/2 rounded-md bg-muted"
           style={{ height: WHEEL_ITEM_HEIGHT }}
         />
-        <TimeWheel className="relative" label={`${label} hour`} options={HOUR_OPTIONS} disabledValues={disabledHours} disabled={disabled} value={parts.hour12} onChange={(hour12) => update({ hour12 })} />
+        <TimeWheel className="relative" loop label={`${label} hour`} options={HOUR_OPTIONS} disabledValues={disabledHours} disabled={disabled} value={parts.hour12} onChange={(hour12) => update({ hour12 })} />
         <span aria-hidden className="relative text-center text-sm font-semibold text-muted-foreground">:</span>
         <TimeWheel className="relative" label={`${label} minute`} options={MINUTE_OPTIONS} disabledValues={disabledMinutes} disabled={disabled} value={parts.minute} onChange={(minute) => update({ minute })} />
         <TimeWheel className="relative" label={`${label} AM or PM`} options={PERIOD_OPTIONS} disabledValues={disabledPeriods} disabled={disabled} value={parts.period} onChange={(period) => update({ period })} />

@@ -20,6 +20,7 @@ import type { EntryDraft, LogEntry } from '@/types/daily-log'
 import { cn } from '@/lib/utils'
 import { TimePicker } from '@/components/time-picker/time-picker'
 import { JobLookupDialog } from './job-lookup-dialog'
+import { DurationInput } from './ui/duration-input'
 import { TaskTimer } from './ui/task-timer'
 import { WorkActivityLookupDialog } from './work-activity-lookup-dialog'
 
@@ -268,6 +269,7 @@ export function EntryForm({
                 <ArrowRight className="size-4 text-muted-foreground" />
               </div>
               <TimePicker label="Finished" value={draft.endMinutes} onChange={draft.setEndMinutes} isTaken={draft.isEndTaken} invalid={draft.issue !== null && !draft.limitMet} complete={draft.limitMet} disabled={locked} />
+              <DurationInput value={draft.durationMinutes} onChange={draft.setDurationMinutes} invalid={draft.issue !== null && !draft.limitMet} complete={draft.limitMet} disabled={locked} />
             </div>
 
             <div className="flex min-w-60 flex-1 flex-col gap-1.5">

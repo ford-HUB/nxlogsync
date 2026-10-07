@@ -60,9 +60,10 @@ export function parseApiError(error: unknown): string {
   return error.message
 }
 
-export async function post<T>(url: string, body: unknown): Promise<ApiResult<T>> {
+/** `timeoutMs` overrides API_TIMEOUT_MS for calls known to run long. */
+export async function post<T>(url: string, body: unknown, options?: { timeoutMs?: number }): Promise<ApiResult<T>> {
   try {
-    const res = await client.post(url, body)
+    const res = await client.post(url, body, { timeout: options?.timeoutMs })
     return { success: true, data: unwrap<T>(res.data) }
   } catch (error) {
     return { success: false, message: parseApiError(error) }

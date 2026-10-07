@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BriefcaseBusiness, ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { BriefcaseBusiness, ChevronLeft, ChevronRight, RefreshCw, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,9 +13,10 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
-import { DEFAULT_COST_CENTER, JOB_LOOKUP_PAGE_SIZE, COST_CENTERS, JOBS } from '@/constants/jobs'
+import { Skeleton } from '@/components/ui/skeleton'
+import { JOB_LOOKUP_PAGE_SIZE, JOB_LOOKUP_SKELETON_ROWS } from '@/constants/jobs'
 import { cn } from '@/lib/utils'
+import { useJobsStore } from '@/store/jobs-store'
 import type { Job } from '@/types/daily-log'
 
 interface JobLookupDialogProps {
@@ -32,17 +33,27 @@ function matchesCostCenter(job: Job, costCenter: string) {
 }
 
 export function JobLookupDialog({ open, onOpenChange, value, onSelect }: JobLookupDialogProps) {
-  const [costCenter, setCostCenter] = useState(DEFAULT_COST_CENTER)
-  const [external, setExternal] = useState(false)
+  const jobs = useJobsStore((s) => s.jobs)
+  const costCenters = useJobsStore((s) => s.costCenters)
+  const defaultCostCenter = useJobsStore((s) => s.defaultCostCenter)
+  const loading = useJobsStore((s) => s.loading)
+  const initialized = useJobsStore((s) => s.initialized)
+  const error = useJobsStore((s) => s.error)
+  const fetchJobs = useJobsStore((s) => s.fetchJobs)
+
+  // '' until the user picks one: follows the employee's own cost center once it loads.
+  const [pickedCostCenter, setCostCenter] = useState('')
+  const costCenter = pickedCostCenter || defaultCostCenter
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
   const [highlighted, setHighlighted] = useState<string | null>(value?.code ?? null)
 
   const handleOpenChange = (next: boolean) => {
     if (next) {
-      setCostCenter(DEFAULT_COST_CENTER)
-      setExternal(false)
+      setCostCenter('')
       setQuery('')
+      // The first load failed (or never ran): try again now the user needs the list.
+      if (error || (!initialized && !loading)) void fetchJobs()
       setPage(0)
       setHighlighted(value?.code ?? null)
     }
@@ -50,10 +61,9 @@ export function JobLookupDialog({ open, onOpenChange, value, onSelect }: JobLook
   }
 
   const needle = query.trim().toLowerCase()
-  const rows = JOBS.filter(
+  const rows = jobs.filter(
     (job) =>
-      matchesCostCenter(job, costCenter) &&
-      job.external === external &&
+      (costCenter === '' || matchesCostCenter(job, costCenter)) &&
       (needle === '' ||
         [job.code, job.clientJobNo, job.clientJobName].some((field) => field.toLowerCase().includes(needle))),
   )
@@ -91,16 +101,17 @@ export function JobLookupDialog({ open, onOpenChange, value, onSelect }: JobLook
             <Label className="text-[11px] tracking-wider text-muted-foreground uppercase">Cost center</Label>
             <Select
               value={costCenter}
+              disabled={costCenters.length === 0}
               onValueChange={(next) => {
                 setCostCenter(next)
                 resetPaging()
               }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue />
+                <SelectValue placeholder={loading ? 'Loading…' : 'None'} />
               </SelectTrigger>
               <SelectContent>
-                {COST_CENTERS.map((center) => (
+                {costCenters.map((center) => (
                   <SelectItem key={center} value={center}>
                     {center}
                   </SelectItem>
@@ -108,19 +119,16 @@ export function JobLookupDialog({ open, onOpenChange, value, onSelect }: JobLook
               </SelectContent>
             </Select>
           </div>
-          <div className="flex h-8 items-center gap-2">
-            <Switch
-              id="job-lookup-external"
-              checked={external}
-              onCheckedChange={(next) => {
-                setExternal(next)
-                resetPaging()
-              }}
-            />
-            <Label htmlFor="job-lookup-external" className="text-[12px]">
-              EXT
-            </Label>
-          </div>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={loading}
+            onClick={() => void fetchJobs(true)}
+            title="Read your jobs from N-PAX again"
+          >
+            <RefreshCw className={cn(loading && 'animate-spin')} />
+            Refresh
+          </Button>
         </div>
 
         <div className="relative">
@@ -173,10 +181,31 @@ export function JobLookupDialog({ open, onOpenChange, value, onSelect }: JobLook
                   </tr>
                 )
               })}
-              {pageRows.length === 0 && (
+              {pageRows.length === 0 && loading &&
+                Array.from({ length: JOB_LOOKUP_SKELETON_ROWS }, (_, i) => (
+                  <tr key={i} aria-hidden className="border-t">
+                    <td className="px-3 py-2.5">
+                      <Skeleton className="h-4 w-28" />
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <Skeleton className="h-4 w-6" />
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <Skeleton className="h-4 w-3/4" />
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <Skeleton className="h-4 w-10" />
+                    </td>
+                  </tr>
+                ))}
+              {pageRows.length === 0 && !loading && (
                 <tr>
                   <td colSpan={4} className="px-3 py-12 text-center text-muted-foreground">
-                    No jobs match this cost center and search.
+                    {error
+                      ? `Couldn't read your jobs from N-PAX: ${error}`
+                      : initialized && jobs.length === 0
+                        ? 'N-PAX lists no jobs for you.'
+                        : 'No jobs match this cost center and search.'}
                   </td>
                 </tr>
               )}

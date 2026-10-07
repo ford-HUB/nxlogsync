@@ -38,8 +38,15 @@ export interface Job {
   costCenter: string
   /** "B" = billable; empty for non-billable jobs (as the lookup shows it). */
   category: string
-  /** External (EXT) job, hidden unless the lookup's EXT filter is on. */
-  external: boolean
+}
+
+/** The signed-in user's own Job lookup, read from N-PAX (each employee has different jobs). */
+export interface JobLookup {
+  /** Cost center names in the lookup's dropdown. */
+  costCenters: string[]
+  /** The cost center the lookup opens on (the employee's own). */
+  defaultCostCenter: string
+  jobs: Job[]
 }
 
 /** A work activity from the site's Work Activity lookup. */

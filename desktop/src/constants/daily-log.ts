@@ -29,11 +29,32 @@ export const DEFAULT_DRAFT_DURATION_MINUTES = 60
 
 /** N-PAX starts a shift on the next 10-minute mark at or after the time in. */
 export const SHIFT_START_STEP_MINUTES = 10
+/** The F25 shift begins at 8:00 AM; a time in before then still starts the day at 8:00. */
+export const F25_SHIFT_START_MINUTES = 8 * 60
 
-/** The shift start N-PAX assigns a time in: 08:13 → 08:20, 08:20 → 08:20, 08:21 → 08:30. */
+/**
+ * The shift start N-PAX assigns a time in: 07:53 → 08:00, 08:00 → 08:00, 08:07 → 08:10,
+ * 08:21 → 08:30.
+ */
 export function shiftStartMinutes(timeInMinutes: number): number {
-  return Math.ceil(timeInMinutes / SHIFT_START_STEP_MINUTES) * SHIFT_START_STEP_MINUTES
+  const stepped = Math.ceil(timeInMinutes / SHIFT_START_STEP_MINUTES) * SHIFT_START_STEP_MINUTES
+  return Math.max(F25_SHIFT_START_MINUTES, stepped)
 }
+
+/**
+ * The finish that gives `durationMinutes` of work from `startMinutes`, stretched
+ * over the unpaid break when the task spans it, and capped at the day's last time.
+ */
+export function finishForWork(startMinutes: number, durationMinutes: number): number {
+  let end = startMinutes + durationMinutes
+  while (end < LAST_SELECTABLE_MINUTE && workMinutes(startMinutes, end) < durationMinutes) {
+    end += durationMinutes - workMinutes(startMinutes, end)
+  }
+  return Math.min(end, LAST_SELECTABLE_MINUTE)
+}
+
+/** Longest duration the hours field takes, as h.mm. */
+export const DURATION_INPUT_MAX_HOURS = 23
 
 export const DESCRIPTION_MAX_LENGTH = 500
 
@@ -111,6 +132,12 @@ export const MINUTE_OPTIONS: WheelOption[] = Array.from(
     value: i * TIME_STEP_MINUTES,
     label: String(i * TIME_STEP_MINUTES).padStart(2, '0'),
   }),
+)
+
+/** Whole hours on the duration wheel, 0 → the longest the hours field takes. */
+export const DURATION_HOUR_OPTIONS: WheelOption[] = Array.from(
+  { length: DURATION_INPUT_MAX_HOURS + 1 },
+  (_, i) => ({ value: i, label: String(i) }),
 )
 
 export const PERIOD_OPTIONS: WheelOption[] = [

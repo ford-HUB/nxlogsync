@@ -17,10 +17,15 @@ interface TimeWheelProps {
   disabledValues?: ReadonlySet<number>
   /** Locks the whole wheel: no scrolling, clicking or keyboard focus. */
   disabled?: boolean
+  /** Wraps around (12 → 1 → 2 …) instead of stopping at either end. */
+  loop?: boolean
   className?: string
 }
 
 const NO_DISABLED: ReadonlySet<number> = new Set()
+
+/** Copies of the options a looping wheel renders; it re-centres on the middle one when it settles. */
+const LOOP_COPIES = 5
 
 const SIDE_PADDING = WHEEL_ITEM_HEIGHT * Math.floor(WHEEL_VISIBLE_ITEMS / 2)
 
@@ -37,6 +42,7 @@ export function TimeWheel({
   label,
   disabledValues = NO_DISABLED,
   disabled: wheelDisabled = false,
+  loop = false,
   className,
 }: TimeWheelProps) {
   const id = useId()
@@ -53,35 +59,43 @@ export function TimeWheel({
   onChangeRef.current = onChange
   disabledRef.current = disabledValues
 
-  const selectedIndex = Math.max(0, options.findIndex((o) => o.value === value))
+  // A looping wheel lays out several copies of the options and keeps to the middle
+  // one, so there is always more to scroll either way.
+  const count = options.length
+  const items = loop ? Array.from({ length: count * LOOP_COPIES }, (_, i) => options[i % count]) : options
+  const middleOffset = loop ? count * Math.floor(LOOP_COPIES / 2) : 0
+  /** The same option's index in the middle copy. */
+  const toMiddle = useCallback((index: number) => middleOffset + (index % count), [middleOffset, count])
+
+  const selectedIndex = middleOffset + Math.max(0, options.findIndex((o) => o.value === value))
   const [activeIndex, setActiveIndex] = useState(selectedIndex)
 
   const clampIndex = useCallback(
-    (index: number) => Math.min(options.length - 1, Math.max(0, index)),
-    [options.length],
+    (index: number) => Math.min(items.length - 1, Math.max(0, index)),
+    [items.length],
   )
 
   const isDisabledAt = useCallback(
-    (index: number) => disabledRef.current.has(options[index].value),
-    [options],
+    (index: number) => disabledRef.current.has(options[index % count].value),
+    [options, count],
   )
 
   /** First enabled index from `index` stepping by `direction`, else the closest either way. */
   const resolveEnabled = useCallback(
     (index: number, direction?: number): number | null => {
       if (direction) {
-        for (let i = index; i >= 0 && i < options.length; i += direction) {
+        for (let i = index; i >= 0 && i < items.length; i += direction) {
           if (!isDisabledAt(i)) return i
         }
         return null
       }
-      for (let d = 0; d < options.length; d++) {
-        if (index + d < options.length && !isDisabledAt(index + d)) return index + d
+      for (let d = 0; d < items.length; d++) {
+        if (index + d < items.length && !isDisabledAt(index + d)) return index + d
         if (index - d >= 0 && !isDisabledAt(index - d)) return index - d
       }
       return null
     },
-    [options.length, isDisabledAt],
+    [items.length, isDisabledAt],
   )
 
   const scrollToIndex = useCallback(
@@ -141,7 +155,13 @@ export function TimeWheel({
         if (fallback !== null) scrollToIndex(fallback)
         return
       }
-      const settled = options[index].value
+      // Jump back to the middle copy without animating; it shows the same items.
+      const centred = loop ? toMiddle(index) : index
+      if (centred !== index) {
+        el.scrollTo({ top: centred * WHEEL_ITEM_HEIGHT, behavior: 'auto' })
+        setActiveIndex(centred)
+      }
+      const settled = items[index].value
       if (settled !== valueRef.current) onChangeRef.current(settled)
     }, WHEEL_SETTLE_MS)
   }
@@ -153,8 +173,8 @@ export function TimeWheel({
       ArrowDown: [from + 1, 1],
       PageUp: [from - WHEEL_VISIBLE_ITEMS, -1],
       PageDown: [from + WHEEL_VISIBLE_ITEMS, 1],
-      Home: [0, 1],
-      End: [options.length - 1, -1],
+      Home: [middleOffset, 1],
+      End: [middleOffset + count - 1, -1],
     }
     if (!(event.key in moves)) return
     event.preventDefault()
@@ -183,12 +203,12 @@ export function TimeWheel({
           paddingBlock: SIDE_PADDING,
         }}
       >
-        {options.map((option, index) => {
+        {items.map((option, index) => {
           const distance = Math.abs(index - activeIndex)
           const disabled = disabledValues.has(option.value)
           return (
             <button
-              key={option.value}
+              key={index}
               id={`${id}-${index}`}
               type="button"
               role="option"

@@ -18,8 +18,12 @@ const LOGIN_PATH = '/index.aspx';
 const JOB_SPLIT_PATH = '/Transactions/ManhourAllocation/pgeJobSplitMod.aspx';
 const ALLOCATION_ENTRY_PATH =
   '/Transactions/ManhourAllocation/pgeWorkRecord.aspx';
-// SAVE only; the page's Submit/Endorse buttons are never pressed.
+// SAVE; a sync only ever presses this one.
 const SAVE_BUTTON = '#ctl00_ContentPlaceHolder1_btnZ';
+// "Endorse to Checker 1" on Allocation Modification ("Submit" on Allocation
+// Entry). Pressed only by endorseAllocationDay, and only when not a dry run:
+// an endorsed day can no longer be cleared or saved over.
+const ENDORSE_BUTTON = '#ctl00_ContentPlaceHolder1_btnX';
 // CLEAR, only on Allocation Modification: wipes a day's saved, not-yet-endorsed allocation.
 const CLEAR_BUTTON = '#ctl00_ContentPlaceHolder1_btnY';
 // How long to let the page's onload setup finish after CLEAR before filling anyway.
@@ -35,11 +39,14 @@ const POPUP_TIMEOUT_MS = 90_000;
 // How long to wait for the User ID box's autopostback before assuming there is none.
 const POSTBACK_GRACE_MS = 2_000;
 const DEFAULT_RELOGIN_ATTEMPTS = 3;
+/** Upper bound on NEXT presses per cost center in a lookup, in case NEXT never disables. */
+const MAX_LOOKUP_PAGES = 50;
 // Waits between re-login attempts double from here: 2s, 4s, 8s, …
 const RELOGIN_BACKOFF_MS = 2_000;
 // Allocation times must sit on 5-minute marks ("System only allows minutes for every 5").
 const NPAX_TIME_STEP_MINUTES = 5;
-// A day only counts as overtime once its logged task time goes past this.
+// A day only counts as overtime once its logged task time goes past this,
+// and is only endorsed once it reaches it.
 const OVERTIME_AFTER_MINUTES = 9 * 60;
 // N-PAX confirm()s overtime when a row starts before or ends after the shift.
 const OVERTIME_PROMPT = /overtime/i;
@@ -85,11 +92,43 @@ export interface NpaxAllocationDay {
 export type NpaxAllocationOutcome =
   'saved' | 'replaced' | 'already-recorded' | 'no-time-record' | 'dry-run';
 
+/**
+ * 'endorsed' = Endorse was pressed and N-PAX no longer lets the day be changed;
+ * 'ready' = (dry run only) every check passed and Endorse is enabled, but it
+ * was not pressed;
+ * 'short-day' = less than 9h is logged that day, so it isn't endorsed;
+ * 'not-saved' = N-PAX has no saved allocation for that day, so there is
+ * nothing to endorse yet;
+ * 'no-time-record' = N-PAX has no time record (shift) for that day.
+ */
+export type NpaxEndorseOutcome =
+  'endorsed' | 'ready' | 'short-day' | 'not-saved' | 'no-time-record';
+
 /** One page's HTML as captured by `capturePages`. */
 export interface NpaxCapturedPage {
   name: string;
   url: string;
   html: string;
+}
+
+/** One row of the Job lookup. */
+export interface NpaxJob {
+  code: string;
+  clientJobNo: string;
+  clientJobName: string;
+  /** Cost center name as the lookup shows it; "ALL" for jobs under every one. */
+  costCenter: string;
+  /** "B" = billable; empty for non-billable jobs. */
+  category: string;
+}
+
+/** A user's Job lookup as read by `getJobs`. */
+export interface NpaxJobLookup {
+  /** Cost center names in the lookup's dropdown. */
+  costCenters: string[];
+  /** The cost center the lookup opens on (the employee's own). */
+  defaultCostCenter: string;
+  jobs: NpaxJob[];
 }
 
 interface NpaxLogin {
@@ -209,11 +248,7 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
         );
       }
 
-      const loggedMinutes = day.entries.reduce(
-        (sum, e) => sum + (e.endMinutes - e.startMinutes),
-        0,
-      );
-      const overtime = loggedMinutes > OVERTIME_AFTER_MINUTES;
+      const overtime = isOvertimeDay(day.entries);
       const entries = fitToShift(day.entries, form.shift, overtime);
       const moved = entries.some(
         (e) =>
@@ -370,35 +405,120 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
           page.waitForNavigation({ waitUntil: 'load' }),
           page.click(SAVE_BUTTON),
         ]);
-        const saved = await page
-          .$eval(
-            '#ctl00_ContentPlaceHolder1_txtJStart',
-            (el) => (el as HTMLInputElement).value,
-          )
-          .catch(() => '');
-        // The saved page lists every row's start, comma-separated.
-        // An overtime split adds a row that starts inside one of ours; any
-        // other start is a row left over from before.
-        const savedStarts = saved
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean);
-        const missing = entries.filter(
-          (e) => !savedStarts.includes(toClock24(e.startMinutes)),
-        );
-        const stray = savedStarts.filter((t) => {
-          const [h, m] = t.split(':').map(Number);
-          const at = h * 60 + m;
-          return !entries.some(
-            (e) => at >= e.startMinutes && at < e.endMinutes,
-          );
-        });
-        if (missing.length > 0 || stray.length > 0) {
+        const saved = (await readAllocationForm(page).catch(() => null))
+          ?.savedStarts;
+        if (!saved || !matchesSavedRows(entries, saved)) {
           throw new ServiceUnavailableException(
             `N-PAX did not keep the ${day.date} allocation${alerts.length ? `: ${alerts.join(' / ')}` : ''}`,
           );
         }
         return replacing ? 'replaced' : 'saved';
+      } finally {
+        dialogHandlers.delete(page);
+      }
+    });
+  }
+
+  /**
+   * Endorses one day's saved allocation to its checker on Allocation
+   * Modification, the way a person would press "Endorse to Checker 1".
+   *
+   * A day is only endorsed once its entries reach 9h; past 9h it is overtime,
+   * as for SAVE. Before pressing, it checks that N-PAX holds exactly the rows
+   * NXLogSync saved for the day (as `saveAllocationDay` fitted them). N-PAX's overtime
+   * prompts are accepted for an overtime day and declined otherwise, from the
+   * moment the day's page loads (it can re-split saved rows as it loads).
+   *
+   * A dry run unless `dryRun: false` is passed: every check runs and the page
+   * is screenshotted, but Endorse is never pressed. Endorsing can't be undone
+   * from NXLogSync: N-PAX then keeps CLEAR and SAVE disabled for the day.
+   */
+  endorseAllocationDay(
+    user: string,
+    day: NpaxAllocationDay,
+    options: { dryRun?: boolean; screenshotPath?: string } = {},
+  ): Promise<NpaxEndorseOutcome> {
+    const dryRun = options.dryRun ?? true;
+    return this.enqueue(async () => {
+      if (day.entries.length === 0) {
+        throw new ServiceUnavailableException(
+          `${day.date}: nothing is logged, so there is nothing to endorse`,
+        );
+      }
+      const [year, month, date] = day.date.split('-').map(Number);
+      const expected = `${String(month).padStart(2, '0')}/${String(date).padStart(2, '0')}/${year}`;
+      if (loggedMinutes(day.entries) < OVERTIME_AFTER_MINUTES)
+        return 'short-day';
+      const overtime = isOvertimeDay(day.entries);
+
+      // Allocation Modification shows any day (today included) with its saved
+      // rows and the Endorse button; Allocation Entry only shows today.
+      const page = await this.openJobSplitPage(this.getSession(user));
+      const alerts: string[] = [];
+      dialogHandlers.set(page, (dialog) => {
+        alerts.push(dialog.message());
+        return overtime && OVERTIME_PROMPT.test(dialog.message())
+          ? dialog.accept()
+          : dialog.dismiss();
+      });
+      try {
+        await this.selectDate(page, new Date(year, month - 1, date));
+        const form = await readAllocationForm(page);
+        if (form.date.trim() !== expected) {
+          throw new ServiceUnavailableException(
+            `N-PAX Allocation Modification showed ${form.date || '(none)'} instead of ${expected}`,
+          );
+        }
+        if (form.existing.trim() === '') return 'not-saved';
+        if (!/\d{2}:\d{2}/.test(form.shift)) return 'no-time-record';
+
+        const entries = fitToShift(day.entries, form.shift, overtime);
+        if (!matchesSavedRows(entries, form.savedStarts)) {
+          throw new ServiceUnavailableException(
+            `N-PAX's saved allocation on ${day.date} (${form.savedStarts || 'no rows'}) is not what NXLogSync logged; resync the day before endorsing it`,
+          );
+        }
+        // The page's own checks decide this on load: saved, complete, not
+        // routed to a checker yet, and this user allowed to endorse it.
+        const endorseDisabled = await page
+          .$eval(ENDORSE_BUTTON, (el) => (el as HTMLInputElement).disabled)
+          .catch(() => true);
+        if (endorseDisabled) {
+          throw new ServiceUnavailableException(
+            `N-PAX keeps Endorse disabled for ${day.date} (status ${form.status || 'none'}, day flag ${form.dayFlag || 'none'}); it may already be endorsed`,
+          );
+        }
+        this.logger.log(
+          `${day.date}: ready to endorse (${overtime ? 'overtime' : 'regular'} day, ${entries.length} row(s))${dryRun ? '; dry run, not pressed' : ''}`,
+        );
+        if (options.screenshotPath) {
+          await page.screenshot({
+            path: options.screenshotPath,
+            fullPage: true,
+          });
+        }
+        if (dryRun) return 'ready';
+
+        this.logger.log(`Endorsing the N-PAX allocation on ${expected}`);
+        const navigation = page.waitForNavigation({ waitUntil: 'load' });
+        // A plain form submit, clicked through the DOM like CLEAR.
+        await page
+          .$eval(ENDORSE_BUTTON, (el) => (el as HTMLInputElement).click())
+          .catch(ignoreNavigationError);
+        await navigation;
+
+        // Reopen the day: once endorsed, N-PAX keeps CLEAR disabled for it.
+        await this.selectDate(page, new Date(year, month - 1, date));
+        const clearDisabled = await page
+          .$eval(CLEAR_BUTTON, (el) => (el as HTMLInputElement).disabled)
+          .catch(() => true);
+        const after = await readAllocationForm(page);
+        if (!clearDisabled) {
+          throw new ServiceUnavailableException(
+            `N-PAX did not confirm endorsing ${day.date} (status ${after.status || 'none'})${alerts.length ? `: ${alerts.join(' / ')}` : ''}`,
+          );
+        }
+        return 'endorsed';
       } finally {
         dialogHandlers.delete(page);
       }
@@ -488,7 +608,11 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
     code: string,
     label: string,
   ): Promise<void> {
-    const popupPromise = waitForPopup(page, POPUP_TIMEOUT_MS, this.navTimeoutMs);
+    const popupPromise = waitForPopup(
+      page,
+      POPUP_TIMEOUT_MS,
+      this.navTimeoutMs,
+    );
     await page.evaluate(
       (row, fn) => {
         const w = window as unknown as Record<string, unknown> & {
@@ -580,6 +704,113 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
     } finally {
       if (!popup.isClosed()) await popup.close().catch(() => undefined);
     }
+  }
+
+  /**
+   * Reads the user's own Job lookup. N-PAX lists different jobs per employee,
+   * so the desktop shows this instead of a fixed list. Every cost center is
+   * read (a job may be listed under one only), every page of each, and a job
+   * listed under several comes back once. Read-only: nothing is picked.
+   */
+  getJobs(user: string): Promise<NpaxJobLookup> {
+    return this.enqueue(async () => {
+      const page = await this.openJobSplitPage(this.getSession(user));
+      const popupPromise = waitForPopup(
+        page,
+        POPUP_TIMEOUT_MS,
+        this.navTimeoutMs,
+      );
+      await page.evaluate('lookupJSJobCode()');
+      const popup = await popupPromise;
+      if (!popup) {
+        throw new ServiceUnavailableException(
+          'The N-PAX Job lookup did not open',
+        );
+      }
+
+      try {
+        await popup.waitForSelector('#txtSearch');
+        const options = await popup
+          .$$eval('#ddlCostCenter option', (els) =>
+            els.map((o) => ({
+              value: o.value,
+              name: o.textContent?.trim() ?? '',
+              selected: o.selected,
+            })),
+          )
+          .catch(
+            () => [] as { value: string; name: string; selected: boolean }[],
+          );
+
+        const jobs = new Map<string, NpaxJob>();
+        const readAllPages = async () => {
+          for (let i = 0; i < MAX_LOOKUP_PAGES; i++) {
+            const rows = await popup.evaluate(() => {
+              const table = document.getElementById(
+                'dgvResult',
+              ) as HTMLTableElement | null;
+              if (!table) return [];
+              // Row 0 is the header; blank cells hold &nbsp;, which trim() drops.
+              return Array.from(table.rows)
+                .slice(1)
+                .map((r) =>
+                  Array.from(r.cells).map((c) => c.textContent?.trim() ?? ''),
+                );
+            });
+            for (const [
+              code,
+              clientJobNo,
+              clientJobName,
+              costCenter,
+              category,
+            ] of rows) {
+              if (code && !jobs.has(code)) {
+                jobs.set(code, {
+                  code,
+                  clientJobNo: clientJobNo ?? '',
+                  clientJobName: clientJobName ?? '',
+                  costCenter: costCenter ?? '',
+                  category: category ?? '',
+                });
+              }
+            }
+            const hasNext = await popup
+              .$eval('#btnNext', (el) => !(el as HTMLInputElement).disabled)
+              .catch(() => false);
+            if (!hasNext) return;
+            await Promise.all([
+              popup.waitForNavigation({ waitUntil: 'load' }),
+              popup.click('#btnNext'),
+            ]);
+          }
+        };
+
+        // The lookup opens on the employee's own cost center; read it first.
+        await readAllPages();
+        for (const option of options.filter((o) => !o.selected)) {
+          await Promise.all([
+            popup.waitForNavigation({ waitUntil: 'load' }),
+            popup.evaluate((val) => {
+              const el = document.querySelector(
+                '#ddlCostCenter',
+              ) as HTMLSelectElement;
+              el.value = val;
+              el.dispatchEvent(new Event('change'));
+            }, option.value),
+          ]);
+          await readAllPages();
+        }
+
+        return {
+          costCenters: options.map((o) => o.name),
+          defaultCostCenter:
+            options.find((o) => o.selected)?.name ?? options[0]?.name ?? '',
+          jobs: [...jobs.values()],
+        };
+      } finally {
+        if (!popup.isClosed()) await popup.close().catch(() => undefined);
+      }
+    });
   }
 
   /**
@@ -1197,13 +1428,17 @@ function findBlankField(page: Page): Promise<string | null> {
   });
 }
 
-/** The allocation form's date, day flag, status, shift and any allocations already on it. */
+/**
+ * The allocation form's date, day flag, status, shift, any allocations already
+ * on it, and the saved rows' start times ("08:10,10:00,…").
+ */
 function readAllocationForm(page: Page): Promise<{
   date: string;
   dayFlag: string;
   status: string;
   existing: string;
   shift: string;
+  savedStarts: string;
 }> {
   return page.evaluate(() => {
     const value = (id: string) =>
@@ -1220,6 +1455,7 @@ function readAllocationForm(page: Page): Promise<{
       // since Allocation Entry pre-fills it from the day's Time In.
       existing: value('txtJJobCode'),
       shift: value('txtShift'),
+      savedStarts: value('txtJStart'),
     };
   });
 }
@@ -1256,6 +1492,45 @@ function ignoreNavigationError(error: unknown): void {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** The day's logged task time, in minutes. */
+function loggedMinutes(
+  entries: { startMinutes: number; endMinutes: number }[],
+): number {
+  return entries.reduce((sum, e) => sum + (e.endMinutes - e.startMinutes), 0);
+}
+
+/** A day only counts as overtime once its logged task time goes past 9h. */
+function isOvertimeDay(
+  entries: { startMinutes: number; endMinutes: number }[],
+): boolean {
+  return loggedMinutes(entries) > OVERTIME_AFTER_MINUTES;
+}
+
+/**
+ * Whether the rows N-PAX holds (their starts, comma-separated) are `entries`:
+ * every entry's start is there, and every other start sits inside one of them
+ * (an accepted overtime prompt splits a row in two). Any other start is a row
+ * NXLogSync didn't save.
+ */
+function matchesSavedRows(
+  entries: { startMinutes: number; endMinutes: number }[],
+  savedStarts: string,
+): boolean {
+  const starts = savedStarts
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+  const missing = entries.some(
+    (e) => !starts.includes(toClock24(e.startMinutes)),
+  );
+  const stray = starts.some((t) => {
+    const [h, m] = t.split(':').map(Number);
+    const at = h * 60 + m;
+    return !entries.some((e) => at >= e.startMinutes && at < e.endMinutes);
+  });
+  return !missing && !stray;
 }
 
 /** 545 → "09:05", the 24-hour form the allocation rows take. */

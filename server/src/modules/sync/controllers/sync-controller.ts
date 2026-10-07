@@ -1,9 +1,14 @@
 import { Body, Controller, Get, Post, Put, Query } from '@nestjs/common';
 import { CurrentUser } from '../../../shared/decorators/current-user-decorator';
 import { ZodValidationPipe } from '../../../shared/pipes/zod-validation-pipe';
-import type { ListSyncRunsQueryDto, SyncScheduleDto } from '../dto/sync-dto';
+import type {
+  EndorseDayDto,
+  ListSyncRunsQueryDto,
+  SyncScheduleDto,
+} from '../dto/sync-dto';
 import { SyncService } from '../services/sync-service';
 import {
+  EndorseDaySchema,
   ListSyncRunsQuerySchema,
   SyncScheduleSchema,
 } from '../validators/sync-validator';
@@ -42,6 +47,15 @@ export class SyncController {
   @Post('runs')
   async startRun(@CurrentUser() user: string) {
     return await this.syncService.startRun(user, 'manual');
+  }
+
+  // POST /api/v1/sync/endorse { date } → { date, outcome }; presses Endorse on N-PAX, which can't be undone
+  @Post('endorse')
+  async endorseDay(
+    @CurrentUser() user: string,
+    @Body(new ZodValidationPipe(EndorseDaySchema)) body: EndorseDayDto,
+  ) {
+    return await this.syncService.endorseDay(user, body.date);
   }
 
   // GET /api/v1/sync/pending → { days, minutes } not yet uploaded

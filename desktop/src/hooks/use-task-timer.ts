@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'nxlogsync.task-timer.startedAt'
+const CLOCK_FROM_KEY = 'nxlogsync.task-timer.clockFrom'
 const PAUSED_AT_KEY = 'nxlogsync.task-timer.pausedAt'
 const PAUSED_MS_KEY = 'nxlogsync.task-timer.pausedMs'
 
@@ -23,12 +24,16 @@ function writeNumber(key: string, value: number | null) {
 }
 
 /**
- * A start/pause/stop stopwatch for the task being worked on. The start time, the
- * pause in progress and the total paused time are kept in localStorage so a
- * running (or paused) timer survives reloads and app restarts.
+ * A start/pause/stop stopwatch for the task being worked on. The task's start, the
+ * moment Start was pressed, the pause in progress and the total paused time are kept
+ * in localStorage so a running (or paused) timer survives reloads and app restarts.
  */
 export function useTaskTimer() {
   const [startedAt, setStartedAt] = useState<number | null>(() => readNumber(STORAGE_KEY))
+  // The stopwatch counts from the press, even when the task starts earlier.
+  const [clockFrom, setClockFrom] = useState<number | null>(() =>
+    startedAt === null ? null : (readNumber(CLOCK_FROM_KEY) ?? startedAt),
+  )
   const [pausedAt, setPausedAt] = useState<number | null>(() => (startedAt === null ? null : readNumber(PAUSED_AT_KEY)))
   const [pausedMs, setPausedMs] = useState<number>(() => (startedAt === null ? 0 : (readNumber(PAUSED_MS_KEY) ?? 0)))
   const [now, setNow] = useState(() => Date.now())
@@ -48,14 +53,21 @@ export function useTaskTimer() {
     setPausedMs(total)
   }
 
-  /** Worked time so far, leaving out every pause. */
-  const elapsedAt = (moment: number) => (startedAt === null ? 0 : Math.max(0, moment - startedAt - pausedMs))
+  /** Time on the stopwatch since Start was pressed, leaving out every pause. */
+  const elapsedAt = (moment: number) => (clockFrom === null ? 0 : Math.max(0, moment - clockFrom - pausedMs))
 
-  /** Starts timing from `at` (default now); an earlier start counts the time since as worked. */
+  /**
+   * Starts the stopwatch at 0:00:00 now. `at` (default now) is when the task began;
+   * an earlier one still counts the time before the press toward the task on Stop.
+   */
   const start = (at = Date.now()) => {
+    const pressedAt = Date.now()
     writeNumber(STORAGE_KEY, at)
+    writeNumber(CLOCK_FROM_KEY, pressedAt)
     setPause(null, 0)
     setStartedAt(at)
+    setClockFrom(pressedAt)
+    setNow(pressedAt)
   }
 
   const pause = () => {
@@ -70,16 +82,19 @@ export function useTaskTimer() {
   }
 
   /**
-   * Ends the run; returns when it started and when it would have stopped had it
-   * never been paused (start + worked time), or null if it wasn't running.
+   * Ends the run; returns when the task started and when it would have stopped had
+   * it never been paused (press + timed work), or null if it wasn't running.
    */
   const stop = (): { startedAt: Date; stoppedAt: Date } | null => {
     if (startedAt === null) return null
     const worked = elapsedAt(pausedAt ?? Date.now())
+    const from = clockFrom ?? startedAt
     writeNumber(STORAGE_KEY, null)
+    writeNumber(CLOCK_FROM_KEY, null)
     setPause(null, 0)
     setStartedAt(null)
-    return { startedAt: new Date(startedAt), stoppedAt: new Date(startedAt + worked) }
+    setClockFrom(null)
+    return { startedAt: new Date(startedAt), stoppedAt: new Date(from + worked) }
   }
 
   return {

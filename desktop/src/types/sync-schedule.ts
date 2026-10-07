@@ -67,6 +67,19 @@ export interface SyncRun {
   message?: string
 }
 
+/**
+ * What endorsing a day did: 'endorsed' = sent to the checker on N-PAX; the rest
+ * were left as they were ('short-day' = under 9h logged, 'not-saved' = nothing
+ * saved on N-PAX, 'no-time-record' = no shift on N-PAX for the day).
+ */
+export type EndorseOutcome = 'endorsed' | 'short-day' | 'not-saved' | 'no-time-record'
+
+/** One picked day's progress in the Endorse days dialog. */
+export type EndorseDayResult =
+  | { status: 'waiting' | 'running' }
+  | { status: 'done'; outcome: EndorseOutcome }
+  | { status: 'failed'; message: string }
+
 export interface PendingUpload {
   days: number
   minutes: number

@@ -54,6 +54,24 @@ export const ListSyncRunsQuerySchema = z
   .object({ limit: z.coerce.number().int().min(1).max(100).optional() })
   .strict();
 
+export const ENDORSE_OUTCOMES = [
+  'endorsed',
+  'short-day',
+  'not-saved',
+  'no-time-record',
+] as const;
+
+export const EndorseDaySchema = z
+  .object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a day as YYYY-MM-DD.'),
+  })
+  .strict();
+
+export const EndorseDayResponseSchema = z.object({
+  date: z.string(),
+  outcome: z.enum(ENDORSE_OUTCOMES),
+});
+
 export const SyncRunResponseSchema = z.object({
   id: z.string(),
   startedAt: z.string(),

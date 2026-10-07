@@ -5,6 +5,7 @@ import { HealthController } from './health-controller';
 import { PrismaModule } from './infrastructures/prisma/prisma-module';
 import { AttendanceModule } from './modules/attendance/modules/attendance-module';
 import { CredentialsModule } from './modules/credentials/modules/credentials-module';
+import { JobsModule } from './modules/jobs/modules/jobs-module';
 import { LogEntriesModule } from './modules/log-entries/modules/log-entries-module';
 import { SyncModule } from './modules/sync/modules/sync-module';
 import { SessionAuthGuard } from './shared/guards/session-auth-guard';
@@ -15,6 +16,7 @@ import { SessionAuthGuard } from './shared/guards/session-auth-guard';
     PrismaModule,
     AttendanceModule,
     CredentialsModule,
+    JobsModule,
     LogEntriesModule,
     SyncModule,
   ],

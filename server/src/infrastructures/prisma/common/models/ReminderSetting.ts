@@ -45,6 +45,8 @@ export type ReminderSettingMinAggregateOutputType = {
   email: string | null
   emailFetchedAt: Date | null
   lastSentDate: string | null
+  nudge: boolean | null
+  lastNudgeDate: string | null
   updatedAt: Date | null
 }
 
@@ -55,6 +57,8 @@ export type ReminderSettingMaxAggregateOutputType = {
   email: string | null
   emailFetchedAt: Date | null
   lastSentDate: string | null
+  nudge: boolean | null
+  lastNudgeDate: string | null
   updatedAt: Date | null
 }
 
@@ -66,6 +70,8 @@ export type ReminderSettingCountAggregateOutputType = {
   email: number
   emailFetchedAt: number
   lastSentDate: number
+  nudge: number
+  lastNudgeDate: number
   updatedAt: number
   _all: number
 }
@@ -88,6 +94,8 @@ export type ReminderSettingMinAggregateInputType = {
   email?: true
   emailFetchedAt?: true
   lastSentDate?: true
+  nudge?: true
+  lastNudgeDate?: true
   updatedAt?: true
 }
 
@@ -98,6 +106,8 @@ export type ReminderSettingMaxAggregateInputType = {
   email?: true
   emailFetchedAt?: true
   lastSentDate?: true
+  nudge?: true
+  lastNudgeDate?: true
   updatedAt?: true
 }
 
@@ -109,6 +119,8 @@ export type ReminderSettingCountAggregateInputType = {
   email?: true
   emailFetchedAt?: true
   lastSentDate?: true
+  nudge?: true
+  lastNudgeDate?: true
   updatedAt?: true
   _all?: true
 }
@@ -207,6 +219,8 @@ export type ReminderSettingGroupByOutputType = {
   email: string | null
   emailFetchedAt: Date | null
   lastSentDate: string | null
+  nudge: boolean
+  lastNudgeDate: string | null
   updatedAt: Date
   _count: ReminderSettingCountAggregateOutputType | null
   _avg: ReminderSettingAvgAggregateOutputType | null
@@ -241,6 +255,8 @@ export type ReminderSettingWhereInput = {
   email?: Prisma.StringNullableFilter<"ReminderSetting"> | string | null
   emailFetchedAt?: Prisma.DateTimeNullableFilter<"ReminderSetting"> | Date | string | null
   lastSentDate?: Prisma.StringNullableFilter<"ReminderSetting"> | string | null
+  nudge?: Prisma.BoolFilter<"ReminderSetting"> | boolean
+  lastNudgeDate?: Prisma.StringNullableFilter<"ReminderSetting"> | string | null
   updatedAt?: Prisma.DateTimeFilter<"ReminderSetting"> | Date | string
 }
 
@@ -252,6 +268,8 @@ export type ReminderSettingOrderByWithRelationInput = {
   email?: Prisma.SortOrderInput | Prisma.SortOrder
   emailFetchedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastSentDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  nudge?: Prisma.SortOrder
+  lastNudgeDate?: Prisma.SortOrderInput | Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -266,6 +284,8 @@ export type ReminderSettingWhereUniqueInput = Prisma.AtLeast<{
   email?: Prisma.StringNullableFilter<"ReminderSetting"> | string | null
   emailFetchedAt?: Prisma.DateTimeNullableFilter<"ReminderSetting"> | Date | string | null
   lastSentDate?: Prisma.StringNullableFilter<"ReminderSetting"> | string | null
+  nudge?: Prisma.BoolFilter<"ReminderSetting"> | boolean
+  lastNudgeDate?: Prisma.StringNullableFilter<"ReminderSetting"> | string | null
   updatedAt?: Prisma.DateTimeFilter<"ReminderSetting"> | Date | string
 }, "userId">
 
@@ -277,6 +297,8 @@ export type ReminderSettingOrderByWithAggregationInput = {
   email?: Prisma.SortOrderInput | Prisma.SortOrder
   emailFetchedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastSentDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  nudge?: Prisma.SortOrder
+  lastNudgeDate?: Prisma.SortOrderInput | Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ReminderSettingCountOrderByAggregateInput
   _avg?: Prisma.ReminderSettingAvgOrderByAggregateInput
@@ -296,6 +318,8 @@ export type ReminderSettingScalarWhereWithAggregatesInput = {
   email?: Prisma.StringNullableWithAggregatesFilter<"ReminderSetting"> | string | null
   emailFetchedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ReminderSetting"> | Date | string | null
   lastSentDate?: Prisma.StringNullableWithAggregatesFilter<"ReminderSetting"> | string | null
+  nudge?: Prisma.BoolWithAggregatesFilter<"ReminderSetting"> | boolean
+  lastNudgeDate?: Prisma.StringNullableWithAggregatesFilter<"ReminderSetting"> | string | null
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ReminderSetting"> | Date | string
 }
 
@@ -307,6 +331,8 @@ export type ReminderSettingCreateInput = {
   email?: string | null
   emailFetchedAt?: Date | string | null
   lastSentDate?: string | null
+  nudge?: boolean
+  lastNudgeDate?: string | null
   updatedAt?: Date | string
 }
 
@@ -318,6 +344,8 @@ export type ReminderSettingUncheckedCreateInput = {
   email?: string | null
   emailFetchedAt?: Date | string | null
   lastSentDate?: string | null
+  nudge?: boolean
+  lastNudgeDate?: string | null
   updatedAt?: Date | string
 }
 
@@ -329,6 +357,8 @@ export type ReminderSettingUpdateInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailFetchedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSentDate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nudge?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastNudgeDate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -340,6 +370,8 @@ export type ReminderSettingUncheckedUpdateInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailFetchedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSentDate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nudge?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastNudgeDate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -351,6 +383,8 @@ export type ReminderSettingCreateManyInput = {
   email?: string | null
   emailFetchedAt?: Date | string | null
   lastSentDate?: string | null
+  nudge?: boolean
+  lastNudgeDate?: string | null
   updatedAt?: Date | string
 }
 
@@ -362,6 +396,8 @@ export type ReminderSettingUpdateManyMutationInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailFetchedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSentDate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nudge?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastNudgeDate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -373,6 +409,8 @@ export type ReminderSettingUncheckedUpdateManyInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailFetchedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSentDate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nudge?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastNudgeDate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -384,6 +422,8 @@ export type ReminderSettingCountOrderByAggregateInput = {
   email?: Prisma.SortOrder
   emailFetchedAt?: Prisma.SortOrder
   lastSentDate?: Prisma.SortOrder
+  nudge?: Prisma.SortOrder
+  lastNudgeDate?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -399,6 +439,8 @@ export type ReminderSettingMaxOrderByAggregateInput = {
   email?: Prisma.SortOrder
   emailFetchedAt?: Prisma.SortOrder
   lastSentDate?: Prisma.SortOrder
+  nudge?: Prisma.SortOrder
+  lastNudgeDate?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -409,6 +451,8 @@ export type ReminderSettingMinOrderByAggregateInput = {
   email?: Prisma.SortOrder
   emailFetchedAt?: Prisma.SortOrder
   lastSentDate?: Prisma.SortOrder
+  nudge?: Prisma.SortOrder
+  lastNudgeDate?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -436,6 +480,8 @@ export type ReminderSettingSelect<ExtArgs extends runtime.Types.Extensions.Inter
   email?: boolean
   emailFetchedAt?: boolean
   lastSentDate?: boolean
+  nudge?: boolean
+  lastNudgeDate?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["reminderSetting"]>
 
@@ -447,6 +493,8 @@ export type ReminderSettingSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   email?: boolean
   emailFetchedAt?: boolean
   lastSentDate?: boolean
+  nudge?: boolean
+  lastNudgeDate?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["reminderSetting"]>
 
@@ -458,6 +506,8 @@ export type ReminderSettingSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   email?: boolean
   emailFetchedAt?: boolean
   lastSentDate?: boolean
+  nudge?: boolean
+  lastNudgeDate?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["reminderSetting"]>
 
@@ -469,10 +519,12 @@ export type ReminderSettingSelectScalar = {
   email?: boolean
   emailFetchedAt?: boolean
   lastSentDate?: boolean
+  nudge?: boolean
+  lastNudgeDate?: boolean
   updatedAt?: boolean
 }
 
-export type ReminderSettingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"userId" | "enabled" | "atMinutes" | "days" | "email" | "emailFetchedAt" | "lastSentDate" | "updatedAt", ExtArgs["result"]["reminderSetting"]>
+export type ReminderSettingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"userId" | "enabled" | "atMinutes" | "days" | "email" | "emailFetchedAt" | "lastSentDate" | "nudge" | "lastNudgeDate" | "updatedAt", ExtArgs["result"]["reminderSetting"]>
 
 export type $ReminderSettingPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "ReminderSetting"
@@ -497,6 +549,14 @@ export type $ReminderSettingPayload<ExtArgs extends runtime.Types.Extensions.Int
      * "YYYY-MM-DD" of the last reminder sent, so a day is never reminded twice.
      */
     lastSentDate: string | null
+    /**
+     * Also email on each of `days` when hours are missing, besides the month-end report.
+     */
+    nudge: boolean
+    /**
+     * "YYYY-MM-DD" of the last day-of reminder sent.
+     */
+    lastNudgeDate: string | null
     updatedAt: Date
   }, ExtArgs["result"]["reminderSetting"]>
   composites: {}
@@ -928,6 +988,8 @@ export interface ReminderSettingFieldRefs {
   readonly email: Prisma.FieldRef<"ReminderSetting", 'String'>
   readonly emailFetchedAt: Prisma.FieldRef<"ReminderSetting", 'DateTime'>
   readonly lastSentDate: Prisma.FieldRef<"ReminderSetting", 'String'>
+  readonly nudge: Prisma.FieldRef<"ReminderSetting", 'Boolean'>
+  readonly lastNudgeDate: Prisma.FieldRef<"ReminderSetting", 'String'>
   readonly updatedAt: Prisma.FieldRef<"ReminderSetting", 'DateTime'>
 }
     

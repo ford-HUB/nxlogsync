@@ -10,8 +10,10 @@ import {
   SyncRun,
   SyncSchedule,
 } from '../../../infrastructures/prisma/common/client';
+import { MailService } from '../../../infrastructures/mail/mail-service';
 import { NpaxWorkflowClient } from '../../../infrastructures/npax-workflow/npax-workflow-client';
 import { toDateKey } from '../../../shared/utils/date-key-utils';
+import { RemindersService } from '../../reminders/services/reminders-service';
 import { LogEntriesRepository } from '../../log-entries/repositories/log-entries-repository';
 import {
   EndorseDayResponseDto,
@@ -49,6 +51,8 @@ export class SyncService implements OnApplicationBootstrap {
     private readonly repository: SyncRepository,
     private readonly logEntries: LogEntriesRepository,
     private readonly npax: NpaxWorkflowClient,
+    private readonly mail: MailService,
+    private readonly reminders: RemindersService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -301,6 +305,44 @@ export class SyncService implements OnApplicationBootstrap {
     this.logger.log(
       `Sync run ${run.id} for ${run.userId} (${run.trigger}) → ${status}`,
     );
+    // Only a scheduled run that uploaded or failed is emailed; skipped runs aren't.
+    if (run.trigger === 'scheduled' && status !== 'skipped') {
+      await this.mailRunReport(run, status, uploaded, message);
+    }
+  }
+
+  /** Emails the user how a scheduled run went; a mail failure never fails the run. */
+  private async mailRunReport(
+    run: SyncRun,
+    status: 'success' | 'failed',
+    uploaded: LogEntry[],
+    message: string | null,
+  ): Promise<void> {
+    try {
+      const email = await this.reminders.emailFor(run.userId);
+      if (!email) {
+        this.logger.warn(
+          `No email for ${run.userId}'s sync report: none read from N-PAX yet`,
+        );
+        return;
+      }
+      await this.mail.sendSyncReport({
+        to: email,
+        status,
+        startedAt: run.startedAt,
+        days: new Set(uploaded.map((e) => e.date)).size,
+        entryCount: uploaded.length,
+        minutes: sumMinutes(uploaded),
+        message,
+      });
+      this.logger.log(
+        `Sent the sync report for run ${run.id} to ${run.userId}`,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Sync report for run ${run.id} failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 }
 

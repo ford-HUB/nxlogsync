@@ -47,4 +47,11 @@ export class RemindersRepository {
       data: { lastSentDate: date },
     });
   }
+
+  async markNudged(userId: string, date: string): Promise<void> {
+    await this.prisma.reminderSetting.update({
+      where: { userId },
+      data: { lastNudgeDate: date },
+    });
+  }
 }

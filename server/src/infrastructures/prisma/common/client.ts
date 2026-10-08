@@ -67,3 +67,10 @@ export type NpaxCredential = Prisma.NpaxCredentialModel
  * token; only its SHA-256 hash is stored. Disconnect deletes the user's sessions.
  */
 export type UserSession = Prisma.UserSessionModel
+/**
+ * Model ReminderSetting
+ * One row per user: when to email them a reminder to log their hours, and the
+ * address it goes to. The address is read once from N-PAX (Personnel › Present
+ * Address Update) and kept here so the site isn't read again on every send.
+ */
+export type ReminderSetting = Prisma.ReminderSettingModel

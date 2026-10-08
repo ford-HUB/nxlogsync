@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { CalendarSync, RefreshCw, Stamp } from 'lucide-react'
+import { BellRing, CalendarSync, RefreshCw, Stamp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
@@ -17,6 +17,7 @@ import { formatDuration } from '@/constants/time-format'
 import type { SyncScheduleState } from '@/hooks/use-sync-schedule'
 import { cn } from '@/lib/utils'
 import { EndorseDaysDialog } from './endorse-days-dialog'
+import { ReminderDialog } from './reminder-dialog'
 import { ResyncDaysDialog } from './resync-days-dialog'
 
 interface SyncStatusSummaryProps {
@@ -27,6 +28,7 @@ export function SyncStatusSummary({ schedule: s }: SyncStatusSummaryProps) {
   const { nextRun, lastRun, pending, now } = s
   const [resyncOpen, setResyncOpen] = useState(false)
   const [endorseOpen, setEndorseOpen] = useState(false)
+  const [reminderOpen, setReminderOpen] = useState(false)
   const minutesUntil = nextRun ? Math.max(1, Math.round((nextRun.getTime() - now.getTime()) / 60_000)) : 0
 
   return (
@@ -101,6 +103,10 @@ export function SyncStatusSummary({ schedule: s }: SyncStatusSummaryProps) {
           </Label>
         </div>
         <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => setReminderOpen(true)}>
+            <BellRing />
+            Reminder
+          </Button>
           <Button type="button" variant="outline" onClick={() => setEndorseOpen(true)} disabled={s.isSyncing}>
             <Stamp />
             Endorse days
@@ -117,6 +123,7 @@ export function SyncStatusSummary({ schedule: s }: SyncStatusSummaryProps) {
       </CardFooter>
       <ResyncDaysDialog open={resyncOpen} onOpenChange={setResyncOpen} />
       <EndorseDaysDialog open={endorseOpen} onOpenChange={setEndorseOpen} />
+      <ReminderDialog open={reminderOpen} onOpenChange={setReminderOpen} />
     </Card>
   )
 }

@@ -24,4 +24,8 @@ declare namespace NodeJS {
 // Used in Renderer process, expose in `preload.ts`
 interface Window {
   ipcRenderer: import('electron').IpcRenderer
+  printing: {
+    listPrinters: () => Promise<import('./printing').PrinterSummary[]>
+    printHtml: (request: import('./printing').PrintRequest) => Promise<import('./printing').PrintResult>
+  }
 }

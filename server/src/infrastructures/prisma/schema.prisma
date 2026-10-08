@@ -97,3 +97,23 @@ model UserSession {
   @@index([userId])
   @@map("user_sessions")
 }
+
+/// One row per user: when to email them a reminder to log their hours, and the
+/// address it goes to. The address is read once from N-PAX (Personnel › Present
+/// Address Update) and kept here so the site isn't read again on every send.
+model ReminderSetting {
+  userId         String    @id @map("user_id")
+  enabled        Boolean   @default(false)
+  /// Minutes since local midnight; 1020 = 5:00 PM.
+  atMinutes      Int       @default(1020) @map("at_minutes")
+  /// Date#getDay() numbering, 0 = Sunday.
+  days           Int[]     @default([1, 2, 3, 4, 5])
+  /// The Email shown on N-PAX's Present Address Update; null until read.
+  email          String?
+  emailFetchedAt DateTime? @map("email_fetched_at")
+  /// "YYYY-MM-DD" of the last reminder sent, so a day is never reminded twice.
+  lastSentDate   String?   @map("last_sent_date")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@map("reminder_settings")
+}

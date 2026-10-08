@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { CalendarDays, ChevronLeft, ChevronRight, Settings } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, FileText, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { toMonthKey } from '@/constants/reports'
 import { formatDayLabel, fromDateKey, toDateKey } from '@/constants/time-format'
 
 interface DayHeaderProps {
@@ -18,6 +19,8 @@ interface DayHeaderProps {
   onSelectDay: (key: string) => void
   onOpenActivity: () => void
   onOpenSettings: () => void
+  /** Opens the entries report on a month ("YYYY-MM"). */
+  onOpenReport: (month: string) => void
   /** Disables everything except Settings (no site user signed in yet). */
   locked?: boolean
 }
@@ -33,9 +36,16 @@ export function DayHeader({
   onSelectDay,
   onOpenActivity,
   onOpenSettings,
+  onOpenReport,
   locked = false,
 }: DayHeaderProps) {
   const [pickerOpen, setPickerOpen] = useState(false)
+  // The month the picker is showing, so the report opens on it.
+  const [shownMonth, setShownMonth] = useState(toMonthKey(dateKey))
+  const openPicker = () => {
+    setShownMonth(toMonthKey(dateKey))
+    setPickerOpen(true)
+  }
   const today = fromDateKey(todayKey)
   const selected = fromDateKey(dateKey)
   const pick = (go: () => void) => {
@@ -54,7 +64,7 @@ export function DayHeader({
         <Button type="button" variant="outline" size="icon" aria-label="Previous day" onClick={onPrevious} disabled={locked}>
           <ChevronLeft />
         </Button>
-        <Button type="button" variant="outline" onClick={() => setPickerOpen(true)} disabled={locked}>
+        <Button type="button" variant="outline" onClick={openPicker} disabled={locked}>
           Today
         </Button>
         <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
@@ -78,9 +88,14 @@ export function DayHeader({
                 logged:
                   'after:pointer-events-none after:absolute after:bottom-0.5 after:left-1/2 after:size-1 after:-translate-x-1/2 after:rounded-full after:bg-current after:opacity-60',
               }}
+              onMonthChange={(month) => setShownMonth(toMonthKey(toDateKey(month)))}
               onSelect={(day) => pick(() => onSelectDay(toDateKey(day)))}
             />
-            <div className="flex justify-end border-t pt-3">
+            <div className="flex justify-between border-t pt-3">
+              <Button type="button" variant="outline" size="sm" onClick={() => pick(() => onOpenReport(shownMonth))}>
+                <FileText />
+                Entries report
+              </Button>
               <Button type="button" variant="ghost" size="sm" onClick={() => pick(onToday)} disabled={isToday}>
                 Go to today
               </Button>

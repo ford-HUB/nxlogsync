@@ -22,3 +22,9 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   // You can expose other APTs you need here.
   // ...
 })
+
+// Printing for the report's print preview (see electron/printing.ts).
+contextBridge.exposeInMainWorld('printing', {
+  listPrinters: () => ipcRenderer.invoke('printing:list-printers'),
+  printHtml: (request: unknown) => ipcRenderer.invoke('printing:print-html', request),
+})

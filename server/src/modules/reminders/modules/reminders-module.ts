@@ -11,5 +11,6 @@ import { RemindersService } from '../services/reminders-service';
   imports: [NpaxWorkflowModule, LogEntriesModule, MailModule],
   controllers: [RemindersController],
   providers: [RemindersService, ReminderScheduler, RemindersRepository],
+  exports: [RemindersService],
 })
 export class RemindersModule {}

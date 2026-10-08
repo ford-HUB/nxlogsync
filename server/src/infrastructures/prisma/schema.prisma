@@ -113,6 +113,10 @@ model ReminderSetting {
   emailFetchedAt DateTime? @map("email_fetched_at")
   /// "YYYY-MM-DD" of the last reminder sent, so a day is never reminded twice.
   lastSentDate   String?   @map("last_sent_date")
+  /// Also email on each of `days` when hours are missing, besides the month-end report.
+  nudge          Boolean   @default(false)
+  /// "YYYY-MM-DD" of the last day-of reminder sent.
+  lastNudgeDate  String?   @map("last_nudge_date")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   @@map("reminder_settings")

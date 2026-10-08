@@ -154,6 +154,8 @@ export const ReminderSettingScalarFieldEnum = {
   email: 'email',
   emailFetchedAt: 'emailFetchedAt',
   lastSentDate: 'lastSentDate',
+  nudge: 'nudge',
+  lastNudgeDate: 'lastNudgeDate',
   updatedAt: 'updatedAt'
 } as const
 

@@ -1,11 +1,13 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { BrevoMailClient } from '../../../infrastructures/mail/brevo-mail-client';
-import { renderReminderEmail } from '../../../infrastructures/mail/templates/reminder-email-template';
+import { MailService } from '../../../infrastructures/mail/mail-service';
 import { NpaxWorkflowClient } from '../../../infrastructures/npax-workflow/npax-workflow-client';
 import { ReminderSetting } from '../../../infrastructures/prisma/common/client';
 import { toDateKey } from '../../../shared/utils/date-key-utils';
 import { workMinutes } from '../../../shared/utils/work-minutes-utils';
+import {
+  ReminderKind,
+  ShortDay,
+} from '../../../infrastructures/mail/templates/reminder-email-template';
 import { LogEntriesRepository } from '../../log-entries/repositories/log-entries-repository';
 import {
   ReminderSettingsDto,
@@ -13,11 +15,21 @@ import {
 } from '../dto/reminders-dto';
 import { RemindersRepository } from '../repositories/reminders-repository';
 
-/** A full day; a day logged short of this gets a reminder. */
+/** A full day; a work day logged short of this is listed in the reminder. */
 const DAY_TARGET_MINUTES = 9 * 60;
 
+/** The work days of a month checked so far, and the ones logged short. */
+interface MonthReport {
+  from: Date;
+  through: Date;
+  checkedDays: number;
+  shortDays: ShortDay[];
+}
+
 /**
- * Emails a user a reminder to log their hours. The address is the Email on
+ * Emails a user, near the end of each month, the work days they have logged
+ * short of a full day, and, when they opt in (`nudge`), on each of their work
+ * days while any day so far is short. The address is the Email on
  * N-PAX's Present Address Update, read once on the user's session and kept in
  * reminder_settings; it is only read again when the user asks for a refresh.
  */
@@ -29,8 +41,7 @@ export class RemindersService {
     private readonly repository: RemindersRepository,
     private readonly logEntries: LogEntriesRepository,
     private readonly npax: NpaxWorkflowClient,
-    private readonly mail: BrevoMailClient,
-    private readonly config: ConfigService,
+    private readonly mail: MailService,
   ) {}
 
   async get(user: string): Promise<ReminderSettingsResponseDto> {
@@ -53,7 +64,7 @@ export class RemindersService {
     return toResponse(await this.repository.saveEmail(user, email));
   }
 
-  /** Sends today's reminder now, whatever today's hours, so the user can check it arrives. */
+  /** Sends the month-so-far report now, whatever the hours, so the user can check it arrives. */
   async sendTest(user: string): Promise<{ email: string }> {
     const email = await this.ensureEmail(await this.repository.get(user));
     if (!email) {
@@ -61,7 +72,10 @@ export class RemindersService {
         'No email was found on N-PAX (Personnel › Present Address Update)',
       );
     }
-    await this.sendReminder(user, email, new Date(), { test: true });
+    const setting = await this.repository.get(user);
+    const now = new Date();
+    const report = await this.monthReport(user, setting.days, now, now);
+    await this.sendReminder(user, email, report, 'month-end', { test: true });
     return { email };
   }
 
@@ -70,26 +84,68 @@ export class RemindersService {
   }
 
   /**
-   * The scheduler's send: emails `setting`'s user once for `day` when that day
-   * is logged short of a full day. Records the day either way so it is checked once.
+   * The scheduler's send, on the report day `at` falls on: checks every work
+   * day of the whole month, the days still ahead included (flagged upcoming),
+   * and emails `setting`'s user the ones logged short of a full day. Records
+   * the day either way so it is checked once. True when an email went out.
    */
-  async remindIfShort(setting: ReminderSetting, day: Date): Promise<void> {
-    const date = toDateKey(day);
-    if (setting.lastSentDate === date) return;
-    const logged = await this.loggedMinutes(setting.userId, date);
-    if (logged >= DAY_TARGET_MINUTES) {
-      await this.repository.markSent(setting.userId, date);
-      return;
+  async remindIfMonthShort(
+    setting: ReminderSetting,
+    at: Date,
+  ): Promise<boolean> {
+    if (setting.lastSentDate === toDateKey(at)) return false;
+    return this.remindIfShort(setting, at, 'month-end');
+  }
+
+  /**
+   * The scheduler's opt-in send on one of the user's work days: the same check
+   * as the month-end report, through `at`'s day, recorded separately.
+   */
+  async nudgeIfShort(setting: ReminderSetting, at: Date): Promise<void> {
+    if (setting.lastNudgeDate === toDateKey(at)) return;
+    await this.remindIfShort(setting, at, 'day');
+  }
+
+  /** True when an email went out. */
+  private async remindIfShort(
+    setting: ReminderSetting,
+    at: Date,
+    kind: ReminderKind,
+  ): Promise<boolean> {
+    const date = toDateKey(at);
+    const mark = () =>
+      kind === 'day'
+        ? this.repository.markNudged(setting.userId, date)
+        : this.repository.markSent(setting.userId, date);
+    const through =
+      kind === 'month-end'
+        ? new Date(at.getFullYear(), at.getMonth() + 1, 0)
+        : at;
+    const report = await this.monthReport(
+      setting.userId,
+      setting.days,
+      through,
+      at,
+    );
+    if (report.shortDays.length === 0) {
+      await mark();
+      return false;
     }
     const email = await this.ensureEmail(setting);
     if (!email) {
       this.logger.warn(
         `No reminder email for ${setting.userId}: none read from N-PAX yet`,
       );
-      return;
+      return false;
     }
-    await this.sendReminder(setting.userId, email, day, { logged });
-    await this.repository.markSent(setting.userId, date);
+    await this.sendReminder(setting.userId, email, report, kind);
+    await mark();
+    return true;
+  }
+
+  /** The user's email for other notices (e.g. the scheduled sync report); null when none is known. */
+  async emailFor(user: string): Promise<string | null> {
+    return this.ensureEmail(await this.repository.get(user));
   }
 
   /** The stored email; read from N-PAX only the first time, while the user is connected. */
@@ -99,34 +155,68 @@ export class RemindersService {
     return (await this.refreshEmail(setting.userId)).email;
   }
 
-  private async loggedMinutes(user: string, date: string): Promise<number> {
-    const entries = await this.logEntries.findByDate(user, date);
-    return entries.reduce(
-      (sum, e) => sum + workMinutes(e.startMinutes, e.endMinutes),
-      0,
+  /**
+   * The work days (`workDays`, Date#getDay() numbering) from the 1st of
+   * `through`'s month to `through`; those after `today`'s day are upcoming.
+   */
+  private async monthReport(
+    user: string,
+    workDays: number[],
+    through: Date,
+    today: Date,
+  ): Promise<MonthReport> {
+    const todayKey = toDateKey(today);
+    const from = new Date(through.getFullYear(), through.getMonth(), 1);
+    const entries = await this.logEntries.findBetween(
+      user,
+      toDateKey(from),
+      toDateKey(through),
     );
+    const logged = new Map<string, number>();
+    for (const e of entries) {
+      logged.set(
+        e.date,
+        (logged.get(e.date) ?? 0) + workMinutes(e.startMinutes, e.endMinutes),
+      );
+    }
+    let checkedDays = 0;
+    const shortDays: ShortDay[] = [];
+    for (
+      const day = new Date(from);
+      day <= through;
+      day.setDate(day.getDate() + 1)
+    ) {
+      if (!workDays.includes(day.getDay())) continue;
+      checkedDays++;
+      const key = toDateKey(day);
+      const loggedMinutes = logged.get(key) ?? 0;
+      if (loggedMinutes < DAY_TARGET_MINUTES) {
+        shortDays.push({
+          day: new Date(day),
+          loggedMinutes,
+          upcoming: key > todayKey,
+        });
+      }
+    }
+    return { from, through, checkedDays, shortDays };
   }
 
   private async sendReminder(
     user: string,
     email: string,
-    day: Date,
-    options: { logged?: number; test?: boolean } = {},
+    report: MonthReport,
+    kind: ReminderKind,
+    options: { test?: boolean } = {},
   ): Promise<void> {
-    const loggedMinutes =
-      options.logged ?? (await this.loggedMinutes(user, toDateKey(day)));
-    await this.mail.send(
-      renderReminderEmail({
-        to: email,
-        day,
-        loggedMinutes,
-        targetMinutes: DAY_TARGET_MINUTES,
-        test: options.test,
-        logoUrl: this.config.get<string>('MAIL_LOGO_URL') || undefined,
-      }),
-    );
+    await this.mail.sendReminder({
+      to: email,
+      ...report,
+      kind,
+      targetMinutes: DAY_TARGET_MINUTES,
+      test: options.test,
+    });
     this.logger.log(
-      `Sent the ${toDateKey(day)} ${options.test ? 'test ' : ''}reminder to ${user}`,
+      `Sent the ${toDateKey(report.through)} ${options.test ? 'test ' : ''}${kind} reminder to ${user} (${report.shortDays.length} short days)`,
     );
   }
 }
@@ -136,8 +226,10 @@ function toResponse(setting: ReminderSetting): ReminderSettingsResponseDto {
     enabled: setting.enabled,
     atMinutes: setting.atMinutes,
     days: setting.days,
+    nudge: setting.nudge,
     email: setting.email,
     emailFetchedAt: setting.emailFetchedAt?.toISOString() ?? null,
     lastSentDate: setting.lastSentDate,
+    lastNudgeDate: setting.lastNudgeDate,
   };
 }

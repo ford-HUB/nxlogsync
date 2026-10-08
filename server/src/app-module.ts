@@ -7,6 +7,8 @@ import { AttendanceModule } from './modules/attendance/modules/attendance-module
 import { CredentialsModule } from './modules/credentials/modules/credentials-module';
 import { JobsModule } from './modules/jobs/modules/jobs-module';
 import { LogEntriesModule } from './modules/log-entries/modules/log-entries-module';
+import { RemindersModule } from './modules/reminders/modules/reminders-module';
+import { ReportsModule } from './modules/reports/modules/reports-module';
 import { SyncModule } from './modules/sync/modules/sync-module';
 import { SessionAuthGuard } from './shared/guards/session-auth-guard';
 
@@ -18,6 +20,8 @@ import { SessionAuthGuard } from './shared/guards/session-auth-guard';
     CredentialsModule,
     JobsModule,
     LogEntriesModule,
+    RemindersModule,
+    ReportsModule,
     SyncModule,
   ],
   controllers: [HealthController],

@@ -7,9 +7,10 @@ interface WeekdayPickerProps {
   value: Weekday[]
   onToggle: (day: Weekday) => void
   invalid?: boolean
+  ariaLabel?: string
 }
 
-export function WeekdayPicker({ value, onToggle, invalid }: WeekdayPickerProps) {
+export function WeekdayPicker({ value, onToggle, invalid, ariaLabel = 'Sync days' }: WeekdayPickerProps) {
   const selected = value.map(String)
 
   // Diff against the current value so the hook keeps owning the toggle logic.
@@ -28,7 +29,7 @@ export function WeekdayPicker({ value, onToggle, invalid }: WeekdayPickerProps) 
         value={selected}
         onValueChange={handleChange}
         aria-invalid={invalid || undefined}
-        aria-label="Sync days"
+        aria-label={ariaLabel}
       >
         {WEEKDAY_ORDER.map((day) => (
           <ToggleGroupItem

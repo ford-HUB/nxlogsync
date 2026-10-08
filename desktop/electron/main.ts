@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { registerPrintingHandlers } from './printing'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -65,5 +66,6 @@ app.on('activate', () => {
 
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null)
+  registerPrintingHandlers(() => win)
   createWindow()
 })

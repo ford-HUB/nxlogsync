@@ -7,5 +7,7 @@ import { JobsService } from '../services/jobs-service';
   imports: [NpaxWorkflowModule],
   controllers: [JobsController],
   providers: [JobsService],
+  // Reports name each entry's job from the user's cached lookup.
+  exports: [JobsService],
 })
 export class JobsModule {}

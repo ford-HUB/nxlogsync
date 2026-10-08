@@ -79,6 +79,32 @@ export async function get<T>(url: string, params?: Record<string, string | numbe
   }
 }
 
+/** A file the server sends as-is (not enveloped), e.g. a PDF report. */
+export interface ApiFile {
+  blob: Blob
+  /** From Content-Disposition; null when the server sent none. */
+  fileName: string | null
+}
+
+export async function getFile(url: string, params?: Record<string, string | number>): Promise<ApiResult<ApiFile>> {
+  try {
+    const res = await client.get<Blob>(url, { params, responseType: 'blob' })
+    const disposition = String(res.headers['content-disposition'] ?? '')
+    const fileName = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? null
+    return { success: true, data: { blob: res.data, fileName } }
+  } catch (error) {
+    // With responseType 'blob' the error body is a Blob too; read it so parseApiError sees the JSON message.
+    if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
+      try {
+        error.response.data = JSON.parse(await error.response.data.text())
+      } catch {
+        // Not JSON: fall back to the status text.
+      }
+    }
+    return { success: false, message: parseApiError(error) }
+  }
+}
+
 export async function put<T>(url: string, body: unknown): Promise<ApiResult<T>> {
   try {
     const res = await client.put(url, body)

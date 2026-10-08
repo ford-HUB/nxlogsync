@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { ConnectNotice } from '@/components/feedback/connect-notice'
 import { ErrorBanner } from '@/components/feedback/error-banner'
+import { EntriesReportDialog } from '@/components/reports/entries-report-dialog'
 import { CoffeeDialog } from '@/components/support/coffee-dialog'
 import { useDailyLog } from '@/hooks/use-daily-log'
 import { useIsSignedIn } from '@/hooks/use-site-session'
@@ -25,6 +26,8 @@ export function DailyLog({ onOpenSettings }: DailyLogProps) {
   const [highlightedId, setHighlightedId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [activityOpen, setActivityOpen] = useState(false)
+  // The month the entries report opened on; null while it's closed.
+  const [reportMonth, setReportMonth] = useState<string | null>(null)
   // Resolves to null if the entry is deleted or the day changes, which ends editing.
   const editingEntry = log.entries.find((e) => e.id === editingId) ?? null
   const stopEditing = () => setEditingId(null)
@@ -59,6 +62,7 @@ export function DailyLog({ onOpenSettings }: DailyLogProps) {
         onSelectDay={openDay}
         onOpenActivity={() => setActivityOpen(true)}
         onOpenSettings={onOpenSettings}
+        onOpenReport={setReportMonth}
         locked={!signedIn}
       />
 
@@ -80,6 +84,8 @@ export function DailyLog({ onOpenSettings }: DailyLogProps) {
         minutesByDate={log.minutesByDate}
         onSelectDay={openDay}
       />
+
+      <EntriesReportDialog month={signedIn ? reportMonth : null} onClose={() => setReportMonth(null)} />
 
       <CoffeeDialog />
 

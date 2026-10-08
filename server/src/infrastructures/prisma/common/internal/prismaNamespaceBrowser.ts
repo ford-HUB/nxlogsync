@@ -55,7 +55,8 @@ export const ModelName = {
   SyncSchedule: 'SyncSchedule',
   SyncRun: 'SyncRun',
   NpaxCredential: 'NpaxCredential',
-  UserSession: 'UserSession'
+  UserSession: 'UserSession',
+  ReminderSetting: 'ReminderSetting'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -143,6 +144,20 @@ export const UserSessionScalarFieldEnum = {
 } as const
 
 export type UserSessionScalarFieldEnum = (typeof UserSessionScalarFieldEnum)[keyof typeof UserSessionScalarFieldEnum]
+
+
+export const ReminderSettingScalarFieldEnum = {
+  userId: 'userId',
+  enabled: 'enabled',
+  atMinutes: 'atMinutes',
+  days: 'days',
+  email: 'email',
+  emailFetchedAt: 'emailFetchedAt',
+  lastSentDate: 'lastSentDate',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ReminderSettingScalarFieldEnum = (typeof ReminderSettingScalarFieldEnum)[keyof typeof ReminderSettingScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -18,6 +18,9 @@ const LOGIN_PATH = '/index.aspx';
 const JOB_SPLIT_PATH = '/Transactions/ManhourAllocation/pgeJobSplitMod.aspx';
 const ALLOCATION_ENTRY_PATH =
   '/Transactions/ManhourAllocation/pgeWorkRecord.aspx';
+// Transactions › Personnel › Present Address Update; holds the employee's Email.
+const PRESENT_ADDRESS_PATH = '/Transactions/Personnel/pgeAddressPresent.aspx';
+const PRESENT_ADDRESS_MENU_TEXT = 'Present Address Update';
 // SAVE; a sync only ever presses this one.
 const SAVE_BUTTON = '#ctl00_ContentPlaceHolder1_btnZ';
 // "Endorse to Checker 1" on Allocation Modification ("Submit" on Allocation
@@ -810,6 +813,58 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
       } finally {
         if (!popup.isClosed()) await popup.close().catch(() => undefined);
       }
+    });
+  }
+
+  /**
+   * Reads the employee's Email from Transactions › Personnel › Present Address
+   * Update, opened through the site menu's own link. Read-only: nothing on the
+   * page is edited or saved. Null when the page shows no email address.
+   */
+  getPresentAddressEmail(user: string): Promise<string | null> {
+    return this.enqueue(async () => {
+      const page = await this.openJobSplitPage(this.getSession(user));
+      // The menu item is a plain link; follow it as a click would.
+      const href = await page.evaluate((text) => {
+        const link = Array.from(document.querySelectorAll('a')).find(
+          (a) => a.textContent?.trim() === text,
+        );
+        return link?.href ?? null;
+      }, PRESENT_ADDRESS_MENU_TEXT);
+      await page.goto(href ?? this.baseUrl + PRESENT_ADDRESS_PATH, {
+        waitUntil: 'load',
+      });
+      if (this.isOnLoginPage(page)) {
+        throw new ServiceUnavailableException(
+          'N-PAX signed out before Present Address Update opened',
+        );
+      }
+
+      return page.evaluate(() => {
+        const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+        const valueOf = (el: Element) =>
+          (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
+            ? el.value
+            : (el.textContent ?? '')
+          ).trim();
+        const fields = Array.from(
+          document.querySelectorAll('input, textarea, span'),
+        );
+        // The Email box's id/name says so; otherwise any form field holding an address.
+        const named = fields.find(
+          (el) =>
+            /e-?mail/i.test(`${el.id} ${el.getAttribute('name') ?? ''}`) &&
+            isEmail(valueOf(el)),
+        );
+        const any = fields.find(
+          (el) =>
+            (el instanceof HTMLInputElement ||
+              el instanceof HTMLTextAreaElement) &&
+            isEmail(valueOf(el)),
+        );
+        const found = named ?? any;
+        return found ? valueOf(found) : null;
+      });
     });
   }
 

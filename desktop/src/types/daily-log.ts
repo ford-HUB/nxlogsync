@@ -27,8 +27,8 @@ export interface WheelOption {
   label: string
 }
 
-/** Heatmap intensity for one day's logged hours, relative to the daily limit. */
-export type ActivityLevel = 'none' | 'low' | 'medium' | 'high' | 'full' | 'over'
+/** Heatmap intensity for one day's number of entries. */
+export type ActivityLevel = 'none' | 'low' | 'medium' | 'high' | 'max'
 
 /** A chargeable job from the site's Job Lookup. */
 export interface Job {

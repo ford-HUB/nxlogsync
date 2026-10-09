@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { createEntry, deleteEntry, listEntries, resyncDays, updateEntry } from '@/services/log-entries-service'
+import type { EntryMove } from '@/lib/insert-entry'
 import type { EntryDraft, LogEntry } from '@/types/daily-log'
 
 type EntriesByDate = Record<string, LogEntry[]>
@@ -14,6 +15,11 @@ interface DailyLogState {
   addEntry: (date: string, draft: EntryDraft) => Promise<void>
   updateEntry: (date: string, id: string, draft: EntryDraft) => Promise<void>
   removeEntry: (date: string, id: string) => Promise<void>
+  /**
+   * Adds an entry and moves the entries it pushes later, as planned by planInsert; resolves to
+   * whether everything saved. On a failure the day is reloaded, since some moves may have saved.
+   */
+  insertEntry: (date: string, draft: EntryDraft, moves: EntryMove[]) => Promise<boolean>
   /** Marks every entry on the days unsynced so the next sync uploads them again; resolves to the failure message, if any. */
   resyncDays: (dates: string[]) => Promise<string | null>
   dismissError: () => void
@@ -29,7 +35,7 @@ const mapDay = (state: DailyLogState, date: string, fn: (entries: LogEntry[]) =>
  * Saves are optimistic so the form and heatmap react at once; a rejected save is
  * rolled back and its message kept in `error`.
  */
-export const useDailyLogStore = create<DailyLogState>((set) => ({
+export const useDailyLogStore = create<DailyLogState>((set, get) => ({
   entriesByDate: {},
   loading: false,
   initialized: false,
@@ -87,6 +93,41 @@ export const useDailyLogStore = create<DailyLogState>((set) => ({
     const result = await deleteEntry(id)
     if (result.success || !removed) return
     set((s) => ({ ...mapDay(s, date, () => before), error: result.message }))
+  },
+
+  insertEntry: async (date, draft, moves) => {
+    const before = get().entriesByDate[date] ?? []
+    const tempId = `pending-${crypto.randomUUID()}`
+    set((s) => ({
+      ...mapDay(s, date, (day) => [
+        ...day.map((e) => {
+          const move = moves.find((m) => m.id === e.id)
+          return move ? { ...e, startMinutes: move.startMinutes, endMinutes: move.endMinutes, synced: false } : e
+        }),
+        { id: tempId, ...draft, synced: false },
+      ]),
+      error: null,
+    }))
+
+    const fail = async (message: string) => {
+      const fresh = await listEntries(date, date)
+      set((s) => ({ ...mapDay(s, date, () => (fresh.success ? (fresh.data[date] ?? []) : before)), error: message }))
+      return false
+    }
+
+    // Latest first: each moved entry lands in time the one after it has already left.
+    for (const move of [...moves].sort((a, b) => b.startMinutes - a.startMinutes)) {
+      const entry = before.find((e) => e.id === move.id)
+      if (!entry) continue
+      const { description, jobCode, workActivityCode } = entry
+      const { startMinutes, endMinutes } = move
+      const result = await updateEntry(move.id, { startMinutes, endMinutes, description, jobCode, workActivityCode })
+      if (!result.success) return fail(result.message)
+    }
+    const created = await createEntry(date, draft)
+    if (!created.success) return fail(created.message)
+    set((s) => mapDay(s, date, (day) => day.map((e) => (e.id === tempId ? created.data : e))))
+    return true
   },
 
   resyncDays: async (dates) => {

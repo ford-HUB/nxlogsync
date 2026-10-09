@@ -1,3 +1,4 @@
+import { AnimatePresence } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { PasscodeScreen } from '@/components/passcode/passcode-screen'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -5,12 +6,13 @@ import { usePasscodeExpiry } from '@/hooks/use-passcode-expiry'
 import { useSiteSessionPolling } from '@/hooks/use-site-session'
 import { DailyLogPage } from '@/pages/daily-log-page'
 import { SettingsPage } from '@/pages/settings-page'
+import { TypingTestPage } from '@/pages/typing-test-page'
 import { usePasscodeStore } from '@/store/passcode-store'
 
-type AppView = 'daily-log' | 'settings'
+type AppView = 'daily-log' | 'settings' | 'typing-test'
 
 function App() {
-  // No router yet: two screens, switched in memory.
+  // No router yet: a few screens, switched in memory.
   const [view, setView] = useState<AppView>('daily-log')
   const status = usePasscodeStore((s) => s.status)
   const lock = usePasscodeStore((s) => s.lock)
@@ -30,7 +32,12 @@ function App() {
       {view === 'settings' ? (
         <SettingsPage onBack={() => setView('daily-log')} onLogout={() => lock()} onResetPasscode={resetPasscode} />
       ) : (
-        <DailyLogPage onOpenSettings={() => setView('settings')} />
+        <>
+          <DailyLogPage onOpenSettings={() => setView('settings')} onOpenTypingTest={() => setView('typing-test')} />
+          <AnimatePresence>
+            {view === 'typing-test' && <TypingTestPage key="typing-test" onBack={() => setView('daily-log')} />}
+          </AnimatePresence>
+        </>
       )}
     </TooltipProvider>
   )

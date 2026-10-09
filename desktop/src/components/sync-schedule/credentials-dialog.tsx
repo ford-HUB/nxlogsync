@@ -35,11 +35,13 @@ export function CredentialsDialog({ siteName, userId, connection, onConnect, onL
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [verifying, setVerifying] = useState(false)
+  // Separate from `verifying`: the form can show before Log out answers, and must stay editable.
+  const [loggingOut, setLoggingOut] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleOpenChange = (next: boolean) => {
     // Stay open while the site login is in flight so the result has somewhere to land.
-    if (verifying) return
+    if (verifying || loggingOut) return
     if (next) {
       setDraftUserId(userId ?? '')
       setPassword('')
@@ -67,17 +69,15 @@ export function CredentialsDialog({ siteName, userId, connection, onConnect, onL
   }
 
   const handleLogout = async () => {
-    setVerifying(true)
-    setError(null)
-    const message = await onLogout()
-    setVerifying(false)
-    if (message) {
-      setError(message)
-      return
-    }
+    // Prefill the sign-in form now, not after the reply: by then the user may already be typing in it.
     setDraftUserId(userId ?? '')
     setPassword('')
     setShowPassword(false)
+    setLoggingOut(true)
+    setError(null)
+    const message = await onLogout()
+    setLoggingOut(false)
+    if (message) setError(message)
   }
 
   return (
@@ -124,14 +124,14 @@ export function CredentialsDialog({ siteName, userId, connection, onConnect, onL
                 type="button"
                 variant="outline"
                 onClick={handleLogout}
-                disabled={verifying}
+                disabled={loggingOut}
                 className="text-destructive"
               >
-                {verifying ? <Loader2 className="animate-spin" /> : <LogOut />}
-                {verifying ? 'Logging out…' : 'Log out'}
+                {loggingOut ? <Loader2 className="animate-spin" /> : <LogOut />}
+                {loggingOut ? 'Logging out…' : 'Log out'}
               </Button>
               <DialogClose asChild>
-                <Button type="button" disabled={verifying}>
+                <Button type="button" disabled={loggingOut}>
                   Done
                 </Button>
               </DialogClose>

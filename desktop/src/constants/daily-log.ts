@@ -92,26 +92,32 @@ export const ACTIVITY_WEEKS = 53
 /** Rows run Monday → Sunday (a work log's week starts on Monday); alternate rows labelled, as on GitHub. */
 export const ACTIVITY_WEEKDAY_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', '']
 
+/** Lowest entry count for each level; a day below `low` has nothing logged. */
+export const ACTIVITY_LEVEL_MIN_ENTRIES: Record<Exclude<ActivityLevel, 'none'>, number> = {
+  low: 1,
+  medium: 3,
+  high: 5,
+  max: 7,
+}
+
 export const ACTIVITY_LEVEL_CELL: Record<ActivityLevel, string> = {
   none: 'bg-foreground/[0.06]',
   low: 'bg-success/25',
   medium: 'bg-success/50',
   high: 'bg-success/75',
-  full: 'bg-success',
-  over: 'bg-destructive',
+  max: 'bg-success',
 }
 
 export const ACTIVITY_LEVEL_LABEL: Record<ActivityLevel, string> = {
-  none: 'Nothing logged',
-  low: 'Under 3h',
-  medium: '3h – 6h',
-  high: '6h – 9h',
-  full: 'Limit reached',
-  over: 'Over limit',
+  none: 'No entries',
+  low: '1 – 2 entries',
+  medium: '3 – 4 entries',
+  high: '5 – 6 entries',
+  max: '7+ entries',
 }
 
-/** Legend scale, "Less" → "More". Over-limit is shown apart: it is a status, not more of the scale. */
-export const ACTIVITY_SCALE: ActivityLevel[] = ['none', 'low', 'medium', 'high', 'full']
+/** Legend scale, "Less" → "More". */
+export const ACTIVITY_SCALE: ActivityLevel[] = ['none', 'low', 'medium', 'high', 'max']
 
 // Time wheel geometry
 export const WHEEL_ITEM_HEIGHT = 28

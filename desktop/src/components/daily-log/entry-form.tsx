@@ -102,6 +102,8 @@ export function EntryForm({
   const timesEdit = timer.running && editingEntry !== null && timedEntryId === editingEntry.id
   // Weekends take no entries at all; a full day only blocks new ones.
   const isWeekend = isWeekendKey(dateKey)
+  // The clock span less the counted work: the part of the 12–1 PM break the task covers.
+  const lunchMinutes = draft.endMinutes - draft.startMinutes - draft.durationMinutes
   const locked = isWeekend || draft.isDayFull
   // A run timing this form (paused or not) holds back saving until Stop fills in its times.
   const timing = isToday && timer.running && (editingEntry === null || timesEdit)
@@ -302,6 +304,7 @@ export function EntryForm({
           <div className="flex flex-wrap items-center gap-x-3 gap-y-3 text-[12px]">
             <span className="shrink-0 text-muted-foreground">
               Duration <span className="font-semibold text-foreground tabular-nums">{formatDuration(draft.durationMinutes)}</span>
+              {lunchMinutes > 0 && <span className="tabular-nums"> · {formatDuration(lunchMinutes)} lunch excluded</span>}
             </span>
             <span aria-hidden className="h-3 w-px bg-border" />
             {isWeekend ? (

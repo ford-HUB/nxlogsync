@@ -17,6 +17,7 @@ import { findJob } from '@/constants/jobs'
 import { useJobsStore } from '@/store/jobs-store'
 import { formatClock, formatDuration } from '@/constants/time-format'
 import { findWorkActivity } from '@/constants/work-activities'
+import type { EntryMove } from '@/lib/insert-entry'
 import { cn } from '@/lib/utils'
 import type { LogEntry } from '@/types/daily-log'
 
@@ -28,9 +29,24 @@ interface EntryItemProps {
   onHighlight: (id: string | null) => void
   onSelect: (id: string) => void
   onRemove: (id: string) => void
+  /** Picked up with a right-click drag, on its way to the recycle bin. */
+  grabbed: boolean
+  onGrab: (entry: LogEntry, x: number, y: number) => void
+  /** The times this row moves to if the task being dragged in from the Trash lands above it. */
+  pendingMove?: EntryMove
 }
 
-export function EntryItem({ entry, highlighted, selected, onHighlight, onSelect, onRemove }: EntryItemProps) {
+export function EntryItem({
+  entry,
+  highlighted,
+  selected,
+  onHighlight,
+  onSelect,
+  onRemove,
+  grabbed,
+  onGrab,
+  pendingMove,
+}: EntryItemProps) {
   const minutes = workMinutes(entry.startMinutes, entry.endMinutes)
   const jobs = useJobsStore((s) => s.jobs)
   const job = findJob(jobs, entry.jobCode)
@@ -38,10 +54,16 @@ export function EntryItem({ entry, highlighted, selected, onHighlight, onSelect,
 
   return (
     <li
+      data-entry-row
       onMouseEnter={() => onHighlight(entry.id)}
       onMouseLeave={() => onHighlight(null)}
+      onMouseDown={(e) => {
+        if (e.button === 2) onGrab(entry, e.clientX, e.clientY)
+      }}
+      onContextMenu={(e) => e.preventDefault()}
       className={cn(
-        'group flex items-start rounded-lg transition-colors',
+        'group flex items-start rounded-lg transition-[background-color,opacity]',
+        grabbed && 'opacity-40',
         selected ? 'bg-primary/5 ring-1 ring-primary/20' : highlighted ? 'bg-muted' : 'hover:bg-muted/50',
       )}
     >
@@ -54,9 +76,15 @@ export function EntryItem({ entry, highlighted, selected, onHighlight, onSelect,
       >
         {/* 268px + gap-6 = the form's picker group + gap-4, so descriptions share one column edge. */}
         <span className="flex h-6 shrink-0 items-center gap-2 sm:w-[268px]">
-          <span className="text-[13px] font-medium whitespace-nowrap tabular-nums">
-            {formatClock(entry.startMinutes)} – {formatClock(entry.endMinutes)}
-          </span>
+          {pendingMove ? (
+            <span className="text-[13px] font-medium whitespace-nowrap text-orange-600 tabular-nums dark:text-orange-400">
+              {formatClock(pendingMove.startMinutes)} – {formatClock(pendingMove.endMinutes)}
+            </span>
+          ) : (
+            <span className="text-[13px] font-medium whitespace-nowrap tabular-nums">
+              {formatClock(entry.startMinutes)} – {formatClock(entry.endMinutes)}
+            </span>
+          )}
           <Badge variant="secondary" className="tabular-nums">
             {formatDuration(minutes)}
           </Badge>

@@ -1131,14 +1131,16 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
     this.loginRejectedListeners.push(listener);
   }
 
-  /** Forgets the user's login and closes their browser session. */
-  disconnect(user: string): Promise<NpaxSessionStatus> {
-    return this.enqueue(async () => {
-      const session = this.sessions.get(user);
-      this.sessions.delete(user);
-      if (session) await this.closeSession(session);
-      return this.getStatus(user);
-    });
+  /**
+   * Forgets the user's login at once and closes their browser session once the
+   * queue gets to it. Not queued itself: a keep-alive or sync ahead of it could
+   * hold Log out for minutes while the desktop keeps showing the user signed in.
+   */
+  disconnect(user: string): NpaxSessionStatus {
+    const session = this.sessions.get(user);
+    this.sessions.delete(user);
+    if (session) void this.enqueueSilently(() => this.closeSession(session));
+    return this.getStatus(user);
   }
 
   /**
@@ -1164,6 +1166,8 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
 
       for (let attempt = 1; attempt <= attempts; attempt++) {
         if (attempt > 1) await delay(RELOGIN_BACKOFF_MS * 2 ** (attempt - 2));
+        // Logged out (or reconnected) meanwhile: stop logging this login back in.
+        if (this.sessions.get(user) !== session) return this.getStatus(user);
         try {
           const page = await this.getPage(session);
           // The request alone resets the idle timer and the URL shows whether we

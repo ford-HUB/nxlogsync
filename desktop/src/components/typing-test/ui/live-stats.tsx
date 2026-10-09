@@ -13,7 +13,7 @@ function Stat({ value, unit, label }: { value: number; unit?: string; label: str
   return (
     <div className="flex min-w-16 flex-col items-center gap-1">
       <span className="flex items-baseline gap-1.5">
-        <span className="text-[2rem] leading-none font-semibold text-foreground tabular-nums">{value}</span>
+        <span className="text-[1.625rem] leading-none sm:text-[2rem] font-semibold text-foreground tabular-nums">{value}</span>
         {unit && <span className="text-[15px] text-muted-foreground">{unit}</span>}
       </span>
       <span className="text-[10px] tracking-[0.18em] text-muted-foreground uppercase">{label}</span>
@@ -24,7 +24,7 @@ function Stat({ value, unit, label }: { value: number; unit?: string; label: str
 /** WPM, accuracy and time above the words, updating as the test runs. */
 export function LiveStats({ wpm, accuracy, seconds, idle }: LiveStatsProps) {
   return (
-    <div className={cn('flex justify-center gap-14 font-mono transition-opacity duration-200', idle && 'opacity-50')}>
+    <div className={cn('flex justify-center gap-8 font-mono sm:gap-14 transition-opacity duration-200', idle && 'opacity-50')}>
       <Stat value={wpm} label="wpm" />
       <Stat value={Math.round(accuracy)} unit="%" label="acc" />
       <Stat value={seconds} unit="s" label="time" />

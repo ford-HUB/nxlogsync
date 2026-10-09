@@ -26,6 +26,13 @@ function applySession(target: SyncTarget, session: SiteSession): SyncTarget {
 }
 
 /**
+ * Bumped on every Connect and Log out. A status check that started before one of
+ * them answers for the old session, so its result is dropped instead of flipping
+ * the app back (e.g. to the user who just logged out, mid-typing the next login).
+ */
+let sessionGeneration = 0
+
+/**
  * The server's N-PAX session. The server logs in (Puppeteer), keeps the session alive and
  * re-logs in when it expires; the app stays locked to Settings until a user is signed in,
  * since every log entry belongs to that user.
@@ -35,7 +42,9 @@ export const useSiteSessionStore = create<SiteSessionState>((set) => ({
   loaded: false,
 
   refreshStatus: async () => {
+    const generation = sessionGeneration
     const result = await getSessionStatus()
+    if (generation !== sessionGeneration) return
     // The server answers for whoever the token names; without one it reports 'disconnected'.
     if (result.success) set((s) => ({ target: applySession(s.target, result.data), loaded: true }))
     // Server down: a held session can't be confirmed, but a logged-out one stays logged out.
@@ -48,13 +57,16 @@ export const useSiteSessionStore = create<SiteSessionState>((set) => ({
 
   testConnection: async () => {
     set((s) => ({ target: { ...s.target, connection: 'checking' } }))
+    const generation = sessionGeneration
     const result = await checkSession()
+    if (generation !== sessionGeneration) return
     if (result.success) set((s) => ({ target: applySession(s.target, result.data) }))
     else set((s) => ({ target: { ...s.target, connection: 'unreachable' } }))
   },
 
   // The password lives only in the server's memory; secure storage on this side comes later (main process).
   connect: async (userId, password) => {
+    sessionGeneration++
     const result = await connectSession(userId, password)
     if (!result.success) return { status: 'error', message: result.message }
     if (!result.data.valid || !result.data.token) return { status: 'invalid', message: CREDENTIALS_INVALID_MESSAGE }
@@ -64,8 +76,11 @@ export const useSiteSessionStore = create<SiteSessionState>((set) => ({
   },
 
   logout: async () => {
+    const generation = ++sessionGeneration
     const result = await disconnectSession()
     if (!result.success) return result.message
+    // Already signed in again (Connect answered first): keep that new session.
+    if (generation !== sessionGeneration) return null
     setSessionToken(null)
     set((s) => ({ target: applySession(s.target, result.data) }))
     return null

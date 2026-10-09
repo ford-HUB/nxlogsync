@@ -76,6 +76,12 @@ export function useDailyLog() {
     }
     return totals
   }, [entriesByDate])
+  // Entries per day; the heatmap colours days by this count.
+  const entryCountByDate = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const [key, dayEntries] of Object.entries(entriesByDate)) counts[key] = dayEntries.length
+    return counts
+  }, [entriesByDate])
 
   const totalMinutes = entries.reduce((sum, e) => sum + workMinutes(e.startMinutes, e.endMinutes), 0)
   const remainingMinutes = Math.max(0, DAILY_LIMIT_MINUTES - totalMinutes)
@@ -103,6 +109,7 @@ export function useDailyLog() {
     todayKey,
     isToday,
     minutesByDate,
+    entryCountByDate,
     entries,
     totalMinutes,
     remainingMinutes,

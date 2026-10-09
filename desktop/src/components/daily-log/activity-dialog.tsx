@@ -8,6 +8,7 @@ interface ActivityDialogProps {
   todayKey: string
   selectedKey: string
   minutesByDate: Record<string, number>
+  entryCountByDate: Record<string, number>
   onSelectDay: (key: string) => void
 }
 
@@ -17,6 +18,7 @@ export function ActivityDialog({
   todayKey,
   selectedKey,
   minutesByDate,
+  entryCountByDate,
   onSelectDay,
 }: ActivityDialogProps) {
   const { totalMinutes, daysLogged } = useActivityTotals(todayKey, minutesByDate)
@@ -46,6 +48,7 @@ export function ActivityDialog({
           todayKey={todayKey}
           selectedKey={selectedKey}
           minutesByDate={minutesByDate}
+          entryCountByDate={entryCountByDate}
           onSelectDay={onSelectDay}
         />
       </DialogContent>

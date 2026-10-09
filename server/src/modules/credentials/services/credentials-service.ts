@@ -86,7 +86,7 @@ export class CredentialsService implements OnApplicationBootstrap {
 
   async disconnect(user: string): Promise<NpaxSessionStatus> {
     await this.forget(user);
-    return await this.npax.disconnect(user);
+    return this.npax.disconnect(user);
   }
 
   /** The caller's session; 'disconnected' when no valid token was sent. */

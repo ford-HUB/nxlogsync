@@ -8,6 +8,7 @@ import type { ActivityLevel } from '@/types/daily-log'
 interface ActivityCellProps {
   dateKey: string
   minutes: number
+  entryCount: number
   level: ActivityLevel
   /** The day currently open in the log. */
   selected: boolean
@@ -19,12 +20,16 @@ interface ActivityCellProps {
 export const ActivityCell = memo(function ActivityCell({
   dateKey,
   minutes,
+  entryCount,
   level,
   selected,
   isToday,
   onSelect,
 }: ActivityCellProps) {
-  const logged = minutes > 0 ? `${formatDuration(minutes)} logged` : 'Nothing logged'
+  const logged =
+    entryCount > 0
+      ? `${entryCount} ${entryCount === 1 ? 'entry' : 'entries'} · ${formatDuration(minutes)}`
+      : 'Nothing logged'
 
   return (
     <Tooltip>

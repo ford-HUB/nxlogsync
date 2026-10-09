@@ -2,9 +2,9 @@ import { useLayoutEffect, useRef } from 'react'
 import {
   ACTIVITY_LEVEL_CELL,
   ACTIVITY_LEVEL_LABEL,
+  ACTIVITY_LEVEL_MIN_ENTRIES,
   ACTIVITY_SCALE,
   ACTIVITY_WEEKDAY_LABELS,
-  DAILY_LIMIT_MINUTES,
 } from '@/constants/daily-log'
 import { useActivityWeeks } from '@/hooks/use-activity-weeks'
 import { cn } from '@/lib/utils'
@@ -15,19 +15,25 @@ interface ActivityHeatmapProps {
   todayKey: string
   selectedKey: string
   minutesByDate: Record<string, number>
+  entryCountByDate: Record<string, number>
   onSelectDay: (key: string) => void
 }
 
-function getActivityLevel(minutes: number): ActivityLevel {
-  if (minutes <= 0) return 'none'
-  if (minutes > DAILY_LIMIT_MINUTES) return 'over'
-  if (minutes === DAILY_LIMIT_MINUTES) return 'full'
-  if (minutes >= 6 * 60) return 'high'
-  if (minutes >= 3 * 60) return 'medium'
-  return 'low'
+function getActivityLevel(entryCount: number): ActivityLevel {
+  if (entryCount >= ACTIVITY_LEVEL_MIN_ENTRIES.max) return 'max'
+  if (entryCount >= ACTIVITY_LEVEL_MIN_ENTRIES.high) return 'high'
+  if (entryCount >= ACTIVITY_LEVEL_MIN_ENTRIES.medium) return 'medium'
+  if (entryCount >= ACTIVITY_LEVEL_MIN_ENTRIES.low) return 'low'
+  return 'none'
 }
 
-export function ActivityHeatmap({ todayKey, selectedKey, minutesByDate, onSelectDay }: ActivityHeatmapProps) {
+export function ActivityHeatmap({
+  todayKey,
+  selectedKey,
+  minutesByDate,
+  entryCountByDate,
+  onSelectDay,
+}: ActivityHeatmapProps) {
   const weeks = useActivityWeeks(todayKey)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -51,7 +57,7 @@ export function ActivityHeatmap({ todayKey, selectedKey, minutesByDate, onSelect
             ))}
           </div>
 
-          <div role="grid" aria-label="Hours logged per day over the last year" className="flex gap-[3px]">
+          <div role="grid" aria-label="Entries logged per day over the last year" className="flex gap-[3px]">
             {weeks.map((week) => (
               <div key={week.days[0] ?? week.monthLabel} role="row" className="flex flex-col gap-[3px]">
                 {/* Month label overflows to the right, across the next weeks' columns. */}
@@ -64,7 +70,8 @@ export function ActivityHeatmap({ todayKey, selectedKey, minutesByDate, onSelect
                       key={key}
                       dateKey={key}
                       minutes={minutesByDate[key] ?? 0}
-                      level={getActivityLevel(minutesByDate[key] ?? 0)}
+                      entryCount={entryCountByDate[key] ?? 0}
+                      level={getActivityLevel(entryCountByDate[key] ?? 0)}
                       selected={key === selectedKey}
                       isToday={key === todayKey}
                       onSelect={onSelectDay}
@@ -81,18 +88,12 @@ export function ActivityHeatmap({ todayKey, selectedKey, minutesByDate, onSelect
 
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
         <span>Click a day to open it in the log</span>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
-            <span className="mr-0.5">Less</span>
-            {ACTIVITY_SCALE.map((level) => (
-              <LegendSwatch key={level} level={level} />
-            ))}
-            <span className="ml-0.5">More</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <LegendSwatch level="over" />
-            <span>Over limit</span>
-          </div>
+        <div className="flex items-center gap-1">
+          <span className="mr-0.5">Fewer</span>
+          {ACTIVITY_SCALE.map((level) => (
+            <LegendSwatch key={level} level={level} />
+          ))}
+          <span className="ml-0.5">More entries</span>
         </div>
       </div>
     </div>

@@ -10,7 +10,7 @@ import { UserSessionsService } from './user-sessions-service';
 
 /**
  * Owns each user's N-PAX login. A successful Connect saves it (password
- * encrypted) so the session comes back after a server restart, and issues the
+ * encrypted) so the login comes back after a server restart, and issues the
  * session token the desktop sends from then on; that token is what ties every
  * request, and so every entry, to the user. Disconnect, or the site rejecting
  * the login, deletes the login and signs the user's desktops out. Their
@@ -27,8 +27,20 @@ export class CredentialsService implements OnApplicationBootstrap {
     private readonly sessions: UserSessionsService,
   ) {}
 
-  /** Picks every saved login back up; the first keep-alive check logs in with each. */
+  /**
+   * Picks every saved login back up without logging in: each user is signed in
+   * when a task of theirs next runs. Signing everyone in at start-up is what
+   * ran the server out of memory, and then did it again on every restart.
+   */
   async onApplicationBootstrap(): Promise<void> {
+    this.npax.onLoginRejected((user) => {
+      void this.forget(user).catch((error: unknown) =>
+        this.logger.warn(
+          `Couldn't forget the rejected N-PAX login for ${user}: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
+    });
+
     for (const saved of await this.repository.findAll()) {
       let password: string;
       try {
@@ -43,7 +55,6 @@ export class CredentialsService implements OnApplicationBootstrap {
       this.npax.restoreLogin(saved.userId, saved.loginId, password);
       this.logger.log(`Restored the saved N-PAX login for ${saved.userId}`);
     }
-    void this.checkAll();
   }
 
   async verify(loginId: string, password: string): Promise<{ valid: boolean }> {
@@ -84,25 +95,12 @@ export class CredentialsService implements OnApplicationBootstrap {
   }
 
   /**
-   * Runs a keep-alive check for one user now. If the site rejected their saved
-   * login, the client has dropped it, so the stored copy and their desktop
-   * sessions go too.
+   * Checks one user's saved login now. If the site rejected it, the client
+   * drops it and the `onLoginRejected` listener forgets the stored copy and
+   * signs their desktops out.
    */
-  async check(user: string): Promise<NpaxSessionStatus> {
-    const status = await this.npax.keepAlive(user);
-    if (status.state === 'disconnected') await this.forget(user);
-    return status;
-  }
-
-  /** Keep-alive for every connected user, one after another. */
-  async checkAll(): Promise<void> {
-    for (const user of this.npax.connectedUsers()) {
-      await this.check(user).catch((error: unknown) =>
-        this.logger.warn(
-          `N-PAX keep-alive for ${user} failed: ${error instanceof Error ? error.message : String(error)}`,
-        ),
-      );
-    }
+  check(user: string): Promise<NpaxSessionStatus> {
+    return this.npax.keepAlive(user);
   }
 
   private async forget(user: string): Promise<void> {

@@ -78,6 +78,16 @@ export class SyncRepository {
     });
   }
 
+  /** When the user's most recent run started, of any trigger; null if never. */
+  async lastRunStartedAt(userId: string): Promise<Date | null> {
+    const run = await this.prisma.syncRun.findFirst({
+      where: { userId },
+      orderBy: { startedAt: 'desc' },
+      select: { startedAt: true },
+    });
+    return run?.startedAt ?? null;
+  }
+
   /** Users whose most recent run failed, interrupted runs included. */
   async usersWithFailedLastRun(): Promise<string[]> {
     const latest = await this.prisma.syncRun.findMany({

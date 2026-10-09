@@ -34,9 +34,12 @@ const CLEAR_SETTLE_MS = 15_000;
 // Positions of a row's <input>s, as the site's _manhour.js counts them.
 const RBL_BILLABLE_YES_INPUT = 11;
 const HBILLABLE_INPUT = 18;
-// N-PAX can take minutes to answer (e.g. after CLEAR), so navigations wait as
-// long as it takes: 0 is Puppeteer's "no limit". Set NPAX_NAV_TIMEOUT_MS to cap them.
-const DEFAULT_NAV_TIMEOUT_MS = 0;
+// N-PAX can take minutes to answer (e.g. after CLEAR), so navigations get a
+// generous cap; without one a hung load blocks the queue, and so every user,
+// for good. Set NPAX_NAV_TIMEOUT_MS to change it.
+const DEFAULT_NAV_TIMEOUT_MS = 5 * 60_000;
+// Chrome is closed once no task has run for this long and relaunched on the next.
+const BROWSER_IDLE_CLOSE_MS = 60_000;
 // A lookup popup may never open at all, so waiting for one stays bounded.
 const POPUP_TIMEOUT_MS = 90_000;
 // How long to wait for the User ID box's autopostback before assuming there is none.
@@ -140,9 +143,12 @@ interface NpaxLogin {
   password: string;
 }
 
-/** One user's signed-in browser context. Keyed by the user's lowercased User ID. */
+/**
+ * One user's login and, while a task of theirs is running, their browser
+ * context. Keyed by the user's lowercased User ID.
+ */
 interface NpaxSession {
-  // Held in memory only, so the session can be re-established after the site expires it.
+  // Held in memory only, so the user can be signed in again whenever a task needs it.
   login: NpaxLogin;
   context: BrowserContext | null;
   page: Page | null;
@@ -153,11 +159,16 @@ const MAX_MONTHS_BACK = 3;
 const CALENDAR_EPOCH_UTC = Date.UTC(2000, 0, 1);
 
 /**
- * Works the N-PAX workflow site through one headless browser, with a separate
- * browser context (cookies, session) per connected user. Every call names the
- * user it acts for: `user` is that user's lowercased User ID. Requests are
- * queued so the site only ever sees one navigation at a time. `keepAlive`
- * refreshes a user's session and logs in again when the site has expired it.
+ * Works the N-PAX workflow site through one headless browser. Every call names
+ * the user it acts for: `user` is that user's lowercased User ID. Requests are
+ * queued so the site only ever sees one navigation at a time.
+ *
+ * Memory stays flat however many users are connected: only one user's browser
+ * context is open at a time (the next user's task closes the previous one),
+ * and Chrome itself is closed once the queue has been idle for a minute. A
+ * task signs the user in again whenever the site has expired their session,
+ * so a "connected" user is one whose saved login last worked, not one with a
+ * page held open. `keepAlive` checks that login on demand.
  */
 @Injectable()
 export class NpaxWorkflowClient implements OnModuleDestroy {
@@ -165,6 +176,9 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
   private browser: Browser | null = null;
   private readonly sessions = new Map<string, NpaxSession>();
   private queue: Promise<unknown> = Promise.resolve();
+  private pendingTasks = 0;
+  private idleTimer: NodeJS.Timeout | null = null;
+  private readonly loginRejectedListeners: ((user: string) => void)[] = [];
 
   constructor(private readonly config: ConfigService) {}
 
@@ -1016,6 +1030,7 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
    */
   verifyLogin(loginId: string, password: string): Promise<boolean> {
     return this.enqueue(async () => {
+      await this.releaseContexts();
       const context = await (await this.getBrowser()).createBrowserContext();
       try {
         const page = await openPage(context, this.navTimeoutMs);
@@ -1046,11 +1061,6 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
     return { ...session.status };
   }
 
-  /** Users with a login held in memory (connected, reconnecting or unreachable). */
-  connectedUsers(): string[] {
-    return [...this.sessions.keys()];
-  }
-
   hasLogin(user: string): boolean {
     return this.sessions.has(user);
   }
@@ -1063,6 +1073,7 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
    */
   connect(user: string, loginId: string, password: string): Promise<boolean> {
     return this.enqueue(async () => {
+      await this.releaseContexts();
       const context = await (await this.getBrowser()).createBrowserContext();
       try {
         const page = await openPage(context, this.navTimeoutMs);
@@ -1097,8 +1108,9 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
   }
 
   /**
-   * Takes a previously saved login without logging in yet; the next
-   * `keepAlive` signs in with it (and drops it if the site rejects it).
+   * Takes a previously saved login without logging in yet. It worked when it
+   * was saved, so it counts as connected; the user's next task signs in with
+   * it, and `keepAlive` drops it if the site rejects it.
    */
   restoreLogin(user: string, loginId: string, password: string): void {
     this.sessions.set(user, {
@@ -1106,12 +1118,17 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
       context: null,
       page: null,
       status: {
-        state: 'reconnecting',
+        state: 'connected',
         userId: loginId,
         checkedAt: null,
-        message: 'Restoring the saved login',
+        message: null,
       },
     });
+  }
+
+  /** Called with the user whenever `keepAlive` drops a login the site kept rejecting. */
+  onLoginRejected(listener: (user: string) => void): void {
+    this.loginRejectedListeners.push(listener);
   }
 
   /** Forgets the user's login and closes their browser session. */
@@ -1125,10 +1142,10 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
   }
 
   /**
-   * Loads a signed-in page so the site's idle timer resets. If the session has
-   * expired, logs in again, retrying with backoff. Gives up on the login (and
-   * disconnects) only when every attempt was rejected by the site; network
-   * failures leave it 'unreachable' so the next check tries again.
+   * Checks the user's saved login: loads a signed-in page, logging in again
+   * (with backoff) if the site has expired the session. Gives up on the login
+   * (and disconnects) only when every attempt was rejected by the site;
+   * network failures leave it 'unreachable' so a later check tries again.
    */
   keepAlive(user: string): Promise<NpaxSessionStatus> {
     return this.enqueue(async () => {
@@ -1189,7 +1206,10 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
           `N-PAX rejected the saved login for ${user}; disconnecting`,
         );
         // Only if it is still this login; a fresh Connect may have replaced it meanwhile.
-        if (this.sessions.get(user) === session) this.sessions.delete(user);
+        if (this.sessions.get(user) === session) {
+          this.sessions.delete(user);
+          for (const listener of this.loginRejectedListeners) listener(user);
+        }
         await this.closeSession(session);
       } else {
         this.setStatus(session, 'unreachable', lastError);
@@ -1199,13 +1219,52 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
+    if (this.idleTimer) clearTimeout(this.idleTimer);
     await this.browser?.close();
   }
 
   private enqueue<T>(task: () => Promise<T>): Promise<T> {
+    this.pendingTasks++;
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    this.idleTimer = null;
     const run = this.queue.then(task, task);
-    this.queue = run.catch(() => undefined);
+    this.queue = run
+      .catch(() => undefined)
+      .finally(() => {
+        if (--this.pendingTasks === 0) {
+          this.idleTimer = setTimeout(
+            () => void this.closeIdleBrowser(),
+            BROWSER_IDLE_CLOSE_MS,
+          );
+        }
+      });
     return run;
+  }
+
+  /** Frees Chrome's memory between bursts of work; the next task relaunches it. */
+  private closeIdleBrowser(): Promise<void> {
+    this.idleTimer = null;
+    if (this.pendingTasks > 0 || !this.browser) return Promise.resolve();
+    // Queued so it can't land in the middle of a task that starts meanwhile.
+    return this.enqueueSilently(async () => {
+      if (this.pendingTasks > 1 || !this.browser) return;
+      const browser = this.browser;
+      this.browser = null;
+      for (const session of this.sessions.values()) {
+        session.context = null;
+        session.page = null;
+      }
+      await browser.close().catch(() => undefined);
+      this.logger.log('Browser closed while idle');
+    });
+  }
+
+  /** Like `enqueue`, but doesn't count as work, so it never re-arms the idle timer. */
+  private enqueueSilently(task: () => Promise<void>): Promise<void> {
+    this.pendingTasks++;
+    const run = this.queue.then(task, task);
+    this.queue = run.catch(() => undefined).finally(() => this.pendingTasks--);
+    return run.catch(() => undefined);
   }
 
   private get baseUrl(): string {
@@ -1239,10 +1298,19 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
 
   private async getPage(session: NpaxSession): Promise<Page> {
     if (session.page && !session.page.isClosed()) return session.page;
+    // One user's context at a time keeps memory flat as users are added.
+    await this.releaseContexts(session);
     const browser = await this.getBrowser();
     session.context ??= await browser.createBrowserContext();
     session.page = await openPage(session.context, this.navTimeoutMs);
     return session.page;
+  }
+
+  /** Closes every user's context but `keep`'s; each signs in again on its next task. */
+  private async releaseContexts(keep?: NpaxSession): Promise<void> {
+    for (const session of this.sessions.values()) {
+      if (session !== keep && session.context) await this.closeSession(session);
+    }
   }
 
   private async closeSession(session: NpaxSession): Promise<void> {
@@ -1304,22 +1372,41 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
     return page;
   }
 
-  /** Loads a site page on the user's session, logging in first if it has expired. */
+  /**
+   * Loads a site page on the user's session, logging in first if it has
+   * expired (or the context was closed for another user). A failure leaves the
+   * user 'unreachable' so a sync defers until `keepAlive` gets through again.
+   */
   private async openSignedInPage(
     session: NpaxSession,
     path: string,
   ): Promise<Page> {
-    const page = await this.getPage(session);
-    await page.goto(this.baseUrl + path, { waitUntil: 'load' });
-    if (this.isOnLoginPage(page)) {
-      const { loginId, password } = session.login;
-      await this.signIn(page, loginId, password);
+    try {
+      const page = await this.getPage(session);
       await page.goto(this.baseUrl + path, { waitUntil: 'load' });
       if (this.isOnLoginPage(page)) {
-        throw new ServiceUnavailableException('N-PAX login failed');
+        const { loginId, password } = session.login;
+        await this.signIn(page, loginId, password);
+        await page.goto(this.baseUrl + path, { waitUntil: 'load' });
+        if (this.isOnLoginPage(page)) {
+          throw new ServiceUnavailableException(
+            'N-PAX rejected the saved login',
+          );
+        }
       }
+      this.markConnected(session);
+      return page;
+    } catch (error) {
+      // A broken page is recreated by the next task.
+      await session.page?.close().catch(() => undefined);
+      session.page = null;
+      this.setStatus(
+        session,
+        'unreachable',
+        error instanceof Error ? error.message : String(error),
+      );
+      throw error;
     }
-    return page;
   }
 
   private isOnLoginPage(page: Page): boolean {

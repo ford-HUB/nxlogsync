@@ -28,15 +28,17 @@ import { SyncRepository } from '../repositories/sync-repository';
 const DEFAULT_RUN_LIMIT = 20;
 // Waits between upload retries double from here: 5s, 10s, 20s, …
 const RETRY_BACKOFF_MS = 5_000;
+// How often a deferred sync re-checks an unreachable user's login.
+const DEFERRED_RECHECK_MS = 5 * 60_000;
 
 /**
  * Uploads a user's unsynced log entries to N-PAX on that user's session, one
  * day at a time. Each user has at most one active run; it is recorded in
  * sync_runs as it starts and finishes. `user` is always the user's key.
  *
- * A run cut short by the N-PAX session ending (expired, rejected or
- * unreachable) is resumed by `resumeDeferred` once the session is logged in
- * again, as is a scheduled run that came due while it was down. The waiting
+ * A run cut short by N-PAX being unreachable (or rejecting the login) is
+ * resumed by `resumeDeferred` once the login gets through again, as is a
+ * scheduled run that came due while it was down. The waiting
  * list lives in memory, so on start-up every user whose last run failed (a
  * restart mid-sync included) is put back on it.
  */
@@ -46,6 +48,8 @@ export class SyncService implements OnApplicationBootstrap {
   private readonly activeRuns = new Set<string>();
   /** Users with a sync waiting for their N-PAX session to be logged in again. */
   private readonly deferredRuns = new Set<string>();
+  /** When each deferred user's login was last re-checked. */
+  private readonly lastRecheck = new Map<string, number>();
 
   constructor(
     private readonly repository: SyncRepository,
@@ -71,11 +75,24 @@ export class SyncService implements OnApplicationBootstrap {
     );
   }
 
-  /** Starts every deferred sync whose user's session is connected again. */
+  /**
+   * Starts every deferred sync whose user's login works again. Nothing keeps
+   * sessions alive in the background any more, so an unreachable user's login
+   * is re-checked here, at most every few minutes.
+   */
   async resumeDeferred(): Promise<void> {
     for (const user of [...this.deferredRuns]) {
-      if (!this.isConnected(user) || this.activeRuns.has(user)) continue;
+      // No login (signed out or rejected) waits for the user's next Connect.
+      if (this.activeRuns.has(user) || !this.npax.hasLogin(user)) continue;
+      if (!this.isConnected(user)) {
+        const last = this.lastRecheck.get(user) ?? 0;
+        if (Date.now() - last < DEFERRED_RECHECK_MS) continue;
+        this.lastRecheck.set(user, Date.now());
+        const status = await this.npax.keepAlive(user).catch(() => null);
+        if (status?.state !== 'connected') continue;
+      }
       this.deferredRuns.delete(user);
+      this.lastRecheck.delete(user);
       this.logger.log(`N-PAX is logged in again; resuming sync for ${user}`);
       try {
         await this.startRun(user, 'scheduled');
@@ -163,6 +180,11 @@ export class SyncService implements OnApplicationBootstrap {
     return { date, outcome };
   }
 
+  /** When the user's latest run of any kind started; null if they never ran one. */
+  lastRunStartedAt(user: string): Promise<Date | null> {
+    return this.repository.lastRunStartedAt(user);
+  }
+
   isRunning(user: string): boolean {
     return this.activeRuns.has(user);
   }
@@ -247,8 +269,8 @@ export class SyncService implements OnApplicationBootstrap {
         }
         remaining = failed;
         if (remaining.length === 0) break;
-        // Retrying can't help until the session is back; resume after re-login instead.
-        if (!this.isConnected(user)) break;
+        // Each retry signs in again if it has to, so a blip is retried here and
+        // only a login still failing after the last try is deferred below.
       }
       const deferred = remaining.length > 0 && !this.isConnected(user);
       if (deferred) this.deferUntilConnected(user);

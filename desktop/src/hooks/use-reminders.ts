@@ -5,14 +5,15 @@ import { useSiteSessionStore } from '@/store/site-session-store'
 import type { ReminderSchedule } from '@/types/reminders'
 import type { Weekday } from '@/types/sync-schedule'
 
-function toSchedule({ enabled, atMinutes, days }: ReminderSchedule): ReminderSchedule {
-  return { enabled, atMinutes, days }
+function toSchedule({ enabled, atMinutes, days, nudge }: ReminderSchedule): ReminderSchedule {
+  return { enabled, atMinutes, days, nudge }
 }
 
 function sameSchedule(a: ReminderSchedule, b: ReminderSchedule): boolean {
   return (
     a.enabled === b.enabled &&
     a.atMinutes === b.atMinutes &&
+    a.nudge === b.nudge &&
     a.days.length === b.days.length &&
     a.days.every((d) => b.days.includes(d))
   )

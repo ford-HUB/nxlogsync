@@ -8,9 +8,10 @@ interface WeekdayPickerProps {
   onToggle: (day: Weekday) => void
   invalid?: boolean
   ariaLabel?: string
+  label?: string
 }
 
-export function WeekdayPicker({ value, onToggle, invalid, ariaLabel = 'Sync days' }: WeekdayPickerProps) {
+export function WeekdayPicker({ value, onToggle, invalid, ariaLabel = 'Sync days', label = 'On these days' }: WeekdayPickerProps) {
   const selected = value.map(String)
 
   // Diff against the current value so the hook keeps owning the toggle logic.
@@ -21,7 +22,7 @@ export function WeekdayPicker({ value, onToggle, invalid, ariaLabel = 'Sync days
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Label className="text-[11px] tracking-wider text-muted-foreground uppercase">On these days</Label>
+      <Label className="text-[11px] tracking-wider text-muted-foreground uppercase">{label}</Label>
       <ToggleGroup
         type="multiple"
         variant="outline"

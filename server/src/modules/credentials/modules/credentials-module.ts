@@ -5,7 +5,6 @@ import { CredentialsController } from '../controllers/credentials-controller';
 import { CredentialsRepository } from '../repositories/credentials-repository';
 import { UserSessionsRepository } from '../repositories/user-sessions-repository';
 import { CredentialsService } from '../services/credentials-service';
-import { SessionKeepaliveScheduler } from '../services/session-keepalive-scheduler';
 import { UserSessionsService } from '../services/user-sessions-service';
 
 @Module({
@@ -14,7 +13,6 @@ import { UserSessionsService } from '../services/user-sessions-service';
   providers: [
     CredentialsService,
     CredentialsRepository,
-    SessionKeepaliveScheduler,
     UserSessionsService,
     UserSessionsRepository,
   ],

@@ -11,7 +11,12 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { REMINDER_EMAIL_SOURCE, REMINDER_HINT } from '@/constants/reminders'
+import {
+  REMINDER_EMAIL_SOURCE,
+  REMINDER_HINT,
+  REMINDER_NUDGE_HINT,
+  REMINDER_NUDGE_LABEL,
+} from '@/constants/reminders'
 import { useReminders } from '@/hooks/use-reminders'
 import { cn } from '@/lib/utils'
 import { WeekdayPicker } from './ui/weekday-picker'
@@ -84,7 +89,27 @@ export function ReminderDialog({ open, onOpenChange }: ReminderDialogProps) {
 
         <div className={cn('flex flex-col gap-4', !r.draft.enabled && 'opacity-50')}>
           <TimePicker label="Remind at" value={r.draft.atMinutes} onChange={(atMinutes) => r.update({ atMinutes })} />
-          <WeekdayPicker value={r.draft.days} onToggle={r.toggleDay} invalid={r.issue !== null} ariaLabel="Reminder days" />
+          <WeekdayPicker
+            value={r.draft.days}
+            onToggle={r.toggleDay}
+            invalid={r.issue !== null}
+            ariaLabel="Work days to check"
+            label="Work days"
+          />
+          <div className="flex items-start gap-2.5">
+            <Switch
+              id="reminder-nudge"
+              checked={r.draft.nudge}
+              onCheckedChange={(nudge) => r.update({ nudge })}
+              disabled={!r.loaded || !r.draft.enabled}
+            />
+            <div className="flex flex-col gap-0.5">
+              <Label htmlFor="reminder-nudge" className="text-[13px] font-normal">
+                {REMINDER_NUDGE_LABEL}
+              </Label>
+              <span className="text-[12px] text-muted-foreground">{REMINDER_NUDGE_HINT}</span>
+            </div>
+          </div>
         </div>
 
         {(r.issue ?? r.error) && (

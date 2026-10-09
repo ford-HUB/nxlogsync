@@ -8,14 +8,19 @@ import { SyncScheduleDto } from '../dto/sync-dto';
 import { SyncService } from './sync-service';
 
 const TICK_MS = 60_000;
+// A free host sleeps when idle, so on start-up runs that came due this far back
+// are caught up (once: only the latest, and only if nothing has run since).
+const CATCH_UP_MS = 24 * 60 * 60_000;
 
 /**
  * Fires a user's scheduled sync when a run time from their saved schedule falls
  * between two ticks. A run that comes due while the user's N-PAX session isn't
  * connected (expired, re-logging in, or signed out) would only fail, so it is
  * deferred and started on the first tick after the session is logged in again,
- * along with any run the session ending cut short. Times are the server
- * machine's local time, the same clock the desktop uses to show "Next sync".
+ * along with any run the session ending cut short. A run that came due while
+ * the server was down or asleep is started on the first tick after start-up.
+ * Times are the server machine's local time, the same clock the desktop uses
+ * to show "Next sync".
  */
 @Injectable()
 export class SyncScheduler implements OnApplicationBootstrap, OnModuleDestroy {
@@ -26,7 +31,7 @@ export class SyncScheduler implements OnApplicationBootstrap, OnModuleDestroy {
   constructor(private readonly syncService: SyncService) {}
 
   onApplicationBootstrap(): void {
-    this.lastTick = new Date();
+    this.lastTick = new Date(Date.now() - CATCH_UP_MS);
     this.timer = setInterval(() => void this.tick(), TICK_MS);
   }
 
@@ -50,7 +55,13 @@ export class SyncScheduler implements OnApplicationBootstrap, OnModuleDestroy {
       return;
     }
     for (const [user, schedule] of schedules) {
-      if (!hasRunBetween(schedule, from, to)) continue;
+      const due = latestRunBetween(schedule, from, to);
+      if (!due) continue;
+      // Already covered by a run since (manual, or one before a restart).
+      const lastRun = await this.syncService
+        .lastRunStartedAt(user)
+        .catch(() => null);
+      if (lastRun && lastRun >= due) continue;
       if (!this.syncService.isConnected(user)) {
         this.syncService.deferUntilConnected(user);
         continue;
@@ -72,31 +83,32 @@ export class SyncScheduler implements OnApplicationBootstrap, OnModuleDestroy {
   }
 }
 
-/** Whether the schedule has a run time in (from, to]. Mirrors the desktop's "upcoming runs". */
-export function hasRunBetween(
+/** The schedule's latest run time in (from, to], or null. Mirrors the desktop's "upcoming runs". */
+export function latestRunBetween(
   schedule: SyncScheduleDto,
   from: Date,
   to: Date,
-): boolean {
-  if (!schedule.enabled || schedule.mode === 'manual') return false;
-  const inRange = (run: Date) => run > from && run <= to;
+): Date | null {
+  if (!schedule.enabled || schedule.mode === 'manual') return null;
+  let latest: Date | null = null;
+  const consider = (run: Date) => {
+    if (run > from && run <= to && (!latest || run > latest)) latest = run;
+  };
 
   const day = new Date(from.getFullYear(), from.getMonth(), from.getDate());
   for (; day <= to; day.setDate(day.getDate() + 1)) {
     if (schedule.mode === 'monthly') {
-      if (inRange(monthlyRunFor(schedule, day.getFullYear(), day.getMonth()))) {
-        return true;
-      }
+      consider(monthlyRunFor(schedule, day.getFullYear(), day.getMonth()));
       continue;
     }
     if (!schedule.days.includes(day.getDay())) continue;
     for (const minutes of runTimesForDay(schedule)) {
       const run = new Date(day);
       run.setMinutes(minutes);
-      if (inRange(run)) return true;
+      consider(run);
     }
   }
-  return false;
+  return latest;
 }
 
 function runTimesForDay(schedule: SyncScheduleDto): number[] {

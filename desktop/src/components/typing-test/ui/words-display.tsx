@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { VISIBLE_LINES } from '@/constants/typing-test'
 import type { TypingSession } from '@/hooks/use-typing-test'
 import { cn } from '@/lib/utils'
@@ -25,6 +25,14 @@ export function WordsDisplay({ session, focused }: WordsDisplayProps) {
   const [lineHeight, setLineHeight] = useState(0)
   const [scroll, setScroll] = useState(0)
   const [caret, setCaret] = useState({ x: 0, y: 0, h: 0 })
+  // Bumped on resize: the font size changes with the window, so the lines are measured again.
+  const [layoutTick, setLayoutTick] = useState(0)
+
+  useEffect(() => {
+    const onResize = () => setLayoutTick((n) => n + 1)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   // Place the caret after the last typed letter, and scroll so its line is the middle one.
   useLayoutEffect(() => {
@@ -41,7 +49,7 @@ export function WordsDisplay({ session, focused }: WordsDisplayProps) {
     setCaret({ x, y: word.offsetTop, h: lh })
     const line = Math.round(word.offsetTop / lh)
     setScroll(Math.max(0, line - 1) * lh)
-  }, [input, current, words])
+  }, [input, current, words, layoutTick])
 
   const end = Math.min(words.length, current + LOOKAHEAD)
 
@@ -54,7 +62,7 @@ export function WordsDisplay({ session, focused }: WordsDisplayProps) {
         ref={containerRef}
         animate={{ y: -scroll }}
         transition={{ duration: 0.15, ease: 'easeOut' }}
-        className="relative flex flex-wrap font-mono text-[1.75rem] leading-[3.25rem] tracking-tight select-none"
+        className="relative flex flex-wrap font-mono text-[1.375rem] leading-[2.625rem] tracking-tight sm:text-[1.75rem] sm:leading-[3.25rem] select-none"
       >
         {words.slice(0, end).map((word, i) => {
           const done = i < current

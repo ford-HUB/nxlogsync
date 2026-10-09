@@ -4,6 +4,7 @@ import { ConnectNotice } from '@/components/feedback/connect-notice'
 import { ErrorBanner } from '@/components/feedback/error-banner'
 import { EntriesReportDialog } from '@/components/reports/entries-report-dialog'
 import { CoffeeDialog } from '@/components/support/coffee-dialog'
+import { useCompactWindow } from '@/hooks/use-compact-window'
 import { useDailyLog } from '@/hooks/use-daily-log'
 import { useIsSignedIn } from '@/hooks/use-site-session'
 import { useTimeIn } from '@/hooks/use-time-in'
@@ -56,6 +57,7 @@ export function DailyLog({ onOpenSettings, onOpenTypingTest }: DailyLogProps) {
     [userId, todayKey],
   )
   const trash = useTrashDrag(setAsideEntry, needsSetAsideConfirm)
+  const compactWindow = useCompactWindow()
   const confirmSetAside = () => {
     if (userId !== null) useTrashStore.getState().markConfirmed(userId, todayKey)
     trash.confirm()
@@ -95,6 +97,23 @@ export function DailyLog({ onOpenSettings, onOpenTypingTest }: DailyLogProps) {
       setActivityOpen(false)
     },
     [goToDate],
+  )
+
+  const trashBin = signedIn && log.initialized && (
+    <TrashBin
+      inline={compactWindow}
+      ref={trash.trashRef}
+      ready={trash.phase === 'dragging' || trash.phase === 'confirming' || trash.phase === 'consuming'}
+      over={trash.overTrash}
+      consumedCount={trash.consumedCount}
+      items={myTrashItems}
+      onRestore={(item) => void useTrashStore.getState().restore(item)}
+      onDiscard={useTrashStore.getState().discard}
+      onEmpty={() => {
+        if (userId !== null) useTrashStore.getState().empty(userId)
+      }}
+      onPickItem={restoreDrag.press}
+    />
   )
 
   // Clicking the row being edited again puts the form back into "new entry" mode.
@@ -208,23 +227,19 @@ export function DailyLog({ onOpenSettings, onOpenTypingTest }: DailyLogProps) {
         />
       )}
 
-      {signedIn && log.initialized && (
-        <TrashBin
-          ref={trash.trashRef}
-          ready={trash.phase === 'dragging' || trash.phase === 'confirming' || trash.phase === 'consuming'}
-          over={trash.overTrash}
-          consumedCount={trash.consumedCount}
-          items={myTrashItems}
-          onRestore={(item) => void useTrashStore.getState().restore(item)}
-          onDiscard={useTrashStore.getState().discard}
-          onEmpty={() => {
-            if (userId !== null) useTrashStore.getState().empty(userId)
-          }}
-          onPickItem={restoreDrag.press}
-        />
+      {/* A compact window has no room beside the content column, so both sit under the task list. */}
+      {compactWindow ? (
+        <div className="flex items-end justify-end gap-6 px-2">
+          <TypingDock inline onOpen={onOpenTypingTest} />
+          {trashBin}
+        </div>
+      ) : (
+        <>
+          {trashBin}
+          {/* Out of the way while a task is dragged toward the Trash. */}
+          {!trash.entry && <TypingDock onOpen={onOpenTypingTest} />}
+        </>
       )}
-      {/* Out of the way while a task is dragged toward the Trash. */}
-      {!trash.entry && <TypingDock onOpen={onOpenTypingTest} />}
       {trash.entry && <DraggedEntry entry={trash.entry} over={trash.overTrash} {...trash.motion} />}
       <SetAsideConfirm
         entry={trash.phase === 'confirming' ? trash.entry : null}

@@ -73,7 +73,7 @@ export function TypingTest({ onBack }: TypingTestProps) {
   const seconds = config.mode === 'time' ? Math.max(0, config.amount - elapsed) : elapsed
 
   return (
-    <div className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-4 py-6 sm:px-8">
+    <div className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-4 py-3 sm:px-8 [@media(min-height:720px)]:py-6">
       <div
         className={cn(
           'flex items-start justify-between gap-3 transition-opacity duration-200',
@@ -94,7 +94,7 @@ export function TypingTest({ onBack }: TypingTestProps) {
         </Button>
       </div>
 
-      <div className="flex flex-1 flex-col justify-center gap-10 py-10">
+      <div className="flex flex-1 flex-col justify-center gap-4 py-4 [@media(min-height:720px)]:gap-10 [@media(min-height:720px)]:py-10">
         <AnimatePresence mode="wait" initial={false}>
           {result ? (
             <motion.div key="results" exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
@@ -107,7 +107,7 @@ export function TypingTest({ onBack }: TypingTestProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="flex flex-col gap-10"
+              className="flex flex-col gap-4 [@media(min-height:720px)]:gap-10"
             >
               <div className="relative">
                 <LiveStats wpm={liveWpm} accuracy={liveAccuracy} seconds={seconds} idle={session.status === 'idle'} />

@@ -1,8 +1,6 @@
 import { FileDown, FileSpreadsheet, Sheet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { OVERVIEW_WORD_LIMIT } from '@/constants/excel-report'
 import { cn } from '@/lib/utils'
 import type { GeneratedReport } from '@/types/excel-report'
 
@@ -10,7 +8,9 @@ interface GeneratedReportCardProps {
   report: GeneratedReport
   onExportExcel: () => void
   onExportPdf: () => void
-  /** Why the last export failed. */
+  /** False until the month was written into the yearly workbook. */
+  canExport: boolean
+  /** Why filling the workbook or the last export failed. */
   exportError?: string | null
 }
 
@@ -18,7 +18,7 @@ interface GeneratedReportCardProps {
  * A preview of the filled workbook's front page: actual against plan hours (Support hours), hours
  * per Work Activity, and the Monthly Overview list.
  */
-export function GeneratedReportCard({ report, onExportExcel, onExportPdf, exportError }: GeneratedReportCardProps) {
+export function GeneratedReportCard({ report, onExportExcel, onExportPdf, canExport, exportError }: GeneratedReportCardProps) {
   const variance = report.planHours - report.actualHours
   const usedPct = report.planHours ? Math.min(100, (report.actualHours / report.planHours) * 100) : 0
   const topActivity = report.byWorkActivity[0]?.hours ?? 0
@@ -28,11 +28,11 @@ export function GeneratedReportCard({ report, onExportExcel, onExportPdf, export
       <div className="flex flex-wrap items-center gap-2">
         <FileSpreadsheet className="size-4 text-muted-foreground" />
         <h2 className="min-w-0 flex-1 truncate text-sm font-semibold tracking-wide">{report.title}</h2>
-        <Button type="button" variant="outline" size="sm" onClick={onExportExcel}>
+        <Button type="button" variant="outline" size="sm" disabled={!canExport} onClick={onExportExcel}>
           <Sheet />
           Export Excel
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={onExportPdf}>
+        <Button type="button" variant="outline" size="sm" disabled={!canExport} onClick={onExportPdf}>
           <FileDown />
           Export PDF
         </Button>
@@ -100,26 +100,11 @@ export function GeneratedReportCard({ report, onExportExcel, onExportPdf, export
           <span className="text-[11px] tracking-wider text-muted-foreground uppercase">
             Monthly overview · sent and for-deployment updates
           </span>
-          <span className="text-[11px] text-muted-foreground tabular-nums">
-            {report.overview.length} distinct · max {OVERVIEW_WORD_LIMIT} words each
-          </span>
+          <span className="text-[11px] text-muted-foreground tabular-nums">{report.overview.length} distinct</span>
         </div>
         <ol className="flex list-decimal flex-col gap-1 pl-5 text-[13px]">
           {report.overview.map((item) => (
-            <li key={item.original}>
-              {item.shortened ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-help underline decoration-muted-foreground/40 decoration-dotted underline-offset-4">
-                      {item.text}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-sm">{item.original}</TooltipContent>
-                </Tooltip>
-              ) : (
-                item.text
-              )}
-            </li>
+            <li key={item.original}>{item.original}</li>
           ))}
         </ol>
       </div>

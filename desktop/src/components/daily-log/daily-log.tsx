@@ -23,14 +23,16 @@ import { HoursSummary } from './hours-summary'
 import { DraggedEntry } from './ui/dragged-entry'
 import { SetAsideConfirm } from './ui/set-aside-confirm'
 import { TrashBin } from './ui/trash-bin'
+import { TetrisDock } from '@/components/tetris/tetris-dock'
 import { TypingDock } from '@/components/typing-test/typing-dock'
 
 interface DailyLogProps {
   onOpenSettings: () => void
   onOpenTypingTest: () => void
+  onOpenTetris: () => void
 }
 
-export function DailyLog({ onOpenSettings, onOpenTypingTest }: DailyLogProps) {
+export function DailyLog({ onOpenSettings, onOpenTypingTest, onOpenTetris }: DailyLogProps) {
   const log = useDailyLog()
   const signedIn = useIsSignedIn()
   const timeInMinutes = useTimeIn(log.dateKey, signedIn)
@@ -230,6 +232,7 @@ export function DailyLog({ onOpenSettings, onOpenTypingTest }: DailyLogProps) {
       {/* A compact window has no room beside the content column, so both sit under the task list. */}
       {compactWindow ? (
         <div className="flex items-end justify-end gap-6 px-2">
+          <TetrisDock inline onOpen={onOpenTetris} />
           <TypingDock inline onOpen={onOpenTypingTest} />
           {trashBin}
         </div>
@@ -238,6 +241,7 @@ export function DailyLog({ onOpenSettings, onOpenTypingTest }: DailyLogProps) {
           {trashBin}
           {/* Out of the way while a task is dragged toward the Trash. */}
           {!trash.entry && <TypingDock onOpen={onOpenTypingTest} />}
+          {!trash.entry && <TetrisDock onOpen={onOpenTetris} />}
         </>
       )}
       {trash.entry && <DraggedEntry entry={trash.entry} over={trash.overTrash} {...trash.motion} />}

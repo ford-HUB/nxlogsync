@@ -10,10 +10,11 @@ import { ChangelogPage } from '@/pages/changelog-page'
 import { DailyLogPage } from '@/pages/daily-log-page'
 import { ExcelReportPage } from '@/pages/excel-report-page'
 import { SettingsPage } from '@/pages/settings-page'
+import { TetrisPage } from '@/pages/tetris-page'
 import { TypingTestPage } from '@/pages/typing-test-page'
 import { usePasscodeStore } from '@/store/passcode-store'
 
-type AppView = 'daily-log' | 'settings' | 'typing-test' | 'excel-report' | 'changelog'
+type AppView = 'daily-log' | 'settings' | 'typing-test' | 'tetris' | 'excel-report' | 'changelog'
 
 function App() {
   // No router yet: a few screens, switched in memory.
@@ -43,7 +44,11 @@ function App() {
         </>
       ) : (
         <>
-          <DailyLogPage onOpenSettings={() => setView('settings')} onOpenTypingTest={() => setView('typing-test')} />
+          <DailyLogPage
+            onOpenSettings={() => setView('settings')}
+            onOpenTypingTest={() => setView('typing-test')}
+            onOpenTetris={() => setView('tetris')}
+          />
           {view === 'daily-log' && <HiddenReportSwipe onOpen={() => setView('excel-report')} />}
           <AnimatePresence>
             {view === 'typing-test' && <TypingTestPage
@@ -51,6 +56,7 @@ function App() {
                 onBack={() => setView('daily-log')}
                 onOpenSettings={() => setView('settings')}
               />}
+            {view === 'tetris' && <TetrisPage key="tetris" onBack={() => setView('daily-log')} />}
             {view === 'excel-report' && <ExcelReportPage key="excel-report" onBack={() => setView('daily-log')} />}
           </AnimatePresence>
         </>

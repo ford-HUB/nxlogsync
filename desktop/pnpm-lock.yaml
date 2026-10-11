@@ -26,6 +26,9 @@ importers:
       electron-updater:
         specifier: ^6.8.9
         version: 6.8.9
+      fflate:
+        specifier: 0.8.3
+        version: 0.8.3
       jspdf:
         specifier: ^4.2.1
         version: 4.2.1

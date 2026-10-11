@@ -130,8 +130,10 @@ model TypingPlayer {
   /// The name trimmed, lowercased and single-spaced: two players can't share a name,
   /// whatever its case or spacing.
   nameKey   String        @unique @map("name_key")
-  updatedAt DateTime      @updatedAt @map("updated_at")
-  scores    TypingScore[]
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  scores       TypingScore[]
+  /// The same name heads the Tetris leaderboard: one name for both games.
+  tetrisScores TetrisScore[]
 
   @@map("typing_players")
 }
@@ -151,4 +153,22 @@ model TypingScore {
   @@unique([userId, setup])
   @@index([setup, wpm])
   @@map("typing_scores")
+}
+
+/// A user's best Tetris game for one start level; replaced only when beaten.
+model TetrisScore {
+  id        String       @id @default(uuid())
+  userId    String       @map("user_id")
+  /// The start level, e.g. "level-15" (the desktop's tetrisBestKey).
+  setup     String
+  score     Int
+  lines     Int
+  /// The level the game ended on.
+  level     Int
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  player    TypingPlayer @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([userId, setup])
+  @@index([setup, score])
+  @@map("tetris_scores")
 }

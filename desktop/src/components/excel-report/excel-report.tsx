@@ -5,9 +5,18 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { EXCEL_EXTENSIONS, isExcelFile, MANHOUR_COLUMNS, MANHOUR_SHEETS, REPORT_TEMPLATES } from '@/constants/excel-report'
 import { generateReport } from '@/lib/maintenance-report'
+import { fillWorkbook, type LoadedWorkbook, readMaintenanceWorkbook } from '@/lib/maintenance-workbook'
 import { extractForReport, readManhourFile } from '@/lib/manhour-reader'
 import { exportReportExcel, exportReportPdf } from '@/lib/report-export'
-import type { GeneratedReport, ImportedSheet, ImportRowStatus, ManhourFile, ReportKind } from '@/types/excel-report'
+import type {
+  FilledWorkbook,
+  GeneratedReport,
+  ImportedSheet,
+  ImportRowStatus,
+  ManhourFile,
+  MaintenanceWorkbook,
+  ReportKind,
+} from '@/types/excel-report'
 import { GeneratedReportCard } from './ui/generated-report-card'
 import { ImportDropzone } from './ui/import-dropzone'
 import { ImportStep } from './ui/import-step'
@@ -24,6 +33,20 @@ function importMeta(sheet: ImportedSheet, kind: ReportKind): string {
     sheet.month,
     `${sheet.rows.length} ${kind} entries of ${sheet.totalRows.toLocaleString()}`,
     `${added} added from On Route, ${sheet.onRouteDuplicates} already approved`,
+  ].join(' · ')
+}
+
+const MONTH_SHORT = new Intl.DateTimeFormat('en-US', { month: 'short', year: '2-digit' })
+/** "2026-08" → "Aug 26" */
+const shortMonth = (key: string) => MONTH_SHORT.format(new Date(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1, 1))
+
+/** "Jul 26 – Jun 27 · 19 activities, 17 requests · filled up to Aug 26" */
+function workbookMeta(workbook: MaintenanceWorkbook): string {
+  const last = workbook.activities[workbook.activities.length - 1]?.month
+  return [
+    `${shortMonth(workbook.months[0])} – ${shortMonth(workbook.months[11])}`,
+    `${workbook.activities.length} activities, ${workbook.requests.length} requests`,
+    last ? `filled up to ${shortMonth(last)}` : 'no months filled yet',
   ].join(' · ')
 }
 
@@ -45,6 +68,10 @@ export function ExcelReport({ onBack }: ExcelReportProps) {
   const [filter, setFilter] = useState<ImportRowStatus | null>(null)
   const [report, setReport] = useState<GeneratedReport | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
+  const [yearly, setYearly] = useState<LoadedWorkbook | null>(null)
+  const [yearlyReading, setYearlyReading] = useState(false)
+  const [yearlyError, setYearlyError] = useState<string | null>(null)
+  const [filled, setFilled] = useState<FilledWorkbook | null>(null)
 
   // The file is read once with every job; switching FEP / FEM only re-extracts from it.
   const sheet = useMemo(() => (file && kind ? extractForReport(file, kind) : null), [file, kind])
@@ -54,22 +81,58 @@ export function ExcelReport({ onBack }: ExcelReportProps) {
     [sheet, filter],
   )
 
+  const clearReport = () => {
+    setReport(null)
+    setFilled(null)
+    setExportError(null)
+  }
+
   const clearData = () => {
     setFile(null)
     setReadError(null)
     setFilter(null)
-    setReport(null)
+    clearReport()
+  }
+
+  const clearYearly = () => {
+    setYearly(null)
+    setYearlyError(null)
+    clearReport()
   }
 
   const reset = () => {
     clearData()
+    clearYearly()
     setKind(null)
   }
 
   const pickKind = (next: ReportKind) => {
+    if (next !== kind) clearYearly()
     setKind(next)
-    setReport(null)
+    clearReport()
     setFilter(null)
+  }
+
+  const importYearly = async (chosen: File) => {
+    if (!isExcelFile(chosen.name)) {
+      setYearlyError(`${chosen.name} isn't an Excel file (${EXCEL_EXTENSIONS.join(', ')}).`)
+      return
+    }
+    const other = kind === 'FEP' ? 'FEM' : 'FEP'
+    if (kind && new RegExp(`\\b${other}\\b`, 'i').test(chosen.name) && !new RegExp(`\\b${kind}\\b`, 'i').test(chosen.name)) {
+      setYearlyError(`${chosen.name} looks like the ${other} workbook; pick the ${kind} one.`)
+      return
+    }
+    setYearlyReading(true)
+    setYearlyError(null)
+    try {
+      setYearly(await readMaintenanceWorkbook(chosen))
+      clearReport()
+    } catch (err) {
+      setYearlyError(err instanceof Error ? err.message : `Couldn't read ${chosen.name}.`)
+    } finally {
+      setYearlyReading(false)
+    }
   }
 
   const importFile = async (chosen: File) => {
@@ -88,17 +151,25 @@ export function ExcelReport({ onBack }: ExcelReportProps) {
     }
   }
 
+  // The month is written into the yearly workbook on Generate; both exports come from that copy.
   const generate = () => {
-    if (!sheet || !kind) return
-    setReport(generateReport(sheet, kind))
+    if (!sheet || !kind || !yearly) return
+    const next = generateReport(sheet, kind)
+    setReport(next)
+    setFilled(null)
     setExportError(null)
+    try {
+      setFilled(fillWorkbook(yearly, next, sheet))
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : String(err))
+    }
   }
 
-  const runExport = (exporter: typeof exportReportExcel, label: string) => {
-    if (!report || !sheet) return
+  const runExport = (exporter: (filled: FilledWorkbook) => void, label: string) => {
+    if (!filled) return
     try {
       setExportError(null)
-      exporter(report, sheet)
+      exporter(filled)
     } catch (err) {
       setExportError(`${label} export failed: ${err instanceof Error ? err.message : String(err)}`)
     }
@@ -110,7 +181,7 @@ export function ExcelReport({ onBack }: ExcelReportProps) {
         <div className="flex min-w-0 flex-1 flex-col">
           <h1 className="text-lg font-semibold">Excel report</h1>
           <p className="truncate text-[12px] text-muted-foreground">
-            Pick the report, then import the month's manhour file — only that report's jobs are extracted.
+            Pick the report, import the month's manhour file and last month's yearly workbook — the month is added to it.
           </p>
         </div>
         {kind && (
@@ -122,7 +193,7 @@ export function ExcelReport({ onBack }: ExcelReportProps) {
         <Button
           type="button"
           size="sm"
-          disabled={!sheet?.rows.length}
+          disabled={!sheet?.rows.length || !yearly}
           onClick={generate}
         >
           <Sparkles />
@@ -186,6 +257,42 @@ export function ExcelReport({ onBack }: ExcelReportProps) {
         )}
       </AnimatePresence>
 
+      <AnimatePresence initial={false}>
+        {kind && (
+          <motion.div
+            key="yearly-step"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ImportStep
+              step={3}
+              title="Yearly workbook"
+              tag={kind}
+              description={`Import last month's ${kind} Monthly Maintenance Report workbook — the month is added to it (overview, activities, request blocks, hours and data), keeping its charts, stamps and earlier months.`}
+            >
+              {yearly ? (
+                <ImportedFileRow
+                  fileName={yearly.fileName}
+                  meta={workbookMeta(yearly.workbook)}
+                  removeLabel="Remove yearly workbook"
+                  onRemove={clearYearly}
+                />
+              ) : (
+                <ImportDropzone
+                  title={`Drop the ${kind} yearly workbook here`}
+                  hint=".xlsm or .xlsx — e.g. FEM Monthly Maintenance Report 2026 - 2027.xlsm; macros are never run"
+                  onFile={importYearly}
+                  busy={yearlyReading}
+                  error={yearlyError}
+                />
+              )}
+            </ImportStep>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {sheet && kind && sheet.rows.length === 0 && (
         <Card className="items-center gap-1 p-6 text-center">
           <p className="text-sm font-medium">No {kind} entries in this file</p>
@@ -202,7 +309,8 @@ export function ExcelReport({ onBack }: ExcelReportProps) {
             <GeneratedReportCard
               report={report}
               onExportExcel={() => runExport(exportReportExcel, 'Excel')}
-              onExportPdf={() => runExport(exportReportPdf, 'PDF')}
+              onExportPdf={() => runExport((f) => exportReportPdf(f, report, sheet), 'PDF')}
+              canExport={!!filled}
               exportError={exportError}
             />
           )}

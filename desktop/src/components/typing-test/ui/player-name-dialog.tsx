@@ -20,10 +20,21 @@ interface PlayerNameDialogProps {
   /** Resolves to the failure message, if any. */
   onSave: (name: string) => Promise<string | null>
   onCancel: () => void
+  /** The save button's label, worded for the game that asked. */
+  submitLabel?: string
 }
 
-/** Asks for the name the leaderboard shows, before the first typing test. */
-export function PlayerNameDialog({ open, initialName = '', onSave, onCancel }: PlayerNameDialogProps) {
+/**
+ * Asks for the name the leaderboards show, before the first typing test or Tetris game. It is one
+ * name for both: whichever game asks first, the other already knows it.
+ */
+export function PlayerNameDialog({
+  open,
+  initialName = '',
+  onSave,
+  onCancel,
+  submitLabel = "Let's type",
+}: PlayerNameDialogProps) {
   const [name, setName] = useState(initialName)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -52,7 +63,9 @@ export function PlayerNameDialog({ open, initialName = '', onSave, onCancel }: P
         >
           <DialogHeader>
             <DialogTitle>What should we call you?</DialogTitle>
-            <DialogDescription>This name shows next to your score on the leaderboard.</DialogDescription>
+            <DialogDescription>
+              This name shows next to your scores on the leaderboards, in the typing test and Tetris.
+            </DialogDescription>
           </DialogHeader>
           <Input
             autoFocus
@@ -93,7 +106,7 @@ export function PlayerNameDialog({ open, initialName = '', onSave, onCancel }: P
               Cancel
             </Button>
             <Button type="submit" disabled={!canSave}>
-              {saving ? 'Saving…' : "Let's type"}
+              {saving ? 'Saving…' : submitLabel}
             </Button>
           </DialogFooter>
         </form>

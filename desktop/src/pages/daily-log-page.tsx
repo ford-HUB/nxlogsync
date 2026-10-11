@@ -7,6 +7,7 @@ import { useDockStore } from '@/store/dock-store'
 interface DailyLogPageProps {
   onOpenSettings: () => void
   onOpenTypingTest: () => void
+  onOpenTetris: () => void
 }
 
 /**
@@ -25,11 +26,11 @@ function useDockLanes(): CSSProperties {
   }
 }
 
-export function DailyLogPage({ onOpenSettings, onOpenTypingTest }: DailyLogPageProps) {
+export function DailyLogPage({ onOpenSettings, onOpenTypingTest, onOpenTetris }: DailyLogPageProps) {
   const lanes = useDockLanes()
   return (
     <main style={lanes} className="min-h-dvh bg-muted/40 lg:h-dvh lg:overflow-y-auto">
-      <DailyLog onOpenSettings={onOpenSettings} onOpenTypingTest={onOpenTypingTest} />
+      <DailyLog onOpenSettings={onOpenSettings} onOpenTypingTest={onOpenTypingTest} onOpenTetris={onOpenTetris} />
     </main>
   )
 }

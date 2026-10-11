@@ -84,3 +84,8 @@ export type TypingPlayer = Prisma.TypingPlayerModel
  * A user's best typing-test run for one exact setup; replaced only when beaten.
  */
 export type TypingScore = Prisma.TypingScoreModel
+/**
+ * Model TetrisScore
+ * A user's best Tetris game for one start level; replaced only when beaten.
+ */
+export type TetrisScore = Prisma.TetrisScoreModel

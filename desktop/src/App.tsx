@@ -1,15 +1,19 @@
 import { AnimatePresence } from 'motion/react'
 import { useEffect, useState } from 'react'
+import { VersionBadge } from '@/components/changelog/version-badge'
+import { HiddenReportSwipe } from '@/components/excel-report/ui/hidden-report-swipe'
 import { PasscodeScreen } from '@/components/passcode/passcode-screen'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { usePasscodeExpiry } from '@/hooks/use-passcode-expiry'
 import { useSiteSessionPolling } from '@/hooks/use-site-session'
+import { ChangelogPage } from '@/pages/changelog-page'
 import { DailyLogPage } from '@/pages/daily-log-page'
+import { ExcelReportPage } from '@/pages/excel-report-page'
 import { SettingsPage } from '@/pages/settings-page'
 import { TypingTestPage } from '@/pages/typing-test-page'
 import { usePasscodeStore } from '@/store/passcode-store'
 
-type AppView = 'daily-log' | 'settings' | 'typing-test'
+type AppView = 'daily-log' | 'settings' | 'typing-test' | 'excel-report' | 'changelog'
 
 function App() {
   // No router yet: a few screens, switched in memory.
@@ -29,13 +33,25 @@ function App() {
 
   return (
     <TooltipProvider delayDuration={150}>
-      {view === 'settings' ? (
-        <SettingsPage onBack={() => setView('daily-log')} onLogout={() => lock()} onResetPasscode={resetPasscode} />
+      {view === 'settings' || view === 'changelog' ? (
+        <>
+          <SettingsPage onBack={() => setView('daily-log')} onLogout={() => lock()} onResetPasscode={resetPasscode} />
+          {view === 'settings' && <VersionBadge onOpen={() => setView('changelog')} />}
+          <AnimatePresence>
+            {view === 'changelog' && <ChangelogPage key="changelog" onBack={() => setView('settings')} />}
+          </AnimatePresence>
+        </>
       ) : (
         <>
           <DailyLogPage onOpenSettings={() => setView('settings')} onOpenTypingTest={() => setView('typing-test')} />
+          {view === 'daily-log' && <HiddenReportSwipe onOpen={() => setView('excel-report')} />}
           <AnimatePresence>
-            {view === 'typing-test' && <TypingTestPage key="typing-test" onBack={() => setView('daily-log')} />}
+            {view === 'typing-test' && <TypingTestPage
+                key="typing-test"
+                onBack={() => setView('daily-log')}
+                onOpenSettings={() => setView('settings')}
+              />}
+            {view === 'excel-report' && <ExcelReportPage key="excel-report" onBack={() => setView('daily-log')} />}
           </AnimatePresence>
         </>
       )}

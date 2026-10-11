@@ -6,6 +6,9 @@ export type ApiResult<T> = { success: true; data: T } | { success: false; messag
 const API_BASE_URL =
   import.meta.env.VITE_ENV === 'production' ? import.meta.env.VITE_PRODUCTION : import.meta.env.VITE_DEVELOPMENT
 
+/** The server's origin, without the `/api` prefix; Socket.IO connects here. */
+export const API_ORIGIN = API_BASE_URL ? new URL(API_BASE_URL).origin : ''
+
 const client = axios.create({
   baseURL: API_BASE_URL,
   timeout: API_TIMEOUT_MS,

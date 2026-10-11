@@ -45,3 +45,27 @@ export interface TypingResult {
   /** Beat the previous best for this exact config. */
   personalBest: boolean
 }
+
+/** One player's best run on the leaderboard for a test setup. */
+export interface LeaderboardEntry {
+  id: string
+  name: string
+  wpm: number
+  /** 0–100. */
+  accuracy: number
+  /** The signed-in user's own row. */
+  you: boolean
+}
+
+/** The top players for one test setup (a bestKey), from the server. */
+export interface TypingLeaderboard {
+  setup: string
+  /** Fastest first. */
+  entries: LeaderboardEntry[]
+  /** The signed-in user's best for the setup, on the board or not; null without one. */
+  you: { rank: number; wpm: number; accuracy: number } | null
+}
+
+export interface TypingScoreResult extends TypingLeaderboard {
+  personalBest: boolean
+}

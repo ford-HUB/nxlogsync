@@ -65,4 +65,5 @@ export const LogEntryResponseSchema = z.object({
   workActivityCode: z.string().nullable(),
   jobCode: z.string().nullable(),
   syncedAt: z.string().nullable(),
+  editedSinceSync: z.boolean(),
 });

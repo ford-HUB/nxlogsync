@@ -10,6 +10,8 @@ export interface LogEntry {
   workActivityCode: string | null
   /** Saved to N-PAX by a sync and unchanged since; false until the next sync uploads it. */
   synced: boolean
+  /** Changed after a sync saved it to N-PAX, and not uploaded again since. */
+  editedSinceSync: boolean
 }
 
 export interface EntryDraft {

@@ -8,6 +8,7 @@ import { generateReport } from '@/lib/maintenance-report'
 import { fillWorkbook, type LoadedWorkbook, readMaintenanceWorkbook } from '@/lib/maintenance-workbook'
 import { extractForReport, readManhourFile } from '@/lib/manhour-reader'
 import { exportReportExcel, exportReportPdf } from '@/lib/report-export'
+import { useSignOffStore } from '@/store/sign-off-store'
 import type {
   FilledWorkbook,
   GeneratedReport,
@@ -24,6 +25,7 @@ import { ImportSummary } from './ui/import-summary'
 import { ImportTable } from './ui/import-table'
 import { ImportedFileRow } from './ui/imported-file-row'
 import { RequestHoursTable } from './ui/request-hours-table'
+import { SignOffFields } from './ui/sign-off-fields'
 import { TemplatePicker } from './ui/template-picker'
 
 /** "September 2026 · 13 FEP entries of 1,944 · 2 added from On Route, 2 already approved" */
@@ -159,17 +161,20 @@ export function ExcelReport({ onBack }: ExcelReportProps) {
     setFilled(null)
     setExportError(null)
     try {
-      setFilled(fillWorkbook(yearly, next, sheet))
+      setFilled(fillWorkbook(yearly, next, sheet, useSignOffStore.getState().signOffFor(kind)))
     } catch (err) {
       setExportError(err instanceof Error ? err.message : String(err))
     }
   }
 
+  // Filled again on export, so stamp fields changed after Generate are used.
   const runExport = (exporter: (filled: FilledWorkbook) => void, label: string) => {
-    if (!filled) return
+    if (!filled || !yearly || !report || !sheet || !kind) return
     try {
       setExportError(null)
-      exporter(filled)
+      const current = fillWorkbook(yearly, report, sheet, useSignOffStore.getState().signOffFor(kind))
+      setFilled(current)
+      exporter(current)
     } catch (err) {
       setExportError(`${label} export failed: ${err instanceof Error ? err.message : String(err)}`)
     }
@@ -279,6 +284,12 @@ export function ExcelReport({ onBack }: ExcelReportProps) {
                   removeLabel="Remove yearly workbook"
                   onRemove={clearYearly}
                 />
+              ) : null}
+              {yearly ? (
+                <div className="mt-3 flex flex-col gap-2">
+                  <span className="text-[11px] tracking-wider text-muted-foreground uppercase">Sign-off stamps</span>
+                  <SignOffFields kind={kind} stamps={yearly.workbook.stamps} />
+                </div>
               ) : (
                 <ImportDropzone
                   title={`Drop the ${kind} yearly workbook here`}

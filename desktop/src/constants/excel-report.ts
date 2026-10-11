@@ -32,12 +32,10 @@ export const REPORT_TEMPLATES: Record<ReportKind, ReportTemplate> = {
   FEP: {
     kind: 'FEP',
     client: 'Fuji Electric Phils., Inc.',
-    jobs: [
-      { code: 'CL00-00007-001', name: 'ERP Maintenance' },
-      { code: 'CL00-00007-007', name: 'Web Upgrade', bucket: 'development' },
-    ],
+    jobs: [{ code: 'CL00-00007-001', name: 'ERP Maintenance' }],
     planHours: MONTHLY_PLAN_HOURS,
     pages: TEMPLATE_PAGES,
+    reqPerson: 'Quality Management Section',
   },
   FEM: {
     kind: 'FEM',
@@ -153,13 +151,16 @@ export const FEM_FEATURE_SPLIT: Record<HourBucket, number> = {
 /** Split hours are rounded to this step (h); development takes the remainder. */
 export const HOUR_SPLIT_STEP = 0.5
 
+/** FEP places a request by its Work Activity alone: these go to Development, QA to QA Checking, the rest to Support. */
+export const FEP_DEVELOPMENT_WORK_ACTIVITIES = new Set(['DEV', 'DSG', 'DEPCOMP', 'DEPSITE'])
+export const FEP_QA_WORK_ACTIVITIES = new Set(['QA'])
+
 /** Description keywords, matched on whole words of the uppercased text. */
 export const MEETING_KEYWORDS = /\bMEETING\b|\bMTG\b/
 export const INVESTIGATE_KEYWORDS = /\bINVESTIGAT\w*|\bCHECK(ING)?\b|\bISSUE\b|\bERROR\b|\bBUG\b|\bMISSING\b|\bNOT RUNNING\b/
 /** A numbered issue ("ISSUE #6201 DEFECT CODE SAVING ERROR") is classified as an Issue. */
 export const ISSUE_KEYWORDS = /\bISSUE\s*#\s*\d/
 export const QA_KEYWORDS = /\bQA\b|\bTEST(ING)?\b|\bUAT\b/
-export const DEVELOPMENT_KEYWORDS = /\bDEV(ELOP\w*)?\b|\bIMPLEMENT\w*|\bENHANCE\w*|\bCREATION\b/
 
 /** The yearly maintenance workbook the month is written into; FEP and FEM share this layout. */
 export const WORKBOOK_SHEETS = {

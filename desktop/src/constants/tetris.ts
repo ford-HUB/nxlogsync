@@ -18,9 +18,30 @@ export const SECONDS_PER_LEVEL = 60
 export const START_LEVEL_MULTIPLIER: Record<number, number> = { 1: 1, 5: 1.5, 10: 2, 15: 3 }
 /** Points for clearing 1–4 lines at once, times the level. */
 export const LINE_CLEAR_POINTS = [0, 100, 300, 500, 800] as const
+/** A T-spin clearing 0–3 lines, times the level; a mini T-spin clears at most 2. */
+export const T_SPIN_POINTS = [400, 800, 1200, 1600] as const
+export const T_SPIN_MINI_POINTS = [100, 200, 400] as const
+/** A Tetris or T-spin line clear straight after another one (no plain clear between) scores this much more. */
+export const B2B_MULTIPLIER = 1.5
+/** Each piece in a row that clears lines adds this × the combo count × the level. */
+export const COMBO_POINTS = 50
+/** How long a "T-spin double · B2B · combo 2" callout stays over the board. */
+export const CLEAR_CALLOUT_MS = 1100
 /** Points per cell for a soft drop and a hard drop. */
 export const SOFT_DROP_POINTS = 1
 export const HARD_DROP_POINTS = 2
+
+/**
+ * How long a piece rests on the stack before it locks, so it can still slide or turn into place.
+ * Each move or turn on the ground restarts it, up to MAX_LOCK_RESETS times per row reached.
+ */
+export const LOCK_DELAY_MS = 500
+export const MAX_LOCK_RESETS = 15
+/** Holding left/right: the wait before the piece starts sliding, then one column every ARR_MS. */
+export const DAS_MS = 150
+export const ARR_MS = 40
+/** Holding down: one row every this many ms. */
+export const SOFT_DROP_MS = 35
 
 /** How long cleared rows flash before they collapse. */
 export const CLEAR_FLASH_MS = 180
@@ -114,15 +135,31 @@ export const SHAPES: Record<PieceType, number[][]> = {
 
 export const PIECE_TYPES = Object.keys(SHAPES) as PieceType[]
 
-/** Sideways (and one-up) nudges tried when a rotation is blocked. */
-export const WALL_KICKS: [number, number][] = [
-  [0, 0],
-  [-1, 0],
-  [1, 0],
-  [-2, 0],
-  [2, 0],
-  [0, -1],
-]
+/**
+ * SRS wall kicks: the five spots tried, in order, when a turn is blocked, for each turn from one
+ * rotation state to the next (keyed "fromto", 0 = spawn, 1 = right, 2 = upside down, 3 = left).
+ * Values as published (x right, y UP), so the engine flips y. The I piece has its own table.
+ */
+export const SRS_KICKS: Record<string, [number, number][]> = {
+  '01': [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]],
+  '10': [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],
+  '12': [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],
+  '21': [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]],
+  '23': [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],
+  '32': [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],
+  '30': [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],
+  '03': [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],
+}
+export const SRS_KICKS_I: Record<string, [number, number][]> = {
+  '01': [[0, 0], [-2, 0], [1, 0], [-2, -1], [1, 2]],
+  '10': [[0, 0], [2, 0], [-1, 0], [2, 1], [-1, -2]],
+  '12': [[0, 0], [-1, 0], [2, 0], [-1, 2], [2, -1]],
+  '21': [[0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]],
+  '23': [[0, 0], [2, 0], [-1, 0], [2, 1], [-1, -2]],
+  '32': [[0, 0], [-2, 0], [1, 0], [-2, -1], [1, 2]],
+  '30': [[0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]],
+  '03': [[0, 0], [-1, 0], [2, 0], [-1, 2], [2, -1]],
+}
 
 /** How many players the leaderboard lists. */
 export const TETRIS_LEADERBOARD_SIZE = 100

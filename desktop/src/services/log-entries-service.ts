@@ -2,13 +2,25 @@ import { del, get, patch, post, type ApiResult } from './api-client'
 import type { EntryDraft, LogEntry } from '@/types/daily-log'
 
 /** The server's entry; `date` is the local day it belongs to ("YYYY-MM-DD"). */
-interface LogEntryWire extends Omit<LogEntry, 'synced'> {
+interface LogEntryWire extends Omit<LogEntry, 'synced' | 'editedSinceSync'> {
   date: string
   syncedAt: string | null
+  editedSinceSync?: boolean
 }
 
-function toEntry({ id, startMinutes, endMinutes, description, jobCode, workActivityCode, syncedAt }: LogEntryWire): LogEntry {
-  return { id, startMinutes, endMinutes, description, jobCode, workActivityCode, synced: syncedAt !== null }
+function toEntry(wire: LogEntryWire): LogEntry {
+  const { id, startMinutes, endMinutes, description, jobCode, workActivityCode, syncedAt, editedSinceSync } = wire
+  // An older server leaves the flag out; treat its entries as not edited.
+  return {
+    id,
+    startMinutes,
+    endMinutes,
+    description,
+    jobCode,
+    workActivityCode,
+    synced: syncedAt !== null,
+    editedSinceSync: editedSinceSync ?? false,
+  }
 }
 
 /** Entries from `from` to `to` (inclusive), grouped by day. */

@@ -88,6 +88,7 @@ export const LogEntryScalarFieldEnum = {
   workActivityCode: 'workActivityCode',
   jobCode: 'jobCode',
   syncedAt: 'syncedAt',
+  editedSinceSync: 'editedSinceSync',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

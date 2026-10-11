@@ -62,6 +62,15 @@ export class XlsxPackage {
     return this.relTarget(sheetPath, (rel) => rel.includes('/relationships/drawing"'))
   }
 
+  /** The chart parts a drawing shows. */
+  chartsOf(drawingPath: string): string[] {
+    const relsPath = relsOf(drawingPath)
+    if (!this.has(relsPath)) return []
+    return (this.text(relsPath).match(/<Relationship\b[^>]*\/>/g) ?? [])
+      .filter((rel) => rel.includes('/relationships/chart"'))
+      .map((rel) => resolvePart(drawingPath, /Target="([^"]+)"/.exec(rel)?.[1] ?? ''))
+  }
+
   /** Sets the last row of a sheet's print area ('Sheet'!$A$1:$X$41 → …$X$<lastRow>). */
   setPrintAreaLastRow(sheetName: string, lastRow: number): void {
     const index = this.sheetIndex(sheetName)

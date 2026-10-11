@@ -44,7 +44,10 @@ export class LogEntriesService {
   ): Promise<LogEntryResponseDto> {
     const existing = await this.getOrThrow(user, id);
     await this.assertNoOverlap(user, existing.date, data, id);
-    return toResponse(await this.repository.update(id, data));
+    // Still edited if it was edited before and no sync has saved it since.
+    const editedSinceSync =
+      existing.syncedAt !== null || existing.editedSinceSync;
+    return toResponse(await this.repository.update(id, data, editedSinceSync));
   }
 
   async remove(user: string, id: string): Promise<{ id: string }> {
@@ -111,5 +114,6 @@ function toResponse(entry: LogEntry): LogEntryResponseDto {
     workActivityCode: entry.workActivityCode,
     jobCode: entry.jobCode,
     syncedAt: entry.syncedAt?.toISOString() ?? null,
+    editedSinceSync: entry.editedSinceSync,
   };
 }

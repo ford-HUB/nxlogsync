@@ -50,7 +50,7 @@ export const useDailyLogStore = create<DailyLogState>((set, get) => ({
 
   addEntry: async (date, draft) => {
     const tempId = `pending-${crypto.randomUUID()}`
-    set((s) => ({ ...mapDay(s, date, (day) => [...day, { id: tempId, ...draft, synced: false }]), error: null }))
+    set((s) => ({ ...mapDay(s, date, (day) => [...day, { id: tempId, ...draft, synced: false, editedSinceSync: false }]), error: null }))
     const result = await createEntry(date, draft)
     if (result.success) set((s) => mapDay(s, date, (day) => day.map((e) => (e.id === tempId ? result.data : e))))
     else set((s) => ({ ...mapDay(s, date, (day) => day.filter((e) => e.id !== tempId)), error: result.message }))
@@ -63,8 +63,8 @@ export const useDailyLogStore = create<DailyLogState>((set, get) => ({
         day.map((e) => {
           if (e.id !== id) return e
           previous = e
-          // The server marks an edited entry for upload again.
-          return { ...e, ...draft, synced: false }
+          // The server marks an edited entry for upload again, and edited if N-PAX has an older copy.
+          return { ...e, ...draft, synced: false, editedSinceSync: e.synced || e.editedSinceSync }
         }),
       ),
       error: null,
@@ -102,9 +102,11 @@ export const useDailyLogStore = create<DailyLogState>((set, get) => ({
       ...mapDay(s, date, (day) => [
         ...day.map((e) => {
           const move = moves.find((m) => m.id === e.id)
-          return move ? { ...e, startMinutes: move.startMinutes, endMinutes: move.endMinutes, synced: false } : e
+          if (!move) return e
+          const { startMinutes, endMinutes } = move
+          return { ...e, startMinutes, endMinutes, synced: false, editedSinceSync: e.synced || e.editedSinceSync }
         }),
-        { id: tempId, ...draft, synced: false },
+        { id: tempId, ...draft, synced: false, editedSinceSync: false },
       ]),
       error: null,
     }))

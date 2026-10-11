@@ -58,11 +58,18 @@ export class LogEntriesRepository {
     });
   }
 
-  /** Callers check ownership with findById first. An edited entry must be uploaded again. */
-  update(id: string, data: UpdateLogEntryDto): Promise<LogEntry> {
+  /**
+   * Callers check ownership with findById first. An edited entry must be uploaded again;
+   * `editedSinceSync` says whether N-PAX already holds an older copy of it.
+   */
+  update(
+    id: string,
+    data: UpdateLogEntryDto,
+    editedSinceSync: boolean,
+  ): Promise<LogEntry> {
     return this.prisma.logEntry.update({
       where: { id },
-      data: { ...data, syncedAt: null },
+      data: { ...data, syncedAt: null, editedSinceSync },
     });
   }
 
@@ -92,7 +99,7 @@ export class LogEntriesRepository {
   async markSynced(ids: string[], at: Date): Promise<void> {
     await this.prisma.logEntry.updateMany({
       where: { id: { in: ids } },
-      data: { syncedAt: at },
+      data: { syncedAt: at, editedSinceSync: false },
     });
   }
 }

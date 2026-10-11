@@ -5,7 +5,7 @@ import {
   HOUR_BUCKET_ORDER,
   WORKBOOK_SHEETS as SHEETS,
 } from '@/constants/excel-report'
-import type { ActivityClass, MaintenanceWorkbook, WorkbookRequest } from '@/types/excel-report'
+import type { ActivityClass, MaintenanceWorkbook, SignOffStamp, WorkbookRequest } from '@/types/excel-report'
 
 type Doc = jsPDF & { lastAutoTable: { finalY: number } }
 type Rgb = [number, number, number]
@@ -16,18 +16,16 @@ const DARK_GREY: Rgb = [128, 128, 128]
 const PLAN_BLUE: Rgb = [68, 114, 196]
 const ACTUAL_RED: Rgb = [192, 80, 77]
 const PROGRAMS_GREEN: Rgb = [0, 255, 0]
+const STAMP_RED: Rgb = [255, 0, 0]
 const DATA_ORANGE: Rgb = [250, 191, 143]
 const BLOCK_ORANGE: Rgb = [250, 191, 143]
-/** Page 2-Graph stacks a segment per month; one colour per fiscal month. */
-const MONTH_COLOURS: Rgb[] = [
-  [79, 129, 189], [192, 80, 77], [155, 187, 89], [128, 100, 162], [75, 172, 198], [247, 150, 70],
-  [44, 77, 117], [119, 44, 42], [95, 117, 48], [77, 59, 98], [39, 106, 124], [182, 87, 8],
-]
 
 const CLASSES: ActivityClass[] = ['issue', 'feature', 'support']
 /** Page 2-Graph's axis labels. */
 const GRAPH_LABEL: Record<ActivityClass, string> = { issue: 'Issue(s)', feature: 'Feature(s)', support: 'Support(s)' }
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+/** Page 3-Activity rows one Month cell spans at most. */
+const ACTIVITY_MONTH_CHUNK = 12
 /** Page 4-Request blocks per printed page. */
 const BLOCKS_PER_PAGE = 7
 
@@ -52,6 +50,24 @@ function titleBar(doc: Doc, text: string, x: number, y: number, w: number, h: nu
   doc.setFont('helvetica', 'bold').setFontSize(opts.size ?? 14).setTextColor(0)
   const tx = opts.align === 'left' ? x + 6 : x + w / 2
   doc.text(text, tx, y + h / 2, { align: opts.align === 'left' ? 'left' : 'center', baseline: 'middle' })
+}
+
+/** A red N-PAX sign-off stamp as the workbook draws it: an oval with the label, date and initials. */
+function stamp(doc: Doc, { label, date, initials }: SignOffStamp, cx: number, cy: number, rx: number, ry: number) {
+  doc.setDrawColor(...STAMP_RED).setTextColor(...STAMP_RED).setLineWidth(1.4)
+  doc.ellipse(cx, cy, rx, ry, 'S')
+  // Label, rule, date, rule, initials, on alphabetic baselines (9pt bold capitals are ~6.5pt tall).
+  const rule = (dy: number) => {
+    const half = rx * Math.sqrt(Math.max(0, 1 - (dy / ry) ** 2)) - 1
+    doc.setLineWidth(0.9).line(cx - half, cy + dy, cx + half, cy + dy)
+  }
+  doc.setFont('helvetica', 'bold').setFontSize(9)
+  doc.text(pdfText(label), cx, cy - 10, { align: 'center' })
+  rule(-7)
+  doc.text(pdfText(date), cx, cy + 3.3, { align: 'center' })
+  rule(6.5)
+  doc.text(pdfText(initials), cx, cy + 16.5, { align: 'center' })
+  doc.setDrawColor(0).setTextColor(0)
 }
 
 /** Monthly Maintenance Report: title, Monthly Overview, Programs Updates / Decision, No. of days and sign-offs. */
@@ -132,6 +148,8 @@ function frontPage(doc: Doc, wb: MaintenanceWorkbook) {
     if (k === 0) {
       doc.setFont('helvetica', 'bold').setFontSize(7.5).text('NO OF DAYS', bx + boxW / 2, y + 8.5, { align: 'center' })
       doc.setFont('helvetica', 'normal').setFontSize(18).text(wb.workingDays === null ? '' : String(wb.workingDays), bx + boxW / 2, y + 38, { align: 'center' })
+    } else if (wb.stamps[k - 1]) {
+      stamp(doc, wb.stamps[k - 1], bx + boxW / 2, y + 27, boxW * 0.4, 25)
     }
   }
   y += 52 + 22
@@ -204,46 +222,97 @@ function hoursPage(doc: Doc, wb: MaintenanceWorkbook, actual: number[]) {
   })
 }
 
-/** Page 2-Graph: Issue(s), Feature(s) and Support(s) for the year, one stacked segment per month. */
-function graphPage(doc: Doc, wb: MaintenanceWorkbook, counts: Record<ActivityClass, number[]>) {
+/**
+ * Excel's automatic series colours for chart style 2: the six theme accents, then the same accents
+ * darker, then lighter, and so on.
+ */
+const ACCENTS: Rgb[] = [
+  [79, 129, 189], [192, 80, 77], [155, 187, 89], [128, 100, 162], [75, 172, 198], [247, 150, 70],
+]
+const SERIES_VARIANTS = [1, 0.78, 1.35, 0.88, 1.6, 1.18]
+const shade = ([r, g, b]: Rgb, f: number): Rgb =>
+  (f <= 1 ? [r * f, g * f, b * f] : [r + (255 - r) * (f - 1), g + (255 - g) * (f - 1), b + (255 - b) * (f - 1)]).map(
+    (v) => Math.round(Math.min(255, Math.max(0, v))),
+  ) as Rgb
+const seriesColour = (i: number) => shade(ACCENTS[i % 6], SERIES_VARIANTS[Math.floor(i / 6) % SERIES_VARIANTS.length])
+
+const FLOOR_TAN: Rgb = [196, 189, 151]
+const GRID_GREY: Rgb = [134, 134, 134]
+
+/**
+ * Page 2-Graph as the workbook draws it: a 3-D stacked cylinder chart (0 to 110 by 10) where each
+ * Page 3-Activity row is one band on its Issue(s), Feature(s) or Support(s) cylinder, in row order
+ * from the floor up, over a grey back and side wall and a tan floor.
+ */
+function graphPage(doc: Doc, wb: MaintenanceWorkbook) {
   doc.addPage('a4', 'landscape')
   const pageW = doc.internal.pageSize.getWidth()
-  titleBar(doc, 'ACTIVITY SUMMARY', 120, 52, pageW - 300, 32)
+  titleBar(doc, pdfText(wb.graphTitle || 'ACTIVITY SUMMARY'), 120, 52, pageW - 300, 32)
 
-  const px = 150
-  const pw = pageW - 300
-  const py = 120
-  const ph = 330
-  const totals = CLASSES.map((c) => counts[c].reduce((s, n) => s + n, 0))
+  // Oblique 3-D: the back wall sits up and to the right of the front plane by the depth offset.
+  const px = 175
+  const pw = pageW - 340
+  const floorY = 470
+  const ph = 320
+  const depthX = 55
+  const depthY = 28
+  const totals = CLASSES.map((c) => wb.activities.filter((a) => a.classification === c && a.inGraph).length)
   const max = Math.max(110, Math.ceil(Math.max(...totals) / 10) * 10)
-  const yOf = (v: number) => py + ph - (v / max) * ph
-  doc.setFont('helvetica', 'normal').setFontSize(7.5).setTextColor(0)
-  for (let v = 0; v <= max; v += 10) {
-    doc.setDrawColor(134).setLineWidth(0.5).line(px, yOf(v), px + pw, yOf(v))
-    doc.text(String(v), px - 6, yOf(v), { align: 'right', baseline: 'middle' })
-  }
-  doc.setFillColor(196, 189, 151).rect(px, yOf(0), pw, 6, 'F')
-  const slot = pw / CLASSES.length
-  CLASSES.forEach((c, k) => {
-    const cx = px + slot * k + slot / 2
-    const bw = slot * 0.3
-    let base = 0
-    counts[c].forEach((n, i) => {
-      if (!n) return
-      doc.setFillColor(...MONTH_COLOURS[i % MONTH_COLOURS.length]).rect(cx - bw / 2, yOf(base + n), bw, yOf(base) - yOf(base + n), 'F')
-      base += n
-    })
-    if (base) doc.setFont('helvetica', 'bold').text(String(base), cx, yOf(base) - 5, { align: 'center' })
-    doc.setFont('helvetica', 'normal').text(GRAPH_LABEL[c], cx, yOf(0) + 20, { align: 'center' })
-  })
+  const yOf = (v: number) => floorY - (v / max) * ph
 
-  // Legend: the months with activities.
-  const used = wb.months.map((m, i) => [m, i] as const).filter(([, i]) => CLASSES.some((c) => counts[c][i]))
-  let lx = px + pw / 2 - (used.length * 52) / 2
-  used.forEach(([m, i]) => {
-    doc.setFillColor(...MONTH_COLOURS[i % MONTH_COLOURS.length]).rect(lx, py + ph + 40, 8, 8, 'F')
-    doc.setFontSize(7).text(monthLabel(m), lx + 11, py + ph + 47)
-    lx += 52
+  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(0)
+  for (let v = 0; v <= max; v += 10) {
+    const y = yOf(v)
+    doc.setDrawColor(...GRID_GREY).setLineWidth(0.6)
+    doc.line(px, y, px + depthX, y - depthY).line(px + depthX, y - depthY, px + depthX + pw, y - depthY)
+    doc.setDrawColor(0).line(px - 3, y, px, y)
+    doc.text(String(v), px - 6, y, { align: 'right', baseline: 'middle' })
+  }
+  doc.setDrawColor(...GRID_GREY).line(px, yOf(0), px, yOf(max))
+
+  // Floor
+  doc.setFillColor(...FLOOR_TAN).setDrawColor(...GRID_GREY).setLineWidth(0.8)
+  doc.lines(
+    [
+      [pw, 0],
+      [depthX, -depthY],
+      [-pw, 0],
+    ],
+    px,
+    floorY,
+    [1, 1],
+    'FD',
+    true,
+  )
+
+  // Cylinders: one band per activity, in Page 3 order, standing mid-depth on the floor.
+  // Colours follow the chart's series order, which starts at the first graphed activity.
+  const seriesIndex = new Map<number, number>()
+  wb.activities.forEach((a, i) => a.inGraph && seriesIndex.set(i, seriesIndex.size))
+  const slot = pw / CLASSES.length
+  const rx = slot * 0.17
+  const ry = rx * 0.22
+  CLASSES.forEach((c, k) => {
+    const cx = px + slot * k + slot / 2 + depthX / 2
+    const base = floorY - depthY / 2
+    const bandOf = (v: number) => base - (v / max) * ph
+    let level = 0
+    let top: Rgb | null = null
+    wb.activities.forEach((a, i) => {
+      if (a.classification !== c || !a.inGraph) return
+      const colour = seriesColour(seriesIndex.get(i) ?? i)
+      const y0 = bandOf(level)
+      const y1 = bandOf(level + 1)
+      doc.setFillColor(...shade(colour, 0.8)).ellipse(cx, y0, rx, ry, 'F')
+      doc.setFillColor(...colour).rect(cx - rx, y1, rx * 2, y0 - y1, 'F')
+      // Shading toward the right edge, as the rendered cylinder is lit from the left.
+      doc.setFillColor(...shade(colour, 0.78)).rect(cx + rx * 0.45, y1, rx * 0.55, y0 - y1, 'F')
+      doc.setFillColor(...shade(colour, 1.25)).rect(cx - rx * 0.7, y1, rx * 0.3, y0 - y1, 'F')
+      level += 1
+      top = colour
+    })
+    if (top) doc.setFillColor(...shade(top, 1.35)).ellipse(cx, bandOf(level), rx, ry, 'F')
+    doc.setFontSize(8).setTextColor(0).text(GRAPH_LABEL[c], px + slot * k + slot / 2, floorY + 22, { align: 'center' })
   })
   doc.setDrawColor(0)
 }
@@ -255,10 +324,19 @@ function activityPage(doc: Doc, wb: MaintenanceWorkbook) {
   const x = 40
   titleBar(doc, 'MONTHLY ACTIVITY REPORT', x, 50, pageW - 2 * x, 28)
 
+  // The Month cell spans its rows in chunks of at most ACTIVITY_MONTH_CHUNK, label repeated, as the
+  // FEP workbook does: a span taller than a page can't be drawn.
+  const chunkStarts = new Map<number, number>()
+  wb.activities.forEach((a, i) => {
+    let end = i
+    while (end < wb.activities.length && wb.activities[end].month === a.month) end++
+    if (i === 0 || wb.activities[i - 1].month !== a.month)
+      for (let start = i; start < end; start += ACTIVITY_MONTH_CHUNK) chunkStarts.set(start, Math.min(ACTIVITY_MONTH_CHUNK, end - start))
+  })
+
   const body: RowInput[] = []
   wb.activities.forEach((a, i) => {
-    const first = i === 0 || wb.activities[i - 1].month !== a.month
-    const span = first ? wb.activities.slice(i).findIndex((b) => b.month !== a.month) : 0
+    const span = chunkStarts.get(i)
     const row: RowInput = [
       { content: String(i + 1), styles: { halign: 'center' } },
       pdfText(a.description),
@@ -269,10 +347,10 @@ function activityPage(doc: Doc, wb: MaintenanceWorkbook) {
       '',
       '',
     ]
-    if (first)
+    if (span)
       row.unshift({
         content: a.month ? monthLabel(a.month) : '',
-        rowSpan: span < 0 ? wb.activities.length - i : span,
+        rowSpan: span,
         styles: { valign: 'middle', halign: 'center' },
       })
     body.push(row)
@@ -429,7 +507,7 @@ export function buildMaintenancePdf(wb: MaintenanceWorkbook): jsPDF {
   const sections: [string, () => void][] = [
     [SHEETS.front, () => frontPage(doc, wb)],
     [SHEETS.hours, () => hoursPage(doc, wb, actual)],
-    [SHEETS.graph, () => graphPage(doc, wb, counts)],
+    [SHEETS.graph, () => graphPage(doc, wb)],
     [SHEETS.activity, () => activityPage(doc, wb)],
     [SHEETS.request, () => requestPages(doc, wb, actual)],
     [SHEETS.data, () => dataPage(doc, wb, counts)],

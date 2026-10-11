@@ -3,7 +3,11 @@ import { DEFAULT_TETRIS_CONFIG } from '@/constants/tetris'
 import type { TetrisConfig } from '@/types/tetris'
 
 const CONFIG_KEY = 'nxlogsync-tetris-config'
-const BESTS_KEY = 'nxlogsync-tetris-bests'
+/**
+ * v2 since SRS, T-spin, back-to-back and combo scoring: games before it scored lower, so the old
+ * bests (under the unversioned key) are left behind, as the server board was cleared.
+ */
+const BESTS_KEY = 'nxlogsync-tetris-bests-v2'
 
 function read<T>(key: string, fallback: T): T {
   try {

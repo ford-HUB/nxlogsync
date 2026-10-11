@@ -27,6 +27,8 @@ model LogEntry {
   jobCode          String?   @map("job_code")
   /// Set once the entry has been saved to N-PAX.
   syncedAt         DateTime? @map("synced_at")
+  /// Changed after a sync had saved it to N-PAX; cleared when a sync saves it again.
+  editedSinceSync  Boolean   @default(false) @map("edited_since_sync")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 

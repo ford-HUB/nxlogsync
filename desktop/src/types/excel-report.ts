@@ -90,12 +90,13 @@ export interface RequestHours {
 export interface ReportTemplate {
   kind: ReportKind
   client: string
-  /** `bucket` puts all of a job's hours in one Page 4 row, ahead of the keyword rules. */
-  jobs: { code: string; name: string; bucket?: HourBucket }[]
+  jobs: { code: string; name: string }[]
   /** Support hours → Plan, per month. */
   planHours: number
   /** The workbook's visible pages, in order. */
   pages: string[]
+  /** Page 4-Request's Req Person on every request, when the report fills it. */
+  reqPerson?: string
 }
 
 /** One Monthly Overview line: what is printed, and the remark it came from. */
@@ -131,6 +132,8 @@ export interface WorkbookActivity {
   date: string
   assignedTo: string
   classification: ActivityClass | null
+  /** Whether Page 2-Graph's chart has a band for it (Excel charts cap at 255 series). */
+  inGraph: boolean
 }
 
 /** One Page 4-Request block of the yearly workbook, with its hours per fiscal month. */
@@ -159,8 +162,30 @@ export interface MaintenanceWorkbook {
   title: string
   overview: string[]
   workingDays: number | null
+  /** Page 2-Graph's title: "ACTIVITY SUMMARY" for the year, or "JULY 2026 ACTIVITY SUMMARY" for a month. */
+  graphTitle: string
+  /** The red N-PAX sign-off stamps under NO OF DAYS, left to right. */
+  stamps: SignOffStamp[]
   activities: WorkbookActivity[]
   requests: WorkbookRequest[]
+}
+
+/** One red sign-off stamp: "N-PAX", the date ("10.11.26") and the initials ("CDB"). */
+export interface SignOffStamp {
+  label: string
+  date: string
+  initials: string
+}
+
+/**
+ * What the page asks for the stamps: the date created, the supervisor (first stamp) and who prepared
+ * the report (second stamp). The third stamp keeps its initials and only gets the date.
+ */
+export interface SignOff {
+  /** "10.11.26" */
+  date: string
+  supervisor: string
+  preparedBy: string
 }
 
 /** The yearly workbook with the report's month written into it. */

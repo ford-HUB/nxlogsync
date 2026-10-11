@@ -3,7 +3,8 @@ import { memo, useEffect, type ReactNode } from 'react'
 import { BOARD_COLS, BOARD_ROWS, EXTREME_LEVEL, INTENSE_LEVEL, SKILLS } from '@/constants/tetris'
 import { cellsOf, dropped, fxSpeed, gemCellOf } from '@/lib/tetris-engine'
 import { cn } from '@/lib/utils'
-import type { ActivePiece, Board, GemGrid, SkillFx, SkillType } from '@/types/tetris'
+import type { ActivePiece, Board, ClearCallout as Callout, GemGrid, SkillFx, SkillType } from '@/types/tetris'
+import { ClearCallout } from './clear-callout'
 import { LineSparks } from './line-sparks'
 import { SkillEffects } from './skill-effects'
 import { SpeedStreaks } from './speed-streaks'
@@ -28,6 +29,8 @@ interface TetrisBoardProps {
   skillFx: SkillFx | null
   /** Slow is in effect: the well takes on a violet tint. */
   slowed: boolean
+  /** The last T-spin, Tetris, B2B or combo, called out over the well. */
+  callout: Callout | null
   /** Laid over the board: the start hint, the pause note. */
   children?: ReactNode
 }
@@ -60,6 +63,7 @@ export const TetrisBoard = memo(function TetrisBoard({
   running,
   skillFx,
   slowed,
+  callout,
   children,
 }: TetrisBoardProps) {
   const speed = fxSpeed(level)
@@ -139,6 +143,7 @@ export const TetrisBoard = memo(function TetrisBoard({
       </div>
       <LineSparks clearing={clearing} speed={speed} />
       <SkillEffects fx={skillFx} speed={speed} />
+      <ClearCallout callout={callout} speed={speed} />
       {children}
     </div>
   )

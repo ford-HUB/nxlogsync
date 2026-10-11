@@ -9,10 +9,11 @@ import {
   SHAPES,
   SKILL_BLOCK_CHANCE,
   SKILL_TYPES,
+  SRS_KICKS,
+  SRS_KICKS_I,
   START_LEVEL_MULTIPLIER,
-  WALL_KICKS,
 } from '@/constants/tetris'
-import type { ActivePiece, Board, GemGrid, PieceGem, PieceType, SkillType } from '@/types/tetris'
+import type { ActivePiece, Board, GemGrid, PieceGem, PieceType, SkillType, TSpin } from '@/types/tetris'
 
 const emptyGrid = <T>(): (T | null)[][] => Array.from({ length: BOARD_ROWS }, () => Array<T | null>(BOARD_COLS).fill(null))
 export const emptyBoard = (): Board => emptyGrid<PieceType>()
@@ -83,15 +84,38 @@ export function shifted(board: Board, piece: ActivePiece, dx: number, dy: number
   return collides(board, next) ? null : next
 }
 
-/** The piece turned (1 clockwise, -1 counter), nudged aside if needed; null when nothing fits. */
-export function rotated(board: Board, piece: ActivePiece, dir: 1 | -1): ActivePiece | null {
-  if (piece.type === 'O') return piece
-  const turned = { ...piece, rotation: (piece.rotation + dir + 4) % 4 }
-  for (const [dx, dy] of WALL_KICKS) {
-    const next = { ...turned, x: turned.x + dx, y: turned.y + dy }
-    if (!collides(board, next)) return next
+/**
+ * The piece turned (1 clockwise, -1 counter) with SRS wall kicks: each of the turn's five spots is
+ * tried in order and the first that fits wins. `kick` is which one (0 = no nudge), for T-spins.
+ * Null when none fits.
+ */
+export function rotated(board: Board, piece: ActivePiece, dir: 1 | -1): { piece: ActivePiece; kick: number } | null {
+  if (piece.type === 'O') return null
+  const rotation = (piece.rotation + dir + 4) % 4
+  const kicks = (piece.type === 'I' ? SRS_KICKS_I : SRS_KICKS)[`${piece.rotation}${rotation}`]
+  for (let kick = 0; kick < kicks.length; kick++) {
+    const [dx, dy] = kicks[kick]
+    // The tables count y upward; the board counts it downward.
+    const next = { ...piece, rotation, x: piece.x + dx, y: piece.y - dy }
+    if (!collides(board, next)) return { piece: next, kick }
   }
   return null
+}
+
+/**
+ * Whether a T piece locking after a turn is a T-spin (the guideline's 3-corner rule): at least
+ * three of the four corners around its centre are filled (walls and floor count). It's a full
+ * T-spin when both corners it points at are filled, or it got there by the last kick; otherwise mini.
+ */
+export function tSpinOf(board: Board, piece: ActivePiece, kick: number): TSpin | null {
+  if (piece.type !== 'T') return null
+  const [cy, cx] = [piece.y + 1, piece.x + 1]
+  const filled = (r: number, c: number) => c < 0 || c >= BOARD_COLS || r >= BOARD_ROWS || (r >= 0 && board[r][c] !== null)
+  // Clockwise from top-left, so rotation n points at corners n and n + 1.
+  const corners = [filled(cy - 1, cx - 1), filled(cy - 1, cx + 1), filled(cy + 1, cx + 1), filled(cy + 1, cx - 1)]
+  if (corners.filter(Boolean).length < 3) return null
+  const front = corners[piece.rotation] && corners[(piece.rotation + 1) % 4]
+  return front || kick === 4 ? 'full' : 'mini'
 }
 
 /** Where the piece lands if dropped straight down. */

@@ -104,6 +104,7 @@ export function EntryItem({
       </button>
 
       <div className="flex shrink-0 items-center gap-0.5 py-2.5 pr-3">
+        <SyncStatus synced={entry.synced} edited={entry.editedSinceSync} />
         <Button
           type="button"
           variant="ghost"
@@ -149,4 +150,11 @@ export function EntryItem({
       </div>
     </li>
   )
+}
+
+/** Where the entry stands with N-PAX: uploaded, changed since it was, or not uploaded yet. */
+function SyncStatus({ synced, edited }: { synced: boolean; edited: boolean }) {
+  if (synced) return <span className="mr-2 text-[11px] whitespace-nowrap text-success">Synced</span>
+  if (edited) return <span className="mr-2 text-[11px] whitespace-nowrap text-warning">Edited · not synced</span>
+  return <span className="mr-2 text-[11px] whitespace-nowrap text-muted-foreground">Not synced</span>
 }

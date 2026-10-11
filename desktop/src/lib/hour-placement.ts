@@ -1,7 +1,8 @@
 import {
-  DEVELOPMENT_KEYWORDS,
   FEATURE_WORK_ACTIVITIES,
   FEM_FEATURE_SPLIT,
+  FEP_DEVELOPMENT_WORK_ACTIVITIES,
+  FEP_QA_WORK_ACTIVITIES,
   HOUR_SPLIT_STEP,
   INVESTIGATE_KEYWORDS,
   INVESTIGATE_WORK_ACTIVITIES,
@@ -9,7 +10,6 @@ import {
   MEETING_KEYWORDS,
   MEETING_WORK_ACTIVITIES,
   QA_KEYWORDS,
-  REPORT_TEMPLATES,
 } from '@/constants/excel-report'
 import type { ActivityClass, HourBucket, ImportedRow, ReportKind, RequestHours } from '@/types/excel-report'
 
@@ -61,17 +61,15 @@ function placeFem(description: string, workAccount: string, hours: number): Plac
 }
 
 /**
- * FEP never splits a request and never uses Investigate (441 requests in its workbook): a job with
- * its own row (Web Upgrade → Development) wins, then QA words, then development work logged as
- * such; everything else, maintenance features included, is Support.
+ * FEP never splits a request and never uses Investigate: its workbook places each one by the Work
+ * Activity it was logged under — DEV / DSG / DEPCOMP / DEPSITE → Development, QA → QA Checking, and
+ * CRM, DTADM, DOCU, meetings and the rest → Support.
  */
-function placeFep(description: string, workAccount: string, jobCode: string, hours: number): Placement {
-  const job = REPORT_TEMPLATES.FEP.jobs.find((j) => j.code === jobCode)
-  if (job?.bucket) return { split: only(job.bucket, hours), rule: `${job.name} job → ${job.bucket === 'development' ? 'Development' : job.bucket}` }
-  if (QA_KEYWORDS.test(description) || workAccount === 'QA') return { split: only('qa', hours), rule: 'QA words → QA Checking' }
-  if (FEATURE_WORK_ACTIVITIES.has(workAccount) && DEVELOPMENT_KEYWORDS.test(description))
-    return { split: only('development', hours), rule: 'Logged as development → Development' }
-  return { split: only('support', hours), rule: 'Maintenance → Support' }
+function placeFep(workAccount: string, hours: number): Placement {
+  if (FEP_DEVELOPMENT_WORK_ACTIVITIES.has(workAccount))
+    return { split: only('development', hours), rule: `${workAccount} → Development` }
+  if (FEP_QA_WORK_ACTIVITIES.has(workAccount)) return { split: only('qa', hours), rule: `${workAccount} → QA Checking` }
+  return { split: only('support', hours), rule: `${workAccount || 'No code'} → Support` }
 }
 
 /** "LUXURY LANDY JOREN" → "LLJ" */
@@ -88,25 +86,37 @@ const assignedTo = (entries: ImportedRow[]) =>
   [...new Set(entries.map((r) => initials(r.employeeName || r.employeeId)).filter(Boolean))].join('/')
 
 /**
- * Page 3-Activity's Classification, as the workbooks fill it: a numbered issue is an Issue, a
- * request with Development hours is a Feature, everything else is a Support.
+ * Page 3-Activity's Classification, as the workbooks fill it: a numbered issue is an Issue; a
+ * Feature is FEM work with Development hours, or FEP work in Development or QA Checking; the rest
+ * is a Support.
  */
-function classify(description: string, split: Split): ActivityClass {
+function classify(description: string, split: Split, kind: ReportKind): ActivityClass {
   if (ISSUE_KEYWORDS.test(description)) return 'issue'
-  return split.development > 0 ? 'feature' : 'support'
+  const feature = kind === 'FEP' ? split.development > 0 || split.qa > 0 : split.development > 0
+  return feature ? 'feature' : 'support'
 }
 
-const groupKey = (r: ImportedRow) => `${r.jobCode}|${r.remarks.trim().replace(/\s+/g, ' ').toUpperCase()}`
+const remarkKey = (r: ImportedRow) => r.remarks.trim().replace(/\s+/g, ' ').toUpperCase()
 
 /**
- * Page 4-Request: entries with the same job and description are one request; its hours are summed
+ * FEM lists a request once for the month; FEP lists each person's day of work on it, as logged
+ * (one row per date, employee, Work Activity and remark).
+ */
+const groupKey = (r: ImportedRow, kind: ReportKind) =>
+  kind === 'FEP'
+    ? [r.date, r.employeeId || r.employeeName, r.workAccount.trim().toUpperCase(), remarkKey(r)].join('|')
+    : `${r.jobCode}|${remarkKey(r)}`
+
+/**
+ * Page 4-Request: entries in the same group (see groupKey) are one request; its hours are summed
  * and placed by the report's rules. Rows with no hours are left out. Ordered by first date.
  */
 export function buildRequestHours(rows: ImportedRow[], kind: ReportKind): RequestHours[] {
   const groups = new Map<string, ImportedRow[]>()
   for (const r of rows) {
     if (r.hours === null) continue
-    groups.set(groupKey(r), [...(groups.get(groupKey(r)) ?? []), r])
+    const key = groupKey(r, kind)
+    groups.set(key, [...(groups.get(key) ?? []), r])
   }
 
   return [...groups.values()]
@@ -116,7 +126,7 @@ export function buildRequestHours(rows: ImportedRow[], kind: ReportKind): Reques
       const description = first.remarks.trim().replace(/\s+/g, ' ').toUpperCase()
       const workAccount = first.workAccount.trim().toUpperCase()
       const { split, rule } =
-        kind === 'FEM' ? placeFem(description, workAccount, total) : placeFep(description, workAccount, first.jobCode, total)
+        kind === 'FEM' ? placeFem(description, workAccount, total) : placeFep(workAccount, total)
       return {
         description: first.remarks,
         date: first.date,
@@ -125,7 +135,7 @@ export function buildRequestHours(rows: ImportedRow[], kind: ReportKind): Reques
         split,
         rule,
         assignedTo: assignedTo(entries),
-        classification: classify(description, split),
+        classification: classify(description, split, kind),
       }
     })
     .sort((a, b) => a.date.localeCompare(b.date))

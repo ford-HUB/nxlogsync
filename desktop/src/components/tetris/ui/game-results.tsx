@@ -67,6 +67,8 @@ export function GameResults({ result, onPlayAgain }: GameResultsProps) {
         <Stat label="lines" value={String(result.lines)} />
         <Stat label="level" value={String(result.level)} hint={`Reached from level ${result.config.startLevel}: every 10 lines or minute survived`} />
         <Stat label="tetrises" value={String(result.tetrises)} hint="Four lines cleared at once" />
+        <Stat label="t-spins" value={String(result.tSpins)} hint="Lines cleared by turning a T piece into a tight slot" />
+        <Stat label="best combo" value={String(result.maxCombo)} hint="Pieces in a row that cleared lines, after the first" />
         <Stat label="pieces" value={String(result.pieces)} hint={`${perMinute.toFixed(1)} pieces per minute`} />
         <Stat label="time" value={`${Math.round(result.seconds)}s`} hint={`${result.seconds.toFixed(2)}s`} />
       </div>

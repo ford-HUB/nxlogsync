@@ -64,6 +64,8 @@ export function TetrisGame({ onBack, paused = false }: TetrisGameProps) {
   // Every key goes to the game, ahead of the daily log underneath; Escape closes it.
   const keyRef = useRef(game.onKeyDown)
   keyRef.current = game.onKeyDown
+  const keyUpRef = useRef(game.onKeyUp)
+  keyUpRef.current = game.onKeyUp
   useEffect(() => {
     if (!listening) return
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
@@ -72,8 +74,16 @@ export function TetrisGame({ onBack, paused = false }: TetrisGameProps) {
       if (e.key === 'Escape') onBack()
       else keyRef.current(e)
     }
+    const onKeyUp = (e: KeyboardEvent) => {
+      e.stopPropagation()
+      keyUpRef.current(e)
+    }
     window.addEventListener('keydown', onKey, true)
-    return () => window.removeEventListener('keydown', onKey, true)
+    window.addEventListener('keyup', onKeyUp, true)
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      window.removeEventListener('keyup', onKeyUp, true)
+    }
   }, [onBack, listening])
 
   // Leaving the window pauses the game, so a piece doesn't fall unseen.
@@ -160,6 +170,7 @@ export function TetrisGame({ onBack, paused = false }: TetrisGameProps) {
                     running={running}
                     skillFx={game.skillFx}
                     slowed={game.slowLeft > 0}
+                    callout={game.callout}
                   >
                     {status === 'idle' && (
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center font-mono text-[13px] text-foreground">

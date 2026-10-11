@@ -589,10 +589,6 @@ export type SyncScheduleCreatedaysInput = {
   set: number[]
 }
 
-export type BoolFieldUpdateOperationsInput = {
-  set?: boolean
-}
-
 export type SyncScheduleUpdatedaysInput = {
   set?: number[]
   push?: number | number[]

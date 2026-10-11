@@ -1,12 +1,15 @@
 import * as XLSX from 'xlsx'
 import {
   HOUR_BUCKET_ORDER,
+  REPORT_TEMPLATES,
   REQUEST_BUCKET_LABEL,
   REQUEST_STATUS,
   WORKBOOK_LAYOUT as L,
   WORKBOOK_SHEETS as SHEETS,
 } from '@/constants/excel-report'
+import { activityChartRows, addActivitySeries, MAX_CHART_SERIES } from '@/lib/activity-chart'
 import { numToCol, SheetXml } from '@/lib/sheet-xml'
+import { readStamps, writeStamps } from '@/lib/sign-off-stamps'
 import { XlsxPackage } from '@/lib/xlsx-package'
 import type {
   ActivityClass,
@@ -15,6 +18,7 @@ import type {
   HourBucket,
   ImportedSheet,
   MaintenanceWorkbook,
+  SignOff,
   WorkbookActivity,
   WorkbookRequest,
 } from '@/types/excel-report'
@@ -69,6 +73,11 @@ function sheetOf(wb: XLSX.WorkBook, name: string): XLSX.WorkSheet {
 const valueAt = (ws: XLSX.WorkSheet, col: number, row: number): Cell => ws[`${numToCol(col)}${row}`]?.v
 const lastRowOf = (ws: XLSX.WorkSheet) => (ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']).e.r + 1 : 0)
 
+/** Page 2-Graph's title is in A2. */
+const GRAPH_TITLE_ROW = 2
+/** A graph titled with a month ("JULY 2026 ACTIVITY SUMMARY") shows only that month. */
+const MONTHLY_GRAPH = new RegExp(`^(${MONTH_NAMES.join('|')})\\s+\\d{4}\\s+`)
+
 const COL = { B: 2, C: 3, D: 4, F: 6, G: 7, H: 8, I: 9, J: 10, AF: 32, AK: 37, AR: 44, AW: 49 }
 const CLASS_COL: Record<ActivityClass, number> = { issue: COL.H, feature: COL.I, support: COL.J }
 
@@ -118,7 +127,7 @@ function noOfDaysRow(ws: XLSX.WorkSheet): number | null {
   return null
 }
 
-function readModel(fileName: string, wb: XLSX.WorkBook): MaintenanceWorkbook {
+function readModel(fileName: string, wb: XLSX.WorkBook, pkg: XlsxPackage): MaintenanceWorkbook {
   const hours = sheetOf(wb, SHEETS.hours)
   const months = Array.from({ length: 12 }, (_, i) => serialToDate(valueAt(hours, 4 + i, L.hoursMonthRow)).slice(0, 7))
   if (months.some((m) => !m)) throw new Error(`"${SHEETS.hours}" row ${L.hoursMonthRow} doesn't list the year's 12 months.`)
@@ -127,6 +136,8 @@ function readModel(fileName: string, wb: XLSX.WorkBook): MaintenanceWorkbook {
   const daysRow = noOfDaysRow(front)
 
   const activity = sheetOf(wb, SHEETS.activity)
+  const graphRows = activityChartRows(pkg)
+  const graphed = graphRows ? new Set(graphRows) : null
   let month = ''
   const activities: WorkbookActivity[] = activityRows(activity).map((r) => {
     month = serialToDate(valueAt(activity, COL.B, r)).slice(0, 7) || month
@@ -137,6 +148,7 @@ function readModel(fileName: string, wb: XLSX.WorkBook): MaintenanceWorkbook {
       date: serialToDate(valueAt(activity, COL.F, r)),
       assignedTo: text(valueAt(activity, COL.G, r)),
       classification: flag(COL.H) ? 'issue' : flag(COL.I) ? 'feature' : flag(COL.J) ? 'support' : null,
+      inGraph: graphed ? graphed.has(r) : true,
     }
   })
 
@@ -160,9 +172,17 @@ function readModel(fileName: string, wb: XLSX.WorkBook): MaintenanceWorkbook {
     title: text(front[L.frontTitle]?.v),
     overview: overviewRows(front).map((r) => text(valueAt(front, COL.D, r))),
     workingDays: daysRow ? num(valueAt(front, COL.B, daysRow + 1)) : null,
+    graphTitle: text(valueAt(sheetOf(wb, SHEETS.graph), 1, GRAPH_TITLE_ROW)),
+    stamps: readStamps(pkg),
     activities,
     requests,
   }
+}
+
+/** Mirrors addActivitySeries: past the series limit, the oldest graphed activities drop off. */
+function keepGraphLimit(activities: WorkbookActivity[]): WorkbookActivity[] {
+  let extra = activities.filter((a) => a.inGraph).length - MAX_CHART_SERIES
+  return activities.map((a) => (a.inGraph && extra-- > 0 ? { ...a, inGraph: false } : a))
 }
 
 /** Every person's initials already in Page 3-Activity's Assigned To ("RNM/JBF/JGA/LJT" → 4). */
@@ -188,7 +208,7 @@ function matchInitials(initials: string, known: string[]): string {
 export async function readMaintenanceWorkbook(file: File): Promise<LoadedWorkbook> {
   const bytes = new Uint8Array(await file.arrayBuffer())
   const wb = XLSX.read(bytes, { type: 'array' })
-  return { fileName: file.name, bytes, workbook: readModel(file.name, wb) }
+  return { fileName: file.name, bytes, workbook: readModel(file.name, wb, XlsxPackage.read(bytes)) }
 }
 
 /** The fiscal month index of the report's month in this workbook, or why it can't be added. */
@@ -209,9 +229,16 @@ export function monthIndexFor(workbook: MaintenanceWorkbook, month: string): num
  * - Page 3-Activity: one row per request under a new month group;
  * - Page 4-Request: one block per request, its hours in the month's column;
  * - Page 5- Data and Support hours: the month's counts and actual hours (formulas, as in the sheet).
- * Charts, stamps, macros and every earlier month are kept as they are.
+ * - Page 2-Graph: a cylinder band per new activity;
+ * - the sign-off stamps: dated today, with the supervisor and preparer initials (see SignOff).
+ * Charts, macros and every earlier month are kept as they are.
  */
-export function fillWorkbook(loaded: LoadedWorkbook, report: GeneratedReport, sheet: ImportedSheet): FilledWorkbook {
+export function fillWorkbook(
+  loaded: LoadedWorkbook,
+  report: GeneratedReport,
+  sheet: ImportedSheet,
+  signOff: SignOff,
+): FilledWorkbook {
   const { workbook } = loaded
   const index = monthIndexFor(workbook, sheet.month)
   const key = workbook.months[index]
@@ -290,6 +317,7 @@ export function fillWorkbook(loaded: LoadedWorkbook, report: GeneratedReport, sh
   const template = blocks[blocks.length - 1]
   if (!template) throw new Error(`"${SHEETS.request}" has no request block to copy the layout from.`)
   const step = L.requestBlockRows
+  const reqPerson = REPORT_TEMPLATES[report.kind].reqPerson ?? ''
   const lastBlockRow = template + step * requests.length + HOUR_BUCKET_ORDER.length
 
   edit(SHEETS.request, (xml) => {
@@ -308,6 +336,7 @@ export function fillWorkbook(loaded: LoadedWorkbook, report: GeneratedReport, sh
       xml.set(`H${h}`, { formula: `'${SHEETS.activity}'!D${act}`, cached: req.description })
       xml.set(`AF${h}`, { formula: `'${SHEETS.activity}'!F${act}`, cached: serial })
       xml.set(`AR${h}`, { text: REQUEST_STATUS })
+      if (reqPerson) xml.set(`AK${h}`, { text: reqPerson })
       xml.set(`AW${h}`, { formula: `SUM(BE${h + 1}:XFD${h + 4})`, cached: req.total })
       HOUR_BUCKET_ORDER.forEach((bucket, k) => {
         const r = h + 1 + k
@@ -390,6 +419,33 @@ export function fillWorkbook(loaded: LoadedWorkbook, report: GeneratedReport, sh
   const frontEnd = pkg.printAreaLastRow(SHEETS.front)
   if (frontEnd) pkg.setPrintAreaLastRow(SHEETS.front, frontEnd + delta)
 
+  // Sign-off stamps: all dated today; supervisor first, the preparer second, the third keeps its initials.
+  const stamps = workbook.stamps.map((s, i) => ({
+    ...s,
+    date: signOff.date,
+    initials: i === 0 ? signOff.supervisor : i === 1 ? signOff.preparedBy : s.initials,
+  }))
+  writeStamps(pkg, stamps)
+
+  // Page 2-Graph: a cylinder band per new activity row; a monthly graph shows only the new month.
+  const monthly = MONTHLY_GRAPH.test(workbook.graphTitle)
+  const graphTitle = monthly
+    ? workbook.graphTitle.replace(MONTHLY_GRAPH, `${monthName} ${key.slice(0, 4)} `)
+    : workbook.graphTitle
+  if (monthly) edit(SHEETS.graph, (xml) => xml.set(`A${GRAPH_TITLE_ROW}`, { text: graphTitle }))
+  const SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  addActivitySeries(
+    pkg,
+    requests.map((r, i) => ({
+      row: firstNew + i,
+      description: r.description,
+      dateLabel: `${Number(r.date.slice(8, 10))}-${SHORT[Number(r.date.slice(5, 7)) - 1]}`,
+      assignedTo: r.assignedTo,
+      classification: r.classification,
+    })),
+    monthly,
+  )
+
   pkg.recalculateOnOpen()
 
   const monthHours = (bucket: HourBucket, split: Record<HourBucket, number>) =>
@@ -401,22 +457,25 @@ export function fillWorkbook(loaded: LoadedWorkbook, report: GeneratedReport, sh
       title,
       overview,
       workingDays: report.workingDays,
-      activities: [
-        ...workbook.activities,
+      stamps,
+      graphTitle,
+      activities: keepGraphLimit([
+        ...workbook.activities.map((a) => (monthly ? { ...a, inGraph: false } : a)),
         ...requests.map((r) => ({
           month: key,
           description: r.description,
           date: r.date,
           assignedTo: r.assignedTo,
           classification: r.classification,
+          inGraph: true,
         })),
-      ],
+      ]),
       requests: [
         ...workbook.requests,
         ...requests.map((r) => ({
           date: r.date,
           description: r.description,
-          reqPerson: '',
+          reqPerson,
           status: REQUEST_STATUS,
           hours: Object.fromEntries(HOUR_BUCKET_ORDER.map((b) => [b, monthHours(b, r.split)])) as Record<HourBucket, number[]>,
         })),

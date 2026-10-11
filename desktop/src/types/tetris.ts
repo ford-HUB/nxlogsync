@@ -40,6 +40,21 @@ export interface ActivePiece {
   gem?: PieceGem
 }
 
+/** A T piece turned into a tight slot as it locked: a full T-spin, or a mini one. */
+export type TSpin = 'full' | 'mini'
+
+/** A notable clear for the board to call out; a new id each time. */
+export interface ClearCallout {
+  id: number
+  /** "T-spin double", "Tetris"…; null when only the B2B or combo is worth a mention. */
+  title: string | null
+  b2b: boolean
+  /** Pieces in a row that cleared lines, after the first; 0 for none. */
+  combo: number
+  /** Everything the clear scored. */
+  points: number
+}
+
 export type TetrisStatus = 'idle' | 'running' | 'paused' | 'over'
 
 export interface TetrisConfig {
@@ -56,6 +71,10 @@ export interface TetrisResult {
   level: number
   /** Four-line clears. */
   tetrises: number
+  /** T-spins that cleared lines. */
+  tSpins: number
+  /** The longest combo. */
+  maxCombo: number
   pieces: number
   seconds: number
   /** Beat the previous best for this start level. */

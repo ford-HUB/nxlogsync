@@ -10,6 +10,7 @@
     "build": "tsc && vite build && electron-builder",
     "build:win": "tsc && vite build && electron-builder --win nsis",
     "build:win:portable": "tsc && vite build && electron-builder --win portable",
+    "release:win": "npm version patch --no-git-tag-version && tsc && vite build && node --env-file=.env node_modules/electron-builder/cli.js --win nsis --publish always",
     "build:win:dir": "tsc && vite build && electron-builder --win --dir",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
@@ -20,6 +21,7 @@
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "date-fns": "^4.4.0",
+    "electron-updater": "^6.8.9",
     "lucide-react": "^1.50.0",
     "motion": "^14.0.0",
     "pdfjs-dist": "4.10.38",

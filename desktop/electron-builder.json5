@@ -7,6 +7,13 @@
   "directories": {
     "output": "release/${version}"
   },
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "ford-HUB",
+      "repo": "nxlogsync"
+    }
+  ],
   "files": [
     "dist",
     "dist-electron"

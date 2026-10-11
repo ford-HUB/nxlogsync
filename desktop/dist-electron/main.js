@@ -1,88 +1,63 @@
-import { ipcMain, app, BrowserWindow, Menu } from "electron";
-import { fileURLToPath } from "node:url";
-import path from "node:path";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
-const MAX_COPIES = 99;
-function registerPrintingHandlers(getWindow) {
-  ipcMain.handle("printing:list-printers", async () => {
-    const win2 = getWindow();
-    if (!win2) return [];
-    const printers = await win2.webContents.getPrintersAsync();
-    return printers.map((p) => ({ name: p.name, displayName: p.displayName || p.name, isDefault: p.isDefault }));
-  });
-  ipcMain.handle("printing:print-html", async (_event, request) => {
-    if (typeof (request == null ? void 0 : request.html) !== "string" || typeof request.deviceName !== "string" || request.deviceName === "") {
-      return { ok: false, message: "Pick a printer first." };
-    }
-    const copies = Math.min(MAX_COPIES, Math.max(1, Math.floor(Number(request.copies) || 1)));
-    const dir = await mkdtemp(path.join(app.getPath("temp"), "nxlogsync-print-"));
-    const file = path.join(dir, "print.html");
-    const printWin = new BrowserWindow({ show: false, webPreferences: { javascript: false, sandbox: true } });
+import { ipcMain as d, app as r, BrowserWindow as l, Menu as u } from "electron";
+import { fileURLToPath as R } from "node:url";
+import e from "node:path";
+import { mkdtemp as v, writeFile as E, rm as y } from "node:fs/promises";
+const T = 99;
+function j(h) {
+  d.handle("printing:list-printers", async () => {
+    const a = h();
+    return a ? (await a.webContents.getPrintersAsync()).map((i) => ({ name: i.name, displayName: i.displayName || i.name, isDefault: i.isDefault })) : [];
+  }), d.handle("printing:print-html", async (a, n) => {
+    if (typeof (n == null ? void 0 : n.html) != "string" || typeof n.deviceName != "string" || n.deviceName === "")
+      return { ok: !1, message: "Pick a printer first." };
+    const i = Math.min(T, Math.max(1, Math.floor(Number(n.copies) || 1))), p = await v(e.join(r.getPath("temp"), "nxlogsync-print-")), m = e.join(p, "print.html"), s = new l({ show: !1, webPreferences: { javascript: !1, sandbox: !0 } });
     try {
-      await writeFile(file, request.html, "utf8");
-      await printWin.loadFile(file);
-      return await new Promise((resolve) => {
-        printWin.webContents.print(
+      return await E(m, n.html, "utf8"), await s.loadFile(m), await new Promise((o) => {
+        s.webContents.print(
           {
-            silent: true,
-            deviceName: request.deviceName,
-            copies,
-            printBackground: true,
+            silent: !0,
+            deviceName: n.deviceName,
+            copies: i,
+            printBackground: !0,
             pageSize: "A4",
             margins: { marginType: "none" }
           },
-          (success, failureReason) => resolve(success ? { ok: true } : { ok: false, message: failureReason || "The printer did not accept the job." })
+          (P, _) => o(P ? { ok: !0 } : { ok: !1, message: _ || "The printer did not accept the job." })
         );
       });
-    } catch (error) {
-      return { ok: false, message: error instanceof Error ? error.message : String(error) };
+    } catch (o) {
+      return { ok: !1, message: o instanceof Error ? o.message : String(o) };
     } finally {
-      printWin.destroy();
-      await rm(dir, { recursive: true, force: true });
+      s.destroy(), await y(p, { recursive: !0, force: !0 });
     }
   });
 }
-const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
-process.env.APP_ROOT = path.join(__dirname$1, "..");
-const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
-const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
-const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
-let win;
-function createWindow() {
-  win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC, "logo-nxlogsync.png"),
+const f = e.dirname(R(import.meta.url));
+process.env.APP_ROOT = e.join(f, "..");
+const c = process.env.VITE_DEV_SERVER_URL, O = e.join(process.env.APP_ROOT, "dist-electron"), w = e.join(process.env.APP_ROOT, "dist");
+process.env.VITE_PUBLIC = c ? e.join(process.env.APP_ROOT, "public") : w;
+let t;
+function g() {
+  t = new l({
+    icon: e.join(process.env.VITE_PUBLIC, "logo-nxlogsync.png"),
     webPreferences: {
-      preload: path.join(__dirname$1, "preload.mjs")
+      preload: e.join(f, "preload.mjs")
     }
-  });
-  win.webContents.on("did-finish-load", () => {
-    win == null ? void 0 : win.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
-  });
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL);
-  } else {
-    win.loadFile(path.join(RENDERER_DIST, "index.html"));
-  }
+  }), t.webContents.on("did-finish-load", () => {
+    t == null || t.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
+  }), c ? t.loadURL(c) : t.loadFile(e.join(w, "index.html"));
 }
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-    win = null;
-  }
+r.on("window-all-closed", () => {
+  process.platform !== "darwin" && (r.quit(), t = null);
 });
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
+r.on("activate", () => {
+  l.getAllWindows().length === 0 && g();
 });
-app.whenReady().then(() => {
-  Menu.setApplicationMenu(null);
-  registerPrintingHandlers(() => win);
-  createWindow();
+r.whenReady().then(() => {
+  u.setApplicationMenu(null), j(() => t), g();
 });
 export {
-  MAIN_DIST,
-  RENDERER_DIST,
-  VITE_DEV_SERVER_URL
+  O as MAIN_DIST,
+  w as RENDERER_DIST,
+  c as VITE_DEV_SERVER_URL
 };

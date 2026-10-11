@@ -5,6 +5,8 @@ import './index.css'
 // Sets the saved light/dark class before the first render.
 import './store/theme-store'
 
+
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />

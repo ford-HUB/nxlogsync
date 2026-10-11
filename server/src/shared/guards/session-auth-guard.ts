@@ -22,6 +22,8 @@ export class SessionAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Socket.IO gateways check the session token on connect themselves.
+    if (context.getType() !== 'http') return true;
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const header = request.headers.authorization;
     const token = header?.startsWith('Bearer ') ? header.slice(7).trim() : '';

@@ -1,5 +1,8 @@
 /// <reference types="vite/client" />
 
+/** The desktop app's package.json version, baked in at build time. */
+declare const __APP_VERSION__: string
+
 interface ImportMetaEnv {
   /** Which server the renderer talks to: `production` uses VITE_PRODUCTION, anything else VITE_DEVELOPMENT. */
   readonly VITE_ENV: 'development' | 'production'

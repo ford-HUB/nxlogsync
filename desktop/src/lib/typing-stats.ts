@@ -41,3 +41,9 @@ export function consistency(samples: number[]) {
   const cov = Math.sqrt(variance) / mean
   return Math.max(0, 100 * (1 - Math.tanh(cov + cov ** 3 / 3 + cov ** 5 / 5)))
 }
+
+/**
+ * How hard the climb effects run, 0.2–1 in steps of 0.1, from the wpm doing the climbing. Stepped
+ * so the animations aren't restarted on every live wpm tick.
+ */
+export const boostIntensity = (wpm: number) => Math.round(Math.min(1, Math.max(0.2, (wpm - 30) / 120)) * 10) / 10

@@ -56,7 +56,9 @@ export const ModelName = {
   SyncRun: 'SyncRun',
   NpaxCredential: 'NpaxCredential',
   UserSession: 'UserSession',
-  ReminderSetting: 'ReminderSetting'
+  ReminderSetting: 'ReminderSetting',
+  TypingPlayer: 'TypingPlayer',
+  TypingScore: 'TypingScore'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -160,6 +162,28 @@ export const ReminderSettingScalarFieldEnum = {
 } as const
 
 export type ReminderSettingScalarFieldEnum = (typeof ReminderSettingScalarFieldEnum)[keyof typeof ReminderSettingScalarFieldEnum]
+
+
+export const TypingPlayerScalarFieldEnum = {
+  userId: 'userId',
+  name: 'name',
+  nameKey: 'nameKey',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TypingPlayerScalarFieldEnum = (typeof TypingPlayerScalarFieldEnum)[keyof typeof TypingPlayerScalarFieldEnum]
+
+
+export const TypingScoreScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  setup: 'setup',
+  wpm: 'wpm',
+  accuracy: 'accuracy',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TypingScoreScalarFieldEnum = (typeof TypingScoreScalarFieldEnum)[keyof typeof TypingScoreScalarFieldEnum]
 
 
 export const SortOrder = {

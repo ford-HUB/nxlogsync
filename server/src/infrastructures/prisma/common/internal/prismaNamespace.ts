@@ -402,7 +402,9 @@ export const ModelName = {
   SyncRun: 'SyncRun',
   NpaxCredential: 'NpaxCredential',
   UserSession: 'UserSession',
-  ReminderSetting: 'ReminderSetting'
+  ReminderSetting: 'ReminderSetting',
+  TypingPlayer: 'TypingPlayer',
+  TypingScore: 'TypingScore'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -418,7 +420,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "logEntry" | "syncSchedule" | "syncRun" | "npaxCredential" | "userSession" | "reminderSetting"
+    modelProps: "logEntry" | "syncSchedule" | "syncRun" | "npaxCredential" | "userSession" | "reminderSetting" | "typingPlayer" | "typingScore"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -866,6 +868,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    TypingPlayer: {
+      payload: Prisma.$TypingPlayerPayload<ExtArgs>
+      fields: Prisma.TypingPlayerFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TypingPlayerFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingPlayerPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TypingPlayerFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingPlayerPayload>
+        }
+        findFirst: {
+          args: Prisma.TypingPlayerFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingPlayerPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TypingPlayerFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingPlayerPayload>
+        }
+        findMany: {
+          args: Prisma.TypingPlayerFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingPlayerPayload>[]
+        }
+        create: {
+          args: Prisma.TypingPlayerCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingPlayerPayload>
+        }
+        createMany: {
+          args: Prisma.TypingPlayerCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TypingPlayerCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingPlayerPayload>[]
+        }
+        delete: {
+          args: Prisma.TypingPlayerDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingPlayerPayload>
+        }
+        update: {
+          args: Prisma.TypingPlayerUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingPlayerPayload>
+        }
+        deleteMany: {
+          args: Prisma.TypingPlayerDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TypingPlayerUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TypingPlayerUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingPlayerPayload>[]
+        }
+        upsert: {
+          args: Prisma.TypingPlayerUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingPlayerPayload>
+        }
+        aggregate: {
+          args: Prisma.TypingPlayerAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTypingPlayer>
+        }
+        groupBy: {
+          args: Prisma.TypingPlayerGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TypingPlayerGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TypingPlayerCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TypingPlayerCountAggregateOutputType> | number
+        }
+      }
+    }
+    TypingScore: {
+      payload: Prisma.$TypingScorePayload<ExtArgs>
+      fields: Prisma.TypingScoreFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TypingScoreFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingScorePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TypingScoreFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingScorePayload>
+        }
+        findFirst: {
+          args: Prisma.TypingScoreFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingScorePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TypingScoreFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingScorePayload>
+        }
+        findMany: {
+          args: Prisma.TypingScoreFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingScorePayload>[]
+        }
+        create: {
+          args: Prisma.TypingScoreCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingScorePayload>
+        }
+        createMany: {
+          args: Prisma.TypingScoreCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TypingScoreCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingScorePayload>[]
+        }
+        delete: {
+          args: Prisma.TypingScoreDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingScorePayload>
+        }
+        update: {
+          args: Prisma.TypingScoreUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingScorePayload>
+        }
+        deleteMany: {
+          args: Prisma.TypingScoreDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TypingScoreUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TypingScoreUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingScorePayload>[]
+        }
+        upsert: {
+          args: Prisma.TypingScoreUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingScorePayload>
+        }
+        aggregate: {
+          args: Prisma.TypingScoreAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTypingScore>
+        }
+        groupBy: {
+          args: Prisma.TypingScoreGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TypingScoreGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TypingScoreCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TypingScoreCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -990,6 +1140,28 @@ export const ReminderSettingScalarFieldEnum = {
 } as const
 
 export type ReminderSettingScalarFieldEnum = (typeof ReminderSettingScalarFieldEnum)[keyof typeof ReminderSettingScalarFieldEnum]
+
+
+export const TypingPlayerScalarFieldEnum = {
+  userId: 'userId',
+  name: 'name',
+  nameKey: 'nameKey',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TypingPlayerScalarFieldEnum = (typeof TypingPlayerScalarFieldEnum)[keyof typeof TypingPlayerScalarFieldEnum]
+
+
+export const TypingScoreScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  setup: 'setup',
+  wpm: 'wpm',
+  accuracy: 'accuracy',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TypingScoreScalarFieldEnum = (typeof TypingScoreScalarFieldEnum)[keyof typeof TypingScoreScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1241,6 +1413,8 @@ export type GlobalOmitConfig = {
   npaxCredential?: Prisma.NpaxCredentialOmit
   userSession?: Prisma.UserSessionOmit
   reminderSetting?: Prisma.ReminderSettingOmit
+  typingPlayer?: Prisma.TypingPlayerOmit
+  typingScore?: Prisma.TypingScoreOmit
 }
 
 /* Types for Logging */

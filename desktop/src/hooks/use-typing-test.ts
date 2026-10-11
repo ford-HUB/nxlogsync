@@ -113,16 +113,17 @@ export function useTypingTest() {
 
     const { keys, errors } = totalsRef.current
     const rounded = Math.round(wpm * 100) / 100
+    const accuracy = keys > 0 ? ((keys - errors) / keys) * 100 : 0
     setResult({
       config,
       wpm: rounded,
       raw: toWpm(typedChars, ms),
-      accuracy: keys > 0 ? ((keys - errors) / keys) * 100 : 0,
+      accuracy,
       consistency: consistency(history.map((h) => h.raw)),
       chars,
       seconds: ms / 1000,
       history,
-      personalBest: submitBest(config, rounded),
+      personalBest: submitBest(config, rounded, accuracy),
     })
   }, [config, setSession, submitBest])
 

@@ -52,3 +52,13 @@ export type UserSession = Prisma.UserSessionModel
  * Address Update) and kept here so the site isn't read again on every send.
  */
 export type ReminderSetting = Prisma.ReminderSettingModel
+/**
+ * Model TypingPlayer
+ * One row per user who has picked a typing-test leaderboard name.
+ */
+export type TypingPlayer = Prisma.TypingPlayerModel
+/**
+ * Model TypingScore
+ * A user's best typing-test run for one exact setup; replaced only when beaten.
+ */
+export type TypingScore = Prisma.TypingScoreModel

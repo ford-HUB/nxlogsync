@@ -5,12 +5,13 @@ import {
   HOUR_SPLIT_STEP,
   INVESTIGATE_KEYWORDS,
   INVESTIGATE_WORK_ACTIVITIES,
+  ISSUE_KEYWORDS,
   MEETING_KEYWORDS,
   MEETING_WORK_ACTIVITIES,
   QA_KEYWORDS,
   REPORT_TEMPLATES,
 } from '@/constants/excel-report'
-import type { HourBucket, ImportedRow, ReportKind, RequestHours } from '@/types/excel-report'
+import type { ActivityClass, HourBucket, ImportedRow, ReportKind, RequestHours } from '@/types/excel-report'
 
 type Split = Record<HourBucket, number>
 
@@ -73,6 +74,28 @@ function placeFep(description: string, workAccount: string, jobCode: string, hou
   return { split: only('support', hours), rule: 'Maintenance → Support' }
 }
 
+/** "LUXURY LANDY JOREN" → "LLJ" */
+const initials = (name: string) =>
+  name
+    .replace(/[^A-Za-z\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase())
+    .join('')
+
+/** Page 3-Activity's Assigned To: each employee's initials once, in the order they first logged it. */
+const assignedTo = (entries: ImportedRow[]) =>
+  [...new Set(entries.map((r) => initials(r.employeeName || r.employeeId)).filter(Boolean))].join('/')
+
+/**
+ * Page 3-Activity's Classification, as the workbooks fill it: a numbered issue is an Issue, a
+ * request with Development hours is a Feature, everything else is a Support.
+ */
+function classify(description: string, split: Split): ActivityClass {
+  if (ISSUE_KEYWORDS.test(description)) return 'issue'
+  return split.development > 0 ? 'feature' : 'support'
+}
+
 const groupKey = (r: ImportedRow) => `${r.jobCode}|${r.remarks.trim().replace(/\s+/g, ' ').toUpperCase()}`
 
 /**
@@ -94,7 +117,16 @@ export function buildRequestHours(rows: ImportedRow[], kind: ReportKind): Reques
       const workAccount = first.workAccount.trim().toUpperCase()
       const { split, rule } =
         kind === 'FEM' ? placeFem(description, workAccount, total) : placeFep(description, workAccount, first.jobCode, total)
-      return { description: first.remarks, date: first.date, entries: entries.length, total, split, rule }
+      return {
+        description: first.remarks,
+        date: first.date,
+        entries: entries.length,
+        total,
+        split,
+        rule,
+        assignedTo: assignedTo(entries),
+        classification: classify(description, split),
+      }
     })
     .sort((a, b) => a.date.localeCompare(b.date))
 }

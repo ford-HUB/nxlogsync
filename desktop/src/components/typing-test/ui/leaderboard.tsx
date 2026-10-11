@@ -88,8 +88,8 @@ const LIVE_LABELS: Record<LiveStatus, string> = {
   offline: 'Live updates paused — the board refreshes when the server is back',
 }
 
-/** A small live / connecting / offline marker beside the title. */
-function LiveBadge({ live }: { live: LiveStatus }) {
+/** A small live / connecting / offline marker beside the title; Tetris's board shows it too. */
+export function LiveBadge({ live }: { live: LiveStatus }) {
   return (
     <span
       title={LIVE_LABELS[live]}

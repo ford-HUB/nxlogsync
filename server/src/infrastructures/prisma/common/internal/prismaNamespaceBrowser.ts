@@ -58,7 +58,8 @@ export const ModelName = {
   UserSession: 'UserSession',
   ReminderSetting: 'ReminderSetting',
   TypingPlayer: 'TypingPlayer',
-  TypingScore: 'TypingScore'
+  TypingScore: 'TypingScore',
+  TetrisScore: 'TetrisScore'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -184,6 +185,19 @@ export const TypingScoreScalarFieldEnum = {
 } as const
 
 export type TypingScoreScalarFieldEnum = (typeof TypingScoreScalarFieldEnum)[keyof typeof TypingScoreScalarFieldEnum]
+
+
+export const TetrisScoreScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  setup: 'setup',
+  score: 'score',
+  lines: 'lines',
+  level: 'level',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TetrisScoreScalarFieldEnum = (typeof TetrisScoreScalarFieldEnum)[keyof typeof TetrisScoreScalarFieldEnum]
 
 
 export const SortOrder = {

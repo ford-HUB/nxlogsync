@@ -404,7 +404,8 @@ export const ModelName = {
   UserSession: 'UserSession',
   ReminderSetting: 'ReminderSetting',
   TypingPlayer: 'TypingPlayer',
-  TypingScore: 'TypingScore'
+  TypingScore: 'TypingScore',
+  TetrisScore: 'TetrisScore'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -420,7 +421,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "logEntry" | "syncSchedule" | "syncRun" | "npaxCredential" | "userSession" | "reminderSetting" | "typingPlayer" | "typingScore"
+    modelProps: "logEntry" | "syncSchedule" | "syncRun" | "npaxCredential" | "userSession" | "reminderSetting" | "typingPlayer" | "typingScore" | "tetrisScore"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1016,6 +1017,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    TetrisScore: {
+      payload: Prisma.$TetrisScorePayload<ExtArgs>
+      fields: Prisma.TetrisScoreFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TetrisScoreFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisScorePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TetrisScoreFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisScorePayload>
+        }
+        findFirst: {
+          args: Prisma.TetrisScoreFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisScorePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TetrisScoreFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisScorePayload>
+        }
+        findMany: {
+          args: Prisma.TetrisScoreFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisScorePayload>[]
+        }
+        create: {
+          args: Prisma.TetrisScoreCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisScorePayload>
+        }
+        createMany: {
+          args: Prisma.TetrisScoreCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TetrisScoreCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisScorePayload>[]
+        }
+        delete: {
+          args: Prisma.TetrisScoreDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisScorePayload>
+        }
+        update: {
+          args: Prisma.TetrisScoreUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisScorePayload>
+        }
+        deleteMany: {
+          args: Prisma.TetrisScoreDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TetrisScoreUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TetrisScoreUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisScorePayload>[]
+        }
+        upsert: {
+          args: Prisma.TetrisScoreUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisScorePayload>
+        }
+        aggregate: {
+          args: Prisma.TetrisScoreAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTetrisScore>
+        }
+        groupBy: {
+          args: Prisma.TetrisScoreGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TetrisScoreGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TetrisScoreCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TetrisScoreCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1162,6 +1237,19 @@ export const TypingScoreScalarFieldEnum = {
 } as const
 
 export type TypingScoreScalarFieldEnum = (typeof TypingScoreScalarFieldEnum)[keyof typeof TypingScoreScalarFieldEnum]
+
+
+export const TetrisScoreScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  setup: 'setup',
+  score: 'score',
+  lines: 'lines',
+  level: 'level',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TetrisScoreScalarFieldEnum = (typeof TetrisScoreScalarFieldEnum)[keyof typeof TetrisScoreScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1415,6 +1503,7 @@ export type GlobalOmitConfig = {
   reminderSetting?: Prisma.ReminderSettingOmit
   typingPlayer?: Prisma.TypingPlayerOmit
   typingScore?: Prisma.TypingScoreOmit
+  tetrisScore?: Prisma.TetrisScoreOmit
 }
 
 /* Types for Logging */

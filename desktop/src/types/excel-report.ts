@@ -68,6 +68,9 @@ export interface ImportedSheet {
 /** Page 4-Request's four hour rows under every request. */
 export type HourBucket = 'investigate' | 'development' | 'qa' | 'support'
 
+/** Page 3-Activity's Classification columns. */
+export type ActivityClass = 'issue' | 'feature' | 'support'
+
 /** One Page 4-Request block: a request's hours, estimated into the four rows. */
 export interface RequestHours {
   description: string
@@ -78,6 +81,9 @@ export interface RequestHours {
   split: Record<HourBucket, number>
   /** Which placement rule decided the split, in words. */
   rule: string
+  /** Page 3-Activity's Assigned To: the employees' initials, "LJT/CDB". */
+  assignedTo: string
+  classification: ActivityClass
 }
 
 /** A built-in pre-template: which jobs feed the report and the budget it is measured against. */
@@ -114,4 +120,52 @@ export interface GeneratedReport {
   byJob: { code: string; name: string; hours: number }[]
   /** Page 4-Request: hours per request, placed into Investigate / Development / QA / Support. */
   requests: RequestHours[]
+}
+
+/** One Page 3-Activity row of the yearly workbook. */
+export interface WorkbookActivity {
+  /** "2026-08": the month group it is listed under. */
+  month: string
+  description: string
+  /** "2026-08-04" (Date Reported / Started), or '' when blank. */
+  date: string
+  assignedTo: string
+  classification: ActivityClass | null
+}
+
+/** One Page 4-Request block of the yearly workbook, with its hours per fiscal month. */
+export interface WorkbookRequest {
+  date: string
+  description: string
+  reqPerson: string
+  status: string
+  /** Hours per bucket row, one number per fiscal month (MaintenanceWorkbook.months). */
+  hours: Record<HourBucket, number[]>
+}
+
+/**
+ * The yearly maintenance workbook (e.g. "FEM Monthly Maintenance Report 2026 - 2027.xlsm") as read,
+ * or as it is after a month was added: what the PDF prints, page by page.
+ */
+export interface MaintenanceWorkbook {
+  fileName: string
+  /** The fiscal year's 12 months, "2026-07" … "2027-06" (Support hours row 29). */
+  months: string[]
+  /** Support hours A1: "2026-2027 MAINTENANCE HOURS". */
+  hoursTitle: string
+  /** Support hours → Plan per month. */
+  plan: number[]
+  /** Monthly Maintenance Report page. */
+  title: string
+  overview: string[]
+  workingDays: number | null
+  activities: WorkbookActivity[]
+  requests: WorkbookRequest[]
+}
+
+/** The yearly workbook with the report's month written into it. */
+export interface FilledWorkbook {
+  /** The updated .xlsm/.xlsx, macros and charts kept. */
+  bytes: Uint8Array
+  workbook: MaintenanceWorkbook
 }

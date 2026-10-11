@@ -156,5 +156,51 @@ export const HOUR_SPLIT_STEP = 0.5
 /** Description keywords, matched on whole words of the uppercased text. */
 export const MEETING_KEYWORDS = /\bMEETING\b|\bMTG\b/
 export const INVESTIGATE_KEYWORDS = /\bINVESTIGAT\w*|\bCHECK(ING)?\b|\bISSUE\b|\bERROR\b|\bBUG\b|\bMISSING\b|\bNOT RUNNING\b/
+/** A numbered issue ("ISSUE #6201 DEFECT CODE SAVING ERROR") is classified as an Issue. */
+export const ISSUE_KEYWORDS = /\bISSUE\s*#\s*\d/
 export const QA_KEYWORDS = /\bQA\b|\bTEST(ING)?\b|\bUAT\b/
 export const DEVELOPMENT_KEYWORDS = /\bDEV(ELOP\w*)?\b|\bIMPLEMENT\w*|\bENHANCE\w*|\bCREATION\b/
+
+/** The yearly maintenance workbook the month is written into; FEP and FEM share this layout. */
+export const WORKBOOK_SHEETS = {
+  front: 'Monthly Maintenance Report',
+  hours: 'Support hours',
+  graph: 'Page 2-Graph',
+  activity: 'Page 3-Activity',
+  request: 'Page 4-Request',
+  data: 'Page 5- Data',
+} as const
+
+/** Fixed cells and rows of the workbook's pages (1-based rows, as Excel shows them). */
+export const WORKBOOK_LAYOUT = {
+  /** Monthly Maintenance Report: the title, and the first Monthly Overview row (No. in C, text in D:W). */
+  frontTitle: 'B3',
+  overviewFirstRow: 11,
+  /** Support hours: month headers, Plan, Actual and Variance rows in D:O, the year's total in C. */
+  hoursMonthRow: 29,
+  hoursPlanRow: 30,
+  hoursActualRow: 31,
+  hoursVarianceRow: 32,
+  /** Page 3-Activity: the first activity row. */
+  activityFirstRow: 7,
+  /** Page 4-Request: month headers, the Total row, and each block's 6 rows (header, 4 hour rows, gap). */
+  requestMonthRow: 3,
+  requestTotalRow: 4,
+  requestFirstRow: 6,
+  requestBlockRows: 6,
+  /** A printed Page 4-Request page holds 8 blocks. */
+  requestRowsPerPage: 48,
+  /** Page 5- Data: the first month row (12 rows, one per fiscal month). */
+  dataFirstRow: 8,
+} as const
+
+/** The Status every Page 4-Request row is given. */
+export const REQUEST_STATUS = 'Finished'
+
+/** Page 4-Request's hour row labels, with the workbook's indent. */
+export const REQUEST_BUCKET_LABEL: Record<HourBucket, string> = {
+  investigate: '   Investigate',
+  development: '   Development/Form Revision',
+  qa: '   QA Checking',
+  support: '   Support',
+}

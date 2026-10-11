@@ -10,6 +10,7 @@ import { LogEntriesModule } from './modules/log-entries/modules/log-entries-modu
 import { RemindersModule } from './modules/reminders/modules/reminders-module';
 import { ReportsModule } from './modules/reports/modules/reports-module';
 import { SyncModule } from './modules/sync/modules/sync-module';
+import { TetrisModule } from './modules/tetris/modules/tetris-module';
 import { TypingModule } from './modules/typing/modules/typing-module';
 import { SessionAuthGuard } from './shared/guards/session-auth-guard';
 
@@ -24,6 +25,7 @@ import { SessionAuthGuard } from './shared/guards/session-auth-guard';
     RemindersModule,
     ReportsModule,
     SyncModule,
+    TetrisModule,
     TypingModule,
   ],
   controllers: [HealthController],

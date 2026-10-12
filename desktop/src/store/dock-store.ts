@@ -5,6 +5,8 @@ import type { EdgeDock } from '@/types/dock'
 export interface DockedWidget {
   dock: EdgeDock
   priority: number
+  /** Extra px kept clear between it and a neighbour on its edge (default 0). */
+  gap?: number
 }
 
 interface DockState {

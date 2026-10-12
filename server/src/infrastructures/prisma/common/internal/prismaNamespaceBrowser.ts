@@ -59,7 +59,10 @@ export const ModelName = {
   ReminderSetting: 'ReminderSetting',
   TypingPlayer: 'TypingPlayer',
   TypingScore: 'TypingScore',
-  TetrisScore: 'TetrisScore'
+  TetrisScore: 'TetrisScore',
+  TetrisSetting: 'TetrisSetting',
+  RunSetting: 'RunSetting',
+  PassOrFallProgress: 'PassOrFallProgress'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -201,12 +204,51 @@ export const TetrisScoreScalarFieldEnum = {
 export type TetrisScoreScalarFieldEnum = (typeof TetrisScoreScalarFieldEnum)[keyof typeof TetrisScoreScalarFieldEnum]
 
 
+export const TetrisSettingScalarFieldEnum = {
+  userId: 'userId',
+  keys: 'keys',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TetrisSettingScalarFieldEnum = (typeof TetrisSettingScalarFieldEnum)[keyof typeof TetrisSettingScalarFieldEnum]
+
+
+export const RunSettingScalarFieldEnum = {
+  userId: 'userId',
+  keys: 'keys',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RunSettingScalarFieldEnum = (typeof RunSettingScalarFieldEnum)[keyof typeof RunSettingScalarFieldEnum]
+
+
+export const PassOrFallProgressScalarFieldEnum = {
+  userId: 'userId',
+  level: 'level',
+  points: 'points',
+  seconds: 'seconds',
+  bestPoints: 'bestPoints',
+  bestLevels: 'bestLevels',
+  bestSeconds: 'bestSeconds',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PassOrFallProgressScalarFieldEnum = (typeof PassOrFallProgressScalarFieldEnum)[keyof typeof PassOrFallProgressScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -223,4 +265,13 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

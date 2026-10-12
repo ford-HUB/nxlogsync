@@ -5,6 +5,8 @@ import {
   TetrisLeaderboardResponseSchema,
   TetrisScoreResponseSchema,
   TetrisScoreSchema,
+  TetrisSettingsResponseSchema,
+  TetrisSettingsSchema,
 } from '../validators/tetris-validator';
 
 export type TetrisLeaderboardQueryDto = z.infer<
@@ -18,3 +20,7 @@ export type TetrisLeaderboardResponseDto = z.infer<
   typeof TetrisLeaderboardResponseSchema
 >;
 export type TetrisScoreResponseDto = z.infer<typeof TetrisScoreResponseSchema>;
+export type TetrisSettingsDto = z.infer<typeof TetrisSettingsSchema>;
+export type TetrisSettingsResponseDto = z.infer<
+  typeof TetrisSettingsResponseSchema
+>;

@@ -55,7 +55,7 @@ const Row = memo(function Row({ entry, rank, you = false, boost }: RowProps) {
       transition={{ layout: layoutSpring, opacity: { duration: 0.45 }, y: { duration: 0.45 }, boxShadow: { duration: 0.3 } }}
       data-you={you || undefined}
       className={cn(
-        'relative grid grid-cols-[2.5rem_1fr_4.5rem_3rem] items-center gap-1 rounded-md px-3 py-2 text-[13px] tabular-nums',
+        'relative grid grid-cols-[1.75rem_1fr_3.75rem_2.25rem] items-center gap-1 rounded-md px-2 py-1.5 text-[11px] tabular-nums min-[1440px]:grid-cols-[2.5rem_1fr_4.5rem_3rem] min-[1440px]:px-3 min-[1440px]:py-2 min-[1440px]:text-[13px]',
         you ? 'z-10 bg-foreground text-background' : 'text-foreground',
         boost && 'ring-1 ring-score',
       )}
@@ -64,9 +64,9 @@ const Row = memo(function Row({ entry, rank, you = false, boost }: RowProps) {
       <span className={cn('text-right', !you && 'text-muted-foreground', rank !== undefined && rank <= 3 && !you && 'text-score')}>
         {rank === undefined ? '—' : rank > TETRIS_LEADERBOARD_SIZE ? `${TETRIS_LEADERBOARD_SIZE}+` : rank}
       </span>
-      <span className="truncate pl-2">
+      <span className="truncate pl-1 min-[1440px]:pl-2">
         {entry.name}
-        {you && <span className="ml-1.5 text-[10px] opacity-60">you</span>}
+        {you && <span className="ml-1.5 text-[9px] opacity-60 min-[1440px]:text-[10px]">you</span>}
       </span>
       <span className="text-right">{entry.score > 0 ? entry.score.toLocaleString() : '—'}</span>
       <span className={cn('text-right', !you && 'text-muted-foreground')}>{entry.score > 0 ? entry.lines : '—'}</span>
@@ -139,8 +139,8 @@ export function TetrisLeaderboard({
       aria-label="Leaderboard"
       className="flex h-full w-full flex-col font-mono"
     >
-      <header className="flex items-center justify-between gap-2 px-7 pb-2">
-        <span className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
+      <header className="flex items-center justify-between gap-2 px-3 pb-2 min-[1440px]:px-7">
+        <span className="flex items-center gap-1.5 text-[12px] font-medium text-foreground min-[1440px]:text-[13px]">
           <Trophy className="size-4 text-score" /> Top {TETRIS_LEADERBOARD_SIZE}
           <LiveBadge live={live} />
         </span>
@@ -163,19 +163,19 @@ export function TetrisLeaderboard({
         </span>
       </header>
 
-      <div className="grid grid-cols-[2.5rem_1fr_4.5rem_3rem] gap-1 px-7 pt-2 pb-1 text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
+      <div className="grid grid-cols-[1.75rem_1fr_3.75rem_2.25rem] gap-1 px-3 pt-2 pb-1 text-[9px] min-[1440px]:grid-cols-[2.5rem_1fr_4.5rem_3rem] min-[1440px]:px-7 min-[1440px]:text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
         <span className="text-right">#</span>
-        <span className="pl-2">name</span>
+        <span className="pl-1 min-[1440px]:pl-2">name</span>
         <span className="text-right">score</span>
         <span className="text-right">lines</span>
       </div>
 
       {/* No frame: the list just fades out at its top and bottom edges. */}
-      <div className="relative min-h-0 flex-1 [mask-image:linear-gradient(to_bottom,transparent,black_3rem,black_calc(100%-6rem),transparent)]">
+      <div className="relative min-h-0 flex-1 [mask-image:linear-gradient(to_bottom,transparent,black_2rem,black_calc(100%-4rem),transparent)] min-[1440px]:[mask-image:linear-gradient(to_bottom,transparent,black_3rem,black_calc(100%-6rem),transparent)]">
         <AnimatePresence>{boost && <SpeedLines intensity={boost} />}</AnimatePresence>
         <div
           ref={listRef}
-          className="relative h-full overflow-y-auto px-4 py-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="relative h-full overflow-y-auto px-1 py-10 min-[1440px]:px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {signedOut && (
             <p className="px-3 py-6 text-center text-[12px] text-muted-foreground">

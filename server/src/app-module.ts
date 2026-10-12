@@ -9,6 +9,7 @@ import { JobsModule } from './modules/jobs/modules/jobs-module';
 import { LogEntriesModule } from './modules/log-entries/modules/log-entries-module';
 import { RemindersModule } from './modules/reminders/modules/reminders-module';
 import { ReportsModule } from './modules/reports/modules/reports-module';
+import { RunYourselfModule } from './modules/run-yourself/modules/run-yourself-module';
 import { SyncModule } from './modules/sync/modules/sync-module';
 import { TetrisModule } from './modules/tetris/modules/tetris-module';
 import { TypingModule } from './modules/typing/modules/typing-module';
@@ -24,6 +25,7 @@ import { SessionAuthGuard } from './shared/guards/session-auth-guard';
     LogEntriesModule,
     RemindersModule,
     ReportsModule,
+    RunYourselfModule,
     SyncModule,
     TetrisModule,
     TypingModule,

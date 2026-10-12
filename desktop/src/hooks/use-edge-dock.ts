@@ -62,18 +62,18 @@ export function dockPoint({ side, t }: EdgeDock, key?: string) {
   if (key) {
     const widgets = useDockStore.getState().widgets
     const self = { key, priority: widgets[key]?.priority ?? 0 }
+    const selfGap = widgets[key]?.gap ?? 0
     const blockers = Object.entries(widgets)
       .filter(([k, wd]) => k !== key && wd.dock.side === side && outranks({ key: k, priority: wd.priority }, self))
       .map(([k, wd]) => {
         const p = dockPoint(wd.dock, k)
-        return horizontal ? p.x : p.y
+        return { pos: horizontal ? p.x : p.y, spacing: 2 * half + EDGE_GAP + Math.max(selfGap, wd.gap ?? 0) }
       })
-    const spacing = 2 * half + EDGE_GAP
-    const clear = (pos: number) => blockers.every((b) => Math.abs(pos - b) >= spacing)
+    const clear = (pos: number) => blockers.every((b) => Math.abs(pos - b.pos) >= b.spacing)
     if (!clear(along)) {
       // The free spot nearest the one asked for, just past a blocker on either side.
       const options = blockers
-        .flatMap((b) => [b - spacing, b + spacing])
+        .flatMap((b) => [b.pos - b.spacing, b.pos + b.spacing])
         .filter((pos) => pos >= min && pos <= max && clear(pos))
         .sort((a, b) => Math.abs(a - along) - Math.abs(b - along))
       if (options.length > 0) along = options[0]
@@ -112,6 +112,8 @@ interface EdgeDockOptions {
   defaultDock: EdgeDock
   /** On a shared edge the lower priority widget steps aside (default 0). */
   priority?: number
+  /** Extra px kept clear between it and a neighbour on its edge, for a taller widget (default 0). */
+  gap?: number
   /** Ignores presses (e.g. while something is being dragged onto the widget). */
   disabled?: boolean
 }
@@ -122,7 +124,7 @@ interface EdgeDockOptions {
  * never on top of another docked widget. The spot is remembered across launches and kept on its
  * edge when the window resizes.
  */
-export function useEdgeDock({ storageKey, defaultDock, priority = 0, disabled = false }: EdgeDockOptions) {
+export function useEdgeDock({ storageKey, defaultDock, priority = 0, gap = 0, disabled = false }: EdgeDockOptions) {
   const [dock, setDock] = useState(() => readDock(storageKey, defaultDock))
   const [moving, setMoving] = useState(false)
   // Where the widget would land if released now; drives the snap guides.
@@ -137,8 +139,8 @@ export function useEdgeDock({ storageKey, defaultDock, priority = 0, disabled = 
 
   // Kept registered after unmount so the page's lanes don't shift while the widget is hidden.
   useLayoutEffect(() => {
-    useDockStore.getState().place(storageKey, { dock, priority })
-  }, [storageKey, dock, priority])
+    useDockStore.getState().place(storageKey, { dock, priority, gap })
+  }, [storageKey, dock, priority, gap])
 
   // Settle on the spot, moving aside when another widget takes it (or the window shrinks).
   useLayoutEffect(() => {

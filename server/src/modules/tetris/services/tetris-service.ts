@@ -5,12 +5,17 @@ import {
   TetrisLeaderboardResponseDto,
   TetrisScoreDto,
   TetrisScoreResponseDto,
+  TetrisSettingsDto,
+  TetrisSettingsResponseDto,
 } from '../dto/tetris-dto';
 import {
   TetrisRepository,
   TetrisScoreWithName,
 } from '../repositories/tetris-repository';
-import { TETRIS_LEADERBOARD_SIZE } from '../validators/tetris-validator';
+import {
+  TETRIS_LEADERBOARD_SIZE,
+  TetrisKeyBindingsSchema,
+} from '../validators/tetris-validator';
 
 const toEntries = (
   top: TetrisScoreWithName[],
@@ -81,5 +86,20 @@ export class TetrisService {
       toEntries(top, watcher),
     );
     return { ...board, personalBest };
+  }
+
+  /** The user's saved controls; null when none are saved or they no longer fit the current actions. */
+  async settings(userId: string): Promise<TetrisSettingsResponseDto> {
+    const saved = await this.repository.findSettings(userId);
+    const keys = TetrisKeyBindingsSchema.safeParse(saved?.keys);
+    return { keys: keys.success ? keys.data : null };
+  }
+
+  async saveSettings(
+    userId: string,
+    data: TetrisSettingsDto,
+  ): Promise<TetrisSettingsResponseDto> {
+    await this.repository.saveSettings(userId, data);
+    return { keys: data.keys };
   }
 }

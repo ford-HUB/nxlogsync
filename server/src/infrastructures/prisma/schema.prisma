@@ -174,3 +174,44 @@ model TetrisScore {
   @@index([setup, score])
   @@map("tetris_scores")
 }
+
+/// A user's Tetris preferences, so they follow the account to any machine.
+model TetrisSetting {
+  userId    String   @id @map("user_id")
+  /// Key bindings per action, as the desktop's TetrisKeyBindings: { "left": ["ArrowLeft"], ... }.
+  keys      Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("tetris_settings")
+}
+
+/// A user's Run yourself preferences, so they follow the account to any machine.
+model RunSetting {
+  userId    String   @id @map("user_id")
+  /// Key bindings per game, then per control, as the desktop's RunBindings:
+  /// { "speed-run": { "jump": [" ", "ArrowUp"], ... }, "pass-or-fall": { "left": ["ArrowLeft"], ... } }.
+  keys      Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("run_settings")
+}
+
+/// A user's Pass or fall progress: the furthest door unlocked, where Continue resumes, and their
+/// best finished run for the leaderboard (named by the typing test's TypingPlayer, looked up by user).
+model PassOrFallProgress {
+  userId      String   @id @map("user_id")
+  /// The room Continue resumes at, 0-based (the desktop's ROOM_LEVELS index); only ever moves forward.
+  level       Int
+  /// Points and seconds banked on the way to that room; Continue carries them on.
+  points      Int
+  seconds     Float
+  /// The best finished run by points; null until a run ends.
+  bestPoints  Int?     @map("best_points")
+  /// Levels that run cleared, and how long it took.
+  bestLevels  Int?     @map("best_levels")
+  bestSeconds Float?   @map("best_seconds")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([bestPoints])
+  @@map("pass_or_fall_progress")
+}

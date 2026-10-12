@@ -5,7 +5,16 @@ import { Calendar } from '@/components/ui/calendar'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toMonthKey } from '@/constants/reports'
-import { formatDayLabel, fromDateKey, toDateKey } from '@/constants/time-format'
+import { formatDayLabel, fromDateKey, shiftDateKey, toDateKey } from '@/constants/time-format'
+
+const SHORT_DAY_FORMAT = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
+
+/** The picker button's label: only the actual current day reads "Today". */
+function pickerLabel(dateKey: string, todayKey: string): string {
+  if (dateKey === todayKey) return 'Today'
+  if (dateKey === shiftDateKey(todayKey, -1)) return 'Yesterday'
+  return SHORT_DAY_FORMAT.format(fromDateKey(dateKey))
+}
 
 interface DayHeaderProps {
   dateKey: string
@@ -65,7 +74,7 @@ export function DayHeader({
           <ChevronLeft />
         </Button>
         <Button type="button" variant="outline" onClick={openPicker} disabled={locked}>
-          Today
+          {pickerLabel(dateKey, todayKey)}
         </Button>
         <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
           <DialogContent className="w-full gap-3 sm:max-w-2xl">

@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import {
   TetrisScore,
+  TetrisSetting,
   TypingPlayer,
 } from '../../../infrastructures/prisma/common/client';
 import { PrismaService } from '../../../infrastructures/prisma/prisma-service';
-import { TetrisScoreDto } from '../dto/tetris-dto';
+import { TetrisScoreDto, TetrisSettingsDto } from '../dto/tetris-dto';
 
 export type TetrisScoreWithName = TetrisScore & {
   player: Pick<TypingPlayer, 'name'>;
@@ -49,6 +50,21 @@ export class TetrisRepository {
       where: { userId_setup: { userId, setup } },
       create: { userId, setup, score, lines, level },
       update: { score, lines, level },
+    });
+  }
+
+  findSettings(userId: string): Promise<TetrisSetting | null> {
+    return this.prisma.tetrisSetting.findUnique({ where: { userId } });
+  }
+
+  saveSettings(
+    userId: string,
+    data: TetrisSettingsDto,
+  ): Promise<TetrisSetting> {
+    return this.prisma.tetrisSetting.upsert({
+      where: { userId },
+      create: { userId, keys: data.keys },
+      update: { keys: data.keys },
     });
   }
 }

@@ -47,3 +47,32 @@ export const TetrisScoreResponseSchema = TetrisLeaderboardResponseSchema.extend(
     personalBest: z.boolean(),
   },
 );
+
+/** Each action's keys, as the desktop's TetrisKeyBindings writes them (KeyboardEvent.key, letters lower-case). */
+const BoundKeysSchema = z
+  .array(z.string().min(1).max(20))
+  .max(2, 'At most two keys per action.');
+
+export const TetrisKeyBindingsSchema = z
+  .object({
+    left: BoundKeysSchema,
+    right: BoundKeysSchema,
+    softDrop: BoundKeysSchema,
+    hardDrop: BoundKeysSchema,
+    rotateCw: BoundKeysSchema,
+    rotateCcw: BoundKeysSchema,
+    hold: BoundKeysSchema,
+    skill: BoundKeysSchema,
+    pause: BoundKeysSchema,
+    restart: BoundKeysSchema,
+  })
+  .strict();
+
+export const TetrisSettingsSchema = z
+  .object({ keys: TetrisKeyBindingsSchema })
+  .strict();
+
+export const TetrisSettingsResponseSchema = z.object({
+  /** null until the user saves their controls for the first time. */
+  keys: TetrisKeyBindingsSchema.nullable(),
+});

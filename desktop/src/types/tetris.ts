@@ -103,3 +103,19 @@ export interface TetrisLeaderboard {
 export interface TetrisScoreResult extends TetrisLeaderboard {
   personalBest: boolean
 }
+
+/** Everything a key can do in a game; Escape always closes it and can't be bound. */
+export type TetrisAction =
+  | 'left'
+  | 'right'
+  | 'softDrop'
+  | 'hardDrop'
+  | 'rotateCw'
+  | 'rotateCcw'
+  | 'hold'
+  | 'skill'
+  | 'pause'
+  | 'restart'
+
+/** Up to MAX_KEYS_PER_ACTION keys per action, as normalised KeyboardEvent.key values (letters lower-case). */
+export type TetrisKeyBindings = Record<TetrisAction, string[]>

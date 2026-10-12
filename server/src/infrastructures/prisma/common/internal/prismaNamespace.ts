@@ -405,7 +405,10 @@ export const ModelName = {
   ReminderSetting: 'ReminderSetting',
   TypingPlayer: 'TypingPlayer',
   TypingScore: 'TypingScore',
-  TetrisScore: 'TetrisScore'
+  TetrisScore: 'TetrisScore',
+  TetrisSetting: 'TetrisSetting',
+  RunSetting: 'RunSetting',
+  PassOrFallProgress: 'PassOrFallProgress'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -421,7 +424,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "logEntry" | "syncSchedule" | "syncRun" | "npaxCredential" | "userSession" | "reminderSetting" | "typingPlayer" | "typingScore" | "tetrisScore"
+    modelProps: "logEntry" | "syncSchedule" | "syncRun" | "npaxCredential" | "userSession" | "reminderSetting" | "typingPlayer" | "typingScore" | "tetrisScore" | "tetrisSetting" | "runSetting" | "passOrFallProgress"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1091,6 +1094,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    TetrisSetting: {
+      payload: Prisma.$TetrisSettingPayload<ExtArgs>
+      fields: Prisma.TetrisSettingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TetrisSettingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisSettingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TetrisSettingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisSettingPayload>
+        }
+        findFirst: {
+          args: Prisma.TetrisSettingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisSettingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TetrisSettingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisSettingPayload>
+        }
+        findMany: {
+          args: Prisma.TetrisSettingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisSettingPayload>[]
+        }
+        create: {
+          args: Prisma.TetrisSettingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisSettingPayload>
+        }
+        createMany: {
+          args: Prisma.TetrisSettingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TetrisSettingCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisSettingPayload>[]
+        }
+        delete: {
+          args: Prisma.TetrisSettingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisSettingPayload>
+        }
+        update: {
+          args: Prisma.TetrisSettingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisSettingPayload>
+        }
+        deleteMany: {
+          args: Prisma.TetrisSettingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TetrisSettingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TetrisSettingUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisSettingPayload>[]
+        }
+        upsert: {
+          args: Prisma.TetrisSettingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TetrisSettingPayload>
+        }
+        aggregate: {
+          args: Prisma.TetrisSettingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTetrisSetting>
+        }
+        groupBy: {
+          args: Prisma.TetrisSettingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TetrisSettingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TetrisSettingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TetrisSettingCountAggregateOutputType> | number
+        }
+      }
+    }
+    RunSetting: {
+      payload: Prisma.$RunSettingPayload<ExtArgs>
+      fields: Prisma.RunSettingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RunSettingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RunSettingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RunSettingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RunSettingPayload>
+        }
+        findFirst: {
+          args: Prisma.RunSettingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RunSettingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RunSettingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RunSettingPayload>
+        }
+        findMany: {
+          args: Prisma.RunSettingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RunSettingPayload>[]
+        }
+        create: {
+          args: Prisma.RunSettingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RunSettingPayload>
+        }
+        createMany: {
+          args: Prisma.RunSettingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RunSettingCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RunSettingPayload>[]
+        }
+        delete: {
+          args: Prisma.RunSettingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RunSettingPayload>
+        }
+        update: {
+          args: Prisma.RunSettingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RunSettingPayload>
+        }
+        deleteMany: {
+          args: Prisma.RunSettingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RunSettingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RunSettingUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RunSettingPayload>[]
+        }
+        upsert: {
+          args: Prisma.RunSettingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RunSettingPayload>
+        }
+        aggregate: {
+          args: Prisma.RunSettingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRunSetting>
+        }
+        groupBy: {
+          args: Prisma.RunSettingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RunSettingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RunSettingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RunSettingCountAggregateOutputType> | number
+        }
+      }
+    }
+    PassOrFallProgress: {
+      payload: Prisma.$PassOrFallProgressPayload<ExtArgs>
+      fields: Prisma.PassOrFallProgressFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PassOrFallProgressFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PassOrFallProgressPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PassOrFallProgressFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PassOrFallProgressPayload>
+        }
+        findFirst: {
+          args: Prisma.PassOrFallProgressFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PassOrFallProgressPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PassOrFallProgressFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PassOrFallProgressPayload>
+        }
+        findMany: {
+          args: Prisma.PassOrFallProgressFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PassOrFallProgressPayload>[]
+        }
+        create: {
+          args: Prisma.PassOrFallProgressCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PassOrFallProgressPayload>
+        }
+        createMany: {
+          args: Prisma.PassOrFallProgressCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PassOrFallProgressCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PassOrFallProgressPayload>[]
+        }
+        delete: {
+          args: Prisma.PassOrFallProgressDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PassOrFallProgressPayload>
+        }
+        update: {
+          args: Prisma.PassOrFallProgressUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PassOrFallProgressPayload>
+        }
+        deleteMany: {
+          args: Prisma.PassOrFallProgressDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PassOrFallProgressUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PassOrFallProgressUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PassOrFallProgressPayload>[]
+        }
+        upsert: {
+          args: Prisma.PassOrFallProgressUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PassOrFallProgressPayload>
+        }
+        aggregate: {
+          args: Prisma.PassOrFallProgressAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePassOrFallProgress>
+        }
+        groupBy: {
+          args: Prisma.PassOrFallProgressGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PassOrFallProgressGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PassOrFallProgressCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PassOrFallProgressCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1253,12 +1478,51 @@ export const TetrisScoreScalarFieldEnum = {
 export type TetrisScoreScalarFieldEnum = (typeof TetrisScoreScalarFieldEnum)[keyof typeof TetrisScoreScalarFieldEnum]
 
 
+export const TetrisSettingScalarFieldEnum = {
+  userId: 'userId',
+  keys: 'keys',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TetrisSettingScalarFieldEnum = (typeof TetrisSettingScalarFieldEnum)[keyof typeof TetrisSettingScalarFieldEnum]
+
+
+export const RunSettingScalarFieldEnum = {
+  userId: 'userId',
+  keys: 'keys',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RunSettingScalarFieldEnum = (typeof RunSettingScalarFieldEnum)[keyof typeof RunSettingScalarFieldEnum]
+
+
+export const PassOrFallProgressScalarFieldEnum = {
+  userId: 'userId',
+  level: 'level',
+  points: 'points',
+  seconds: 'seconds',
+  bestPoints: 'bestPoints',
+  bestLevels: 'bestLevels',
+  bestSeconds: 'bestSeconds',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PassOrFallProgressScalarFieldEnum = (typeof PassOrFallProgressScalarFieldEnum)[keyof typeof PassOrFallProgressScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -1275,6 +1539,15 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
 
 
@@ -1343,6 +1616,20 @@ export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, '
  * Reference to a field of type 'Float[]'
  */
 export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 /**
@@ -1505,6 +1792,9 @@ export type GlobalOmitConfig = {
   typingPlayer?: Prisma.TypingPlayerOmit
   typingScore?: Prisma.TypingScoreOmit
   tetrisScore?: Prisma.TetrisScoreOmit
+  tetrisSetting?: Prisma.TetrisSettingOmit
+  runSetting?: Prisma.RunSettingOmit
+  passOrFallProgress?: Prisma.PassOrFallProgressOmit
 }
 
 /* Types for Logging */

@@ -89,3 +89,19 @@ export type TypingScore = Prisma.TypingScoreModel
  * A user's best Tetris game for one start level; replaced only when beaten.
  */
 export type TetrisScore = Prisma.TetrisScoreModel
+/**
+ * Model TetrisSetting
+ * A user's Tetris preferences, so they follow the account to any machine.
+ */
+export type TetrisSetting = Prisma.TetrisSettingModel
+/**
+ * Model RunSetting
+ * A user's Run yourself preferences, so they follow the account to any machine.
+ */
+export type RunSetting = Prisma.RunSettingModel
+/**
+ * Model PassOrFallProgress
+ * A user's Pass or fall progress: the furthest door unlocked, where Continue resumes, and their
+ * best finished run for the leaderboard (named by the typing test's TypingPlayer, looked up by user).
+ */
+export type PassOrFallProgress = Prisma.PassOrFallProgressModel

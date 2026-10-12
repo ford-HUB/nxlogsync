@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import {
   ARR_MS,
   B2B_MULTIPLIER,
@@ -16,9 +16,11 @@ import {
   SLOW_MS,
   SOFT_DROP_MS,
   SOFT_DROP_POINTS,
+  START_KEY,
   T_SPIN_MINI_POINTS,
   T_SPIN_POINTS,
 } from '@/constants/tetris'
+import { actionsByKey, normalizeKey } from '@/lib/tetris-keys'
 import {
   blasted,
   cellsOf,
@@ -358,9 +360,6 @@ function reducer(state: GameState, action: Action): GameState {
 
 const elapsedOf = (s: GameState, now: number) => survivedMs(s, s.endedAt ?? s.pausedAt ?? now)
 
-/** Keys that start a fresh game rather than being ignored before it begins. */
-const PLAY_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', ' ', 'z', 'x', 'c', 'v', 'Enter'])
-
 /**
  * A game of Tetris: a 10×20 board, a 7-bag queue, hold, ghost, wall kicks, lock delay, DAS and guideline scoring.
  * Gravity speeds up every 10 lines. Keys come in through onKeyDown; the finished game becomes
@@ -369,6 +368,8 @@ const PLAY_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', ' 
 export function useTetris() {
   const config = useTetrisStore((s) => s.config)
   const submitBest = useTetrisStore((s) => s.submitBest)
+  const keys = useTetrisStore((s) => s.keys)
+  const keyActions = useMemo(() => actionsByKey(keys), [keys])
   const [state, dispatch] = useReducer(reducer, config, initial)
   const [result, setResult] = useState<TetrisResult | null>(null)
   const [now, setNow] = useState(() => Date.now())
@@ -468,65 +469,63 @@ export function useTetris() {
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
       const s = stateRef.current
-      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key
-      if (key === 'Tab') {
+      const key = normalizeKey(e.key)
+      const action = keyActions.get(key)
+      if (action === 'restart') {
         e.preventDefault()
         restart()
         return
       }
-      if (key === 'p') {
-        dispatch({ type: 'toggle-pause', now: Date.now() })
+      if (action === 'pause') {
+        e.preventDefault()
+        if (!e.repeat) dispatch({ type: 'toggle-pause', now: Date.now() })
         return
       }
       if (s.status === 'idle') {
-        if (PLAY_KEYS.has(key)) {
+        if (action || key === START_KEY) {
           e.preventDefault()
           dispatch({ type: 'start', now: Date.now() })
         }
         return
       }
-      if (s.status === 'paused' && key === ' ') {
+      if (s.status === 'paused' && action === 'hardDrop') {
         e.preventDefault()
         dispatch({ type: 'toggle-pause', now: Date.now() })
         return
       }
-      switch (key) {
-        case 'ArrowLeft':
-        case 'ArrowRight': {
-          const dx = key === 'ArrowLeft' ? -1 : 1
-          if (!e.repeat) startRepeat(key, () => dispatch({ type: 'move', dx, now: Date.now() }), DAS_MS, ARR_MS)
+      if (!action) return
+      e.preventDefault()
+      if (e.repeat) return
+      switch (action) {
+        case 'left':
+        case 'right': {
+          const dx = action === 'left' ? -1 : 1
+          startRepeat(key, () => dispatch({ type: 'move', dx, now: Date.now() }), DAS_MS, ARR_MS)
           break
         }
-        case 'ArrowDown':
-          if (!e.repeat) startRepeat(key, () => dispatch({ type: 'soft-drop', now: Date.now() }), SOFT_DROP_MS, SOFT_DROP_MS)
+        case 'softDrop':
+          startRepeat(key, () => dispatch({ type: 'soft-drop', now: Date.now() }), SOFT_DROP_MS, SOFT_DROP_MS)
           break
-        case 'ArrowUp':
-        case 'x':
-          if (!e.repeat) dispatch({ type: 'rotate', dir: 1, now: Date.now() })
+        case 'rotateCw':
+        case 'rotateCcw':
+          dispatch({ type: 'rotate', dir: action === 'rotateCw' ? 1 : -1, now: Date.now() })
           break
-        case 'z':
-          if (!e.repeat) dispatch({ type: 'rotate', dir: -1, now: Date.now() })
+        case 'hardDrop':
+          dispatch({ type: 'hard-drop', now: Date.now() })
           break
-        case ' ':
-          if (!e.repeat) dispatch({ type: 'hard-drop', now: Date.now() })
-          break
-        case 'c':
-        case 'Shift':
+        case 'hold':
           dispatch({ type: 'hold', now: Date.now() })
           break
-        case 'v':
-          if (!e.repeat) dispatch({ type: 'use-skill' })
+        case 'skill':
+          dispatch({ type: 'use-skill' })
           break
-        default:
-          return
       }
-      e.preventDefault()
     },
-    [restart, startRepeat],
+    [keyActions, restart, startRepeat],
   )
 
-  /** Letting go of an arrow stops its repeat. */
-  const onKeyUp = useCallback((e: KeyboardEvent) => stopRepeat(e.key), [stopRepeat])
+  /** Letting go of a held move key stops its repeat. */
+  const onKeyUp = useCallback((e: KeyboardEvent) => stopRepeat(normalizeKey(e.key)), [stopRepeat])
 
   return {
     ...state,

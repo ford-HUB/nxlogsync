@@ -104,8 +104,8 @@ export function TypingTest({ onBack, paused = false }: TypingTestProps) {
 
   return (
     <div className="relative min-h-dvh w-full">
-      {/* The leaderboard hugs the window's right edge; the test stays centred, narrowed to clear it. */}
-      <div className="absolute inset-y-16 right-6 hidden w-[22rem] min-[1440px]:block">
+      {/* The leaderboard hugs the window's right edge, compact below 1440px; the test stays centred, narrowed to clear it. */}
+      <div className="absolute inset-y-16 right-3 hidden w-[13.5rem] lg:block min-[1440px]:right-6 min-[1440px]:w-[22rem]">
         <Leaderboard
           config={config}
           playerName={playerName ?? ''}
@@ -118,7 +118,7 @@ export function TypingTest({ onBack, paused = false }: TypingTestProps) {
           accuracy={boardAccuracy}
         />
       </div>
-      <div className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-4 py-3 sm:px-8 min-[1440px]:max-w-[min(64rem,calc(100vw-50rem))] [@media(min-height:720px)]:py-6">
+      <div className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-4 py-3 sm:px-8 lg:max-w-[min(64rem,calc(100vw-28.5rem))] min-[1440px]:max-w-[min(64rem,calc(100vw-50rem))] [@media(min-height:720px)]:py-6">
         <div
           className={cn(
             'flex items-start justify-between gap-3 transition-opacity duration-200',

@@ -5,19 +5,21 @@ import { SkillArt } from './skill-art'
 
 interface SkillsDialogProps {
   open: boolean
+  /** The key that arms a skill, as the player has it bound. */
+  skillKey: string
   onClose: () => void
 }
 
 /** How a skill is earned and spent, in the order it happens. */
-const HOW_IT_WORKS = [
+const howItWorks = (skillKey: string) => [
   'Now and then a falling piece carries a coloured skill block.',
   'Clear its row, or blast it with a bomb, to collect the skill.',
   `You can hold up to ${MAX_SKILLS} skills; any more are lost.`,
-  'Press V to arm your oldest skill on the falling piece. It fires when that piece lands.',
+  `Press ${skillKey.toUpperCase()} to arm your oldest skill on the falling piece. It fires when that piece lands.`,
 ]
 
 /** Every skill with its colour, icon and power, plus how skills are collected and used. */
-export function SkillsDialog({ open, onClose }: SkillsDialogProps) {
+export function SkillsDialog({ open, skillKey, onClose }: SkillsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="font-mono">
@@ -44,7 +46,7 @@ export function SkillsDialog({ open, onClose }: SkillsDialogProps) {
         <div className="flex flex-col gap-2">
           <span className="text-[10px] tracking-[0.18em] text-muted-foreground uppercase">how it works</span>
           <ol className="flex list-decimal flex-col gap-1 pl-5 text-[12px] text-foreground marker:text-muted-foreground">
-            {HOW_IT_WORKS.map((step) => (
+            {howItWorks(skillKey).map((step) => (
               <li key={step}>{step}</li>
             ))}
           </ol>

@@ -1,4 +1,4 @@
-import type { PieceType, SkillType, TetrisConfig } from '@/types/tetris'
+import type { PieceType, SkillType, TetrisAction, TetrisConfig, TetrisKeyBindings } from '@/types/tetris'
 
 export const BOARD_COLS = 10
 export const BOARD_ROWS = 20
@@ -42,6 +42,76 @@ export const DAS_MS = 150
 export const ARR_MS = 40
 /** Holding down: one row every this many ms. */
 export const SOFT_DROP_MS = 35
+
+/** The controls list, in the order it is shown. */
+export const TETRIS_ACTIONS: { action: TetrisAction; label: string }[] = [
+  { action: 'left', label: 'Move left' },
+  { action: 'right', label: 'Move right' },
+  { action: 'softDrop', label: 'Soft drop' },
+  { action: 'hardDrop', label: 'Hard drop' },
+  { action: 'rotateCw', label: 'Rotate right' },
+  { action: 'rotateCcw', label: 'Rotate left' },
+  { action: 'hold', label: 'Hold' },
+  { action: 'skill', label: 'Use skill' },
+  { action: 'pause', label: 'Pause' },
+  { action: 'restart', label: 'Restart' },
+]
+export const MAX_KEYS_PER_ACTION = 2
+/** Closes the game, so it can't be bound. */
+export const RESERVED_KEYS = new Set(['Escape'])
+/** Starts a game whatever the bindings are. */
+export const START_KEY = 'Enter'
+
+export const TETRIS_KEY_PRESETS: Record<'arrows' | 'wasd', { label: string; keys: TetrisKeyBindings }> = {
+  arrows: {
+    label: 'Arrows',
+    keys: {
+      left: ['ArrowLeft'],
+      right: ['ArrowRight'],
+      softDrop: ['ArrowDown'],
+      hardDrop: [' '],
+      rotateCw: ['ArrowUp', 'x'],
+      rotateCcw: ['z'],
+      hold: ['c', 'Shift'],
+      skill: ['v'],
+      pause: ['p'],
+      restart: ['Tab'],
+    },
+  },
+  wasd: {
+    label: 'WASD',
+    keys: {
+      left: ['a'],
+      right: ['d'],
+      softDrop: ['s'],
+      hardDrop: [' '],
+      rotateCw: ['w', 'k'],
+      rotateCcw: ['j'],
+      hold: ['Shift', 'l'],
+      skill: ['e'],
+      pause: ['p'],
+      restart: ['Tab'],
+    },
+  },
+}
+export const DEFAULT_TETRIS_KEYS = TETRIS_KEY_PRESETS.arrows.keys
+
+/** How keys read on screen; anything else shows as its own (lower-case) character. */
+export const KEY_LABELS: Record<string, string> = {
+  ' ': 'space',
+  ArrowLeft: '←',
+  ArrowRight: '→',
+  ArrowUp: '↑',
+  ArrowDown: '↓',
+  Shift: 'shift',
+  Control: 'ctrl',
+  Alt: 'alt',
+  Meta: 'meta',
+  Tab: 'tab',
+  Enter: 'enter',
+  Backspace: 'backspace',
+  CapsLock: 'caps',
+}
 
 /** How long cleared rows flash before they collapse. */
 export const CLEAR_FLASH_MS = 180

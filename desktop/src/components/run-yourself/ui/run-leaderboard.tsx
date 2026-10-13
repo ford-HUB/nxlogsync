@@ -13,7 +13,11 @@ const layoutSpring = { type: 'spring', stiffness: 380, damping: 32 } as const
 interface RunLeaderboardProps {
   /** e.g. "speed run 60s" or "pass or fall". */
   label: string
-  /** Other players, best first. Mock players for now. */
+  /** The leaderboard name picked for the typing test, shared by every game; "you" without one. */
+  playerName: string
+  /** Sample players, not a real board yet: marked as a preview. */
+  preview?: boolean
+  /** Other players, best first, from the server. */
   entries: RunLeaderboardEntry[]
   /** The user's score to rank: their best, or the running game's points once they beat it. */
   points: number | undefined
@@ -72,12 +76,12 @@ const Row = memo(function Row({ entry, column, rank, you = false, boost }: RowPr
  * row climbs past each player it beats, a rocket under it and speed lines down the board, both
  * firing harder the faster the run is going.
  */
-export function RunLeaderboard({ label, entries, points, metres, seconds, column, boost }: RunLeaderboardProps) {
+export function RunLeaderboard({ label, playerName, preview = false, entries, points, metres, seconds, column, boost }: RunLeaderboardProps) {
   const scored = points !== undefined && points > 0
   // Ties go to the player already on the board.
   const rank = scored ? entries.filter((o) => o.points >= points).length + 1 : undefined
   const onBoard = rank !== undefined && rank <= RUN_LEADERBOARD_SIZE
-  const you: RunLeaderboardEntry = { id: YOU_ID, name: 'you', points: points ?? 0, metres: metres ?? 0, seconds: seconds ?? 0, you: true }
+  const you: RunLeaderboardEntry = { id: YOU_ID, name: playerName || 'you', points: points ?? 0, metres: metres ?? 0, seconds: seconds ?? 0, you: true }
   const rows = onBoard
     ? [...entries.slice(0, rank - 1), you, ...entries.slice(rank - 1, RUN_LEADERBOARD_SIZE - 1)]
     : [...entries.slice(0, RUN_LEADERBOARD_SIZE), you]
@@ -119,12 +123,14 @@ export function RunLeaderboard({ label, entries, points, metres, seconds, column
       <header className="flex items-center justify-between gap-2 px-3 pb-2 min-[1440px]:px-7">
         <span className="flex items-center gap-1.5 text-[12px] font-medium text-foreground min-[1440px]:text-[13px]">
           <Trophy className="size-4 text-score" /> Top {RUN_LEADERBOARD_SIZE}
-          <span
-            title="Sample players for now: there is no Run yourself board on the server yet"
-            className="ml-1 rounded-full border px-1.5 text-[9px] font-normal tracking-[0.14em] text-muted-foreground uppercase"
-          >
-            preview
-          </span>
+          {preview && (
+            <span
+              title="Sample players for now: there is no board for this game on the server yet"
+              className="ml-1 rounded-full border px-1.5 text-[9px] font-normal tracking-[0.14em] text-muted-foreground uppercase"
+            >
+              preview
+            </span>
+          )}
         </span>
         <span className="relative flex items-center gap-2 text-[11px] text-muted-foreground">
           <AnimatePresence>

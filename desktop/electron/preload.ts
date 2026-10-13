@@ -28,3 +28,15 @@ contextBridge.exposeInMainWorld('printing', {
   listPrinters: () => ipcRenderer.invoke('printing:list-printers'),
   printHtml: (request: unknown) => ipcRenderer.invoke('printing:print-html', request),
 })
+
+// The update screen (see electron/updater.ts).
+contextBridge.exposeInMainWorld('updater', {
+  getStatus: () => ipcRenderer.invoke('updater:get-status'),
+  onStatus: (listener: (status: unknown) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, status: unknown) => listener(status)
+    ipcRenderer.on('updater:status', handler)
+    return () => {
+      ipcRenderer.off('updater:status', handler)
+    }
+  },
+})

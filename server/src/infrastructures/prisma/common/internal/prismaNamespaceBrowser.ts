@@ -62,7 +62,8 @@ export const ModelName = {
   TetrisScore: 'TetrisScore',
   TetrisSetting: 'TetrisSetting',
   RunSetting: 'RunSetting',
-  PassOrFallProgress: 'PassOrFallProgress'
+  PassOrFallProgress: 'PassOrFallProgress',
+  SpeedRunBest: 'SpeedRunBest'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -234,6 +235,16 @@ export const PassOrFallProgressScalarFieldEnum = {
 } as const
 
 export type PassOrFallProgressScalarFieldEnum = (typeof PassOrFallProgressScalarFieldEnum)[keyof typeof PassOrFallProgressScalarFieldEnum]
+
+
+export const SpeedRunBestScalarFieldEnum = {
+  userId: 'userId',
+  points: 'points',
+  seconds: 'seconds',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SpeedRunBestScalarFieldEnum = (typeof SpeedRunBestScalarFieldEnum)[keyof typeof SpeedRunBestScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -28,4 +28,9 @@ interface Window {
     listPrinters: () => Promise<import('./printing').PrinterSummary[]>
     printHtml: (request: import('./printing').PrintRequest) => Promise<import('./printing').PrintResult>
   }
+  updater: {
+    getStatus: () => Promise<import('./updater').UpdateStatus>
+    /** Calls back on every change; returns the unsubscribe. */
+    onStatus: (listener: (status: import('./updater').UpdateStatus) => void) => () => void
+  }
 }

@@ -2,15 +2,17 @@ import { ChevronLeft, Keyboard, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { MOCK_RUN_LEADERBOARDS, SPEED_RUN_METRES } from '@/constants/run-yourself'
+import { SPEED_RUN_METRES } from '@/constants/run-yourself'
 import { usePassOrFallAccount } from '@/hooks/use-pass-or-fall-account'
 import { useRoomGame } from '@/hooks/use-room-game'
 import { useRunGame } from '@/hooks/use-run-game'
+import { useSpeedRunAccount } from '@/hooks/use-speed-run-account'
 import { controlForKey } from '@/lib/run-controls'
 import { runBestKey, runBoost, toMetres } from '@/lib/run-engine'
 import { cn } from '@/lib/utils'
 import { useRunYourselfStore } from '@/store/run-yourself-store'
 import { useSiteSessionStore } from '@/store/site-session-store'
+import { useTypingLeaderboardStore } from '@/store/typing-leaderboard-store'
 import type { SpeedRunControl } from '@/types/run-controls'
 import type { RunAction, RunConfig, SkillKind } from '@/types/run-yourself'
 import { KeySettings } from './ui/key-settings'
@@ -26,6 +28,8 @@ import { RunStats } from './ui/run-stats'
 
 interface RunGameProps {
   onBack: () => void
+  /** Shown but not listening for keys, e.g. behind the name prompt. */
+  paused?: boolean
 }
 
 const KBD = 'rounded-md border bg-muted/60 px-1.5 py-0.5 text-foreground'
@@ -40,13 +44,14 @@ const SCROLL_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown'])
  * game's numbers, the stage, and the controller keys down at the bottom edge, with the
  * leaderboard on the right. Any key starts a game; the effects are yellow.
  */
-export function RunGame({ onBack }: RunGameProps) {
+export function RunGame({ onBack, paused = false }: RunGameProps) {
   const game = useRunGame()
   const rooms = useRoomGame()
   const { run, config, result } = game
   const { room } = rooms
   const roomsMode = config.mode === 'pass-or-fall'
   const account = usePassOrFallAccount()
+  const speedAccount = useSpeedRunAccount()
   // Saved progress turns Pass or fall's start screen into a choice: Continue, or New game.
   const choosing = roomsMode && room.status === 'idle' && account.progress !== null
   const continueGame = () => rooms.start(account.progress)
@@ -57,6 +62,9 @@ export function RunGame({ onBack }: RunGameProps) {
   const bindings = useRunYourselfStore((s) => s.bindings)
   const syncBindings = useRunYourselfStore((s) => s.syncBindings)
   const userId = useSiteSessionStore((s) => s.target.userId)
+  const playerName = useTypingLeaderboardStore((s) => s.playerName) ?? ''
+  const pausedRef = useRef(paused)
+  pausedRef.current = paused
   const [picking, setPicking] = useState(true)
   /** The controls screen, over the picker; it handles its own keys. */
   const [controls, setControls] = useState(false)
@@ -116,6 +124,8 @@ export function RunGame({ onBack }: RunGameProps) {
   useEffect(() => {
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
     const onKey = (e: KeyboardEvent) => {
+      // Behind the name prompt, keys belong to the prompt.
+      if (pausedRef.current) return
       e.stopPropagation()
       if (controlsRef.current) return
       if (e.key === 'Escape') return onBack()
@@ -177,8 +187,14 @@ export function RunGame({ onBack }: RunGameProps) {
   const speedRun = config.mode === 'speed-run'
   // The clock counts up from 0 in both games; a speed run shows tenths, since that's the score.
   const seconds = speedRun ? Math.floor(run.elapsed * 10) / 10 : elapsed
+  // Speed run's best is the account's on the server, or this machine's when signed out.
+  const runBest = speedAccount.board?.you ?? (best ? { points: best.points, seconds: best.seconds } : undefined)
   // The board ranks the best run, or this run as soon as it is beating it.
-  const liveLeads = playing && points > (best?.points ?? 0)
+  const liveLeads = playing && points > (runBest?.points ?? 0)
+  // The board adds the user's own row itself; everyone ran the same 1000 m.
+  const runEntries = (speedAccount.board?.entries ?? [])
+    .filter((e) => !e.you)
+    .map((e) => ({ id: e.id, name: e.name, points: e.points, metres: SPEED_RUN_METRES, seconds: e.seconds }))
   // Pass or fall's best is the account's on the server, or this machine's when signed out.
   const roomBest = account.board?.you ?? (best ? { points: best.points, seconds: best.seconds } : undefined)
   const roomLeads = playing && room.points > (roomBest?.points ?? 0)
@@ -198,6 +214,7 @@ export function RunGame({ onBack }: RunGameProps) {
             // Ranked by points; the column is how long the escape took.
             <RunLeaderboard
               label={label}
+              playerName={playerName}
               entries={roomEntries}
               points={roomLeads ? room.points : roomBest?.points}
               metres={0}
@@ -208,11 +225,12 @@ export function RunGame({ onBack }: RunGameProps) {
           ) : (
             <RunLeaderboard
               label={label}
-              entries={MOCK_RUN_LEADERBOARDS[runBestKey(config)] ?? []}
-              points={liveLeads ? points : best?.points}
-              metres={liveLeads ? metres : best?.metres}
-              seconds={liveLeads ? run.elapsed : best?.seconds}
-              column={speedRun ? 'time' : 'dist'}
+              playerName={playerName}
+              entries={runEntries}
+              points={liveLeads ? points : runBest?.points}
+              metres={liveLeads ? metres : SPEED_RUN_METRES}
+              seconds={liveLeads ? run.elapsed : runBest?.seconds}
+              column="time"
               boost={runBoost(run.speed)}
             />
           )}

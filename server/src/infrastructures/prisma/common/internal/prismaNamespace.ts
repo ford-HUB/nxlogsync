@@ -408,7 +408,8 @@ export const ModelName = {
   TetrisScore: 'TetrisScore',
   TetrisSetting: 'TetrisSetting',
   RunSetting: 'RunSetting',
-  PassOrFallProgress: 'PassOrFallProgress'
+  PassOrFallProgress: 'PassOrFallProgress',
+  SpeedRunBest: 'SpeedRunBest'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -424,7 +425,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "logEntry" | "syncSchedule" | "syncRun" | "npaxCredential" | "userSession" | "reminderSetting" | "typingPlayer" | "typingScore" | "tetrisScore" | "tetrisSetting" | "runSetting" | "passOrFallProgress"
+    modelProps: "logEntry" | "syncSchedule" | "syncRun" | "npaxCredential" | "userSession" | "reminderSetting" | "typingPlayer" | "typingScore" | "tetrisScore" | "tetrisSetting" | "runSetting" | "passOrFallProgress" | "speedRunBest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1316,6 +1317,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SpeedRunBest: {
+      payload: Prisma.$SpeedRunBestPayload<ExtArgs>
+      fields: Prisma.SpeedRunBestFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SpeedRunBestFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SpeedRunBestPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SpeedRunBestFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SpeedRunBestPayload>
+        }
+        findFirst: {
+          args: Prisma.SpeedRunBestFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SpeedRunBestPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SpeedRunBestFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SpeedRunBestPayload>
+        }
+        findMany: {
+          args: Prisma.SpeedRunBestFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SpeedRunBestPayload>[]
+        }
+        create: {
+          args: Prisma.SpeedRunBestCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SpeedRunBestPayload>
+        }
+        createMany: {
+          args: Prisma.SpeedRunBestCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SpeedRunBestCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SpeedRunBestPayload>[]
+        }
+        delete: {
+          args: Prisma.SpeedRunBestDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SpeedRunBestPayload>
+        }
+        update: {
+          args: Prisma.SpeedRunBestUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SpeedRunBestPayload>
+        }
+        deleteMany: {
+          args: Prisma.SpeedRunBestDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SpeedRunBestUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SpeedRunBestUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SpeedRunBestPayload>[]
+        }
+        upsert: {
+          args: Prisma.SpeedRunBestUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SpeedRunBestPayload>
+        }
+        aggregate: {
+          args: Prisma.SpeedRunBestAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSpeedRunBest>
+        }
+        groupBy: {
+          args: Prisma.SpeedRunBestGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SpeedRunBestGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SpeedRunBestCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SpeedRunBestCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1508,6 +1583,16 @@ export const PassOrFallProgressScalarFieldEnum = {
 } as const
 
 export type PassOrFallProgressScalarFieldEnum = (typeof PassOrFallProgressScalarFieldEnum)[keyof typeof PassOrFallProgressScalarFieldEnum]
+
+
+export const SpeedRunBestScalarFieldEnum = {
+  userId: 'userId',
+  points: 'points',
+  seconds: 'seconds',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SpeedRunBestScalarFieldEnum = (typeof SpeedRunBestScalarFieldEnum)[keyof typeof SpeedRunBestScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1795,6 +1880,7 @@ export type GlobalOmitConfig = {
   tetrisSetting?: Prisma.TetrisSettingOmit
   runSetting?: Prisma.RunSettingOmit
   passOrFallProgress?: Prisma.PassOrFallProgressOmit
+  speedRunBest?: Prisma.SpeedRunBestOmit
 }
 
 /* Types for Logging */

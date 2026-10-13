@@ -83,3 +83,8 @@ export type RunSetting = Prisma.RunSettingModel
  * best finished run for the leaderboard (named by the typing test's TypingPlayer, looked up by user).
  */
 export type PassOrFallProgress = Prisma.PassOrFallProgressModel
+/**
+ * Model SpeedRunBest
+ * Run yourself's Speed run: each user's best finished run to the line (a knockout doesn't count).
+ */
+export type SpeedRunBest = Prisma.SpeedRunBestModel

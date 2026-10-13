@@ -1,10 +1,8 @@
 import { app, BrowserWindow, Menu } from 'electron'
-import electronUpdater from 'electron-updater'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { registerPrintingHandlers } from './printing'
-
-const { autoUpdater } = electronUpdater
+import { registerUpdater } from './updater'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -71,15 +69,6 @@ app.whenReady().then(() => {
   Menu.setApplicationMenu(null)
   registerPrintingHandlers(() => win)
   createWindow()
-
-  if (app.isPackaged) {
-    // Download the latest release in the background and install it as soon as it's ready
-    autoUpdater.on('update-downloaded', () => {
-      autoUpdater.quitAndInstall(true, true)
-    })
-    autoUpdater.on('error', (err) => {
-      console.error('Auto-update failed:', err)
-    })
-    autoUpdater.checkForUpdates()
-  }
+  // Downloads and installs a new release behind the update screen, then reopens the app.
+  registerUpdater(() => win)
 })

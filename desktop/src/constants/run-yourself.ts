@@ -1,4 +1,4 @@
-import type { KnockoutBy, ObstacleKind, RunAction, RunConfig, RunLeaderboardEntry, SkillKind } from '@/types/run-yourself'
+import type { KnockoutBy, ObstacleKind, RunAction, RunConfig, SkillKind } from '@/types/run-yourself'
 
 /** Where a speed run's finish line is; the clock counts up from 0 until it's crossed. */
 export const SPEED_RUN_METRES = 1000
@@ -132,26 +132,3 @@ export const SKILL_LABELS: Record<SkillKind, { name: string; hint: string }> = {
 }
 
 export const RUN_LEADERBOARD_SIZE = 25
-
-/**
- * Mock leaderboard players. Design only: there is no Run yourself board on the server yet, so
- * these stand in for other players; the user's own row comes from their local best.
- */
-const MOCK_NAMES = [
-  'kai.dev', 'mira', 'jonas', 'ana-r', 'theo', 'priya', 'lukas', 'sofia', 'raf', 'nina',
-  'omar', 'bea', 'ivan', 'yuki', 'leo', 'dana', 'marco', 'tess', 'eli', 'zoe', 'rico', 'fae',
-]
-
-/** Points fall away down the board; a speed run's times climb from about a perfect run's 77s. */
-function mockBoard(top: number, seed: number, speedRun: boolean): RunLeaderboardEntry[] {
-  return MOCK_NAMES.map((name, i) => {
-    const points = Math.round(top * Math.pow(speedRun ? 0.95 : 0.86, i) * (1 - ((i * seed) % 7) / 100))
-    const metres = speedRun ? SPEED_RUN_METRES : Math.round(points / (2.4 + (i % 3) * 0.2))
-    const seconds = speedRun ? Math.round((80 + i * 3.2 + ((i * seed) % 5)) * 10) / 10 : Math.round(metres / 11)
-    return { id: `mock-${seed}-${i}`, name, points, metres, seconds }
-  })
-}
-
-export const MOCK_RUN_LEADERBOARDS: Record<string, RunLeaderboardEntry[]> = {
-  'speed-run': mockBoard(9300, 5, true),
-}

@@ -1,5 +1,6 @@
 import { AnimatePresence } from 'motion/react'
 import { useEffect, useState } from 'react'
+import { UpdateScreen } from '@/components/app-update/update-screen'
 import { VersionBadge } from '@/components/changelog/version-badge'
 import { HiddenReportSwipe } from '@/components/excel-report/ui/hidden-report-swipe'
 import { PasscodeScreen } from '@/components/passcode/passcode-screen'
@@ -17,7 +18,17 @@ import { usePasscodeStore } from '@/store/passcode-store'
 
 type AppView = 'daily-log' | 'settings' | 'typing-test' | 'tetris' | 'run-yourself' | 'excel-report' | 'changelog'
 
+/** The app, with the update screen over everything, the passcode screen included. */
 function App() {
+  return (
+    <>
+      <AppScreens />
+      <UpdateScreen />
+    </>
+  )
+}
+
+function AppScreens() {
   // No router yet: a few screens, switched in memory.
   const [view, setView] = useState<AppView>('daily-log')
   const status = usePasscodeStore((s) => s.status)

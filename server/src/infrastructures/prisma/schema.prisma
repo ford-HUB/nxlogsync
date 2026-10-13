@@ -215,3 +215,16 @@ model PassOrFallProgress {
   @@index([bestPoints])
   @@map("pass_or_fall_progress")
 }
+
+/// Run yourself's Speed run: each user's best finished run to the line (a knockout doesn't count).
+model SpeedRunBest {
+  userId    String   @id @map("user_id")
+  /// Ranked by points, the faster run first on a tie.
+  points    Int
+  /// Seconds to the finish line.
+  seconds   Float
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([points])
+  @@map("speed_run_best")
+}

@@ -140,6 +140,28 @@ export interface RunResult {
   personalBest: boolean
 }
 
+export interface SpeedRunLeaderboardEntry {
+  id: string
+  name: string
+  points: number
+  /** Seconds to the finish line. */
+  seconds: number
+  /** The signed-in user's own row. */
+  you: boolean
+}
+
+/** The top players' best speed runs, from the server. */
+export interface SpeedRunLeaderboard {
+  /** Most points first; ties go to the faster run. */
+  entries: SpeedRunLeaderboardEntry[]
+  /** The signed-in user's best run, on the board or not; null without one. */
+  you: { rank: number; points: number; seconds: number } | null
+}
+
+export interface SpeedRunScoreResult extends SpeedRunLeaderboard {
+  personalBest: boolean
+}
+
 export interface RunLeaderboardEntry {
   id: string
   name: string

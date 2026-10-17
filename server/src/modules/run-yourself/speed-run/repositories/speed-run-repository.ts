@@ -23,19 +23,23 @@ export class SpeedRunRepository {
     });
   }
 
-  /** Best runs, most points first, faster first on a tie. */
+  /** Best runs, most points first, then the further, then the faster. */
   top(take: number): Promise<SpeedRunBest[]> {
     return this.prisma.speedRunBest.findMany({
-      orderBy: [{ points: 'desc' }, { seconds: 'asc' }],
+      orderBy: [{ points: 'desc' }, { metres: 'desc' }, { seconds: 'asc' }],
       take,
     });
   }
 
-  /** Runs that beat this one (more points, or as many and faster), for a rank off the board. */
-  countAhead(points: number, seconds: number): Promise<number> {
+  /** Runs that beat this one (see SpeedRunService.beats), for a rank off the board. */
+  countAhead(points: number, metres: number, seconds: number): Promise<number> {
     return this.prisma.speedRunBest.count({
       where: {
-        OR: [{ points: { gt: points } }, { points, seconds: { lt: seconds } }],
+        OR: [
+          { points: { gt: points } },
+          { points, metres: { gt: metres } },
+          { points, metres, seconds: { lt: seconds } },
+        ],
       },
     });
   }

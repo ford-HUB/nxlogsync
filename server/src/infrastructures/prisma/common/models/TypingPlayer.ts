@@ -176,6 +176,7 @@ export type TypingPlayerWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"TypingPlayer"> | Date | string
   scores?: Prisma.TypingScoreListRelationFilter
   tetrisScores?: Prisma.TetrisScoreListRelationFilter
+  aimLabScores?: Prisma.AimLabScoreListRelationFilter
 }
 
 export type TypingPlayerOrderByWithRelationInput = {
@@ -185,6 +186,7 @@ export type TypingPlayerOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   scores?: Prisma.TypingScoreOrderByRelationAggregateInput
   tetrisScores?: Prisma.TetrisScoreOrderByRelationAggregateInput
+  aimLabScores?: Prisma.AimLabScoreOrderByRelationAggregateInput
 }
 
 export type TypingPlayerWhereUniqueInput = Prisma.AtLeast<{
@@ -197,6 +199,7 @@ export type TypingPlayerWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"TypingPlayer"> | Date | string
   scores?: Prisma.TypingScoreListRelationFilter
   tetrisScores?: Prisma.TetrisScoreListRelationFilter
+  aimLabScores?: Prisma.AimLabScoreListRelationFilter
 }, "userId" | "nameKey">
 
 export type TypingPlayerOrderByWithAggregationInput = {
@@ -226,6 +229,7 @@ export type TypingPlayerCreateInput = {
   updatedAt?: Date | string
   scores?: Prisma.TypingScoreCreateNestedManyWithoutPlayerInput
   tetrisScores?: Prisma.TetrisScoreCreateNestedManyWithoutPlayerInput
+  aimLabScores?: Prisma.AimLabScoreCreateNestedManyWithoutPlayerInput
 }
 
 export type TypingPlayerUncheckedCreateInput = {
@@ -235,6 +239,7 @@ export type TypingPlayerUncheckedCreateInput = {
   updatedAt?: Date | string
   scores?: Prisma.TypingScoreUncheckedCreateNestedManyWithoutPlayerInput
   tetrisScores?: Prisma.TetrisScoreUncheckedCreateNestedManyWithoutPlayerInput
+  aimLabScores?: Prisma.AimLabScoreUncheckedCreateNestedManyWithoutPlayerInput
 }
 
 export type TypingPlayerUpdateInput = {
@@ -244,6 +249,7 @@ export type TypingPlayerUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   scores?: Prisma.TypingScoreUpdateManyWithoutPlayerNestedInput
   tetrisScores?: Prisma.TetrisScoreUpdateManyWithoutPlayerNestedInput
+  aimLabScores?: Prisma.AimLabScoreUpdateManyWithoutPlayerNestedInput
 }
 
 export type TypingPlayerUncheckedUpdateInput = {
@@ -253,6 +259,7 @@ export type TypingPlayerUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   scores?: Prisma.TypingScoreUncheckedUpdateManyWithoutPlayerNestedInput
   tetrisScores?: Prisma.TetrisScoreUncheckedUpdateManyWithoutPlayerNestedInput
+  aimLabScores?: Prisma.AimLabScoreUncheckedUpdateManyWithoutPlayerNestedInput
 }
 
 export type TypingPlayerCreateManyInput = {
@@ -330,12 +337,27 @@ export type TypingPlayerUpdateOneRequiredWithoutTetrisScoresNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.TypingPlayerUpdateToOneWithWhereWithoutTetrisScoresInput, Prisma.TypingPlayerUpdateWithoutTetrisScoresInput>, Prisma.TypingPlayerUncheckedUpdateWithoutTetrisScoresInput>
 }
 
+export type TypingPlayerCreateNestedOneWithoutAimLabScoresInput = {
+  create?: Prisma.XOR<Prisma.TypingPlayerCreateWithoutAimLabScoresInput, Prisma.TypingPlayerUncheckedCreateWithoutAimLabScoresInput>
+  connectOrCreate?: Prisma.TypingPlayerCreateOrConnectWithoutAimLabScoresInput
+  connect?: Prisma.TypingPlayerWhereUniqueInput
+}
+
+export type TypingPlayerUpdateOneRequiredWithoutAimLabScoresNestedInput = {
+  create?: Prisma.XOR<Prisma.TypingPlayerCreateWithoutAimLabScoresInput, Prisma.TypingPlayerUncheckedCreateWithoutAimLabScoresInput>
+  connectOrCreate?: Prisma.TypingPlayerCreateOrConnectWithoutAimLabScoresInput
+  upsert?: Prisma.TypingPlayerUpsertWithoutAimLabScoresInput
+  connect?: Prisma.TypingPlayerWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TypingPlayerUpdateToOneWithWhereWithoutAimLabScoresInput, Prisma.TypingPlayerUpdateWithoutAimLabScoresInput>, Prisma.TypingPlayerUncheckedUpdateWithoutAimLabScoresInput>
+}
+
 export type TypingPlayerCreateWithoutScoresInput = {
   userId: string
   name: string
   nameKey: string
   updatedAt?: Date | string
   tetrisScores?: Prisma.TetrisScoreCreateNestedManyWithoutPlayerInput
+  aimLabScores?: Prisma.AimLabScoreCreateNestedManyWithoutPlayerInput
 }
 
 export type TypingPlayerUncheckedCreateWithoutScoresInput = {
@@ -344,6 +366,7 @@ export type TypingPlayerUncheckedCreateWithoutScoresInput = {
   nameKey: string
   updatedAt?: Date | string
   tetrisScores?: Prisma.TetrisScoreUncheckedCreateNestedManyWithoutPlayerInput
+  aimLabScores?: Prisma.AimLabScoreUncheckedCreateNestedManyWithoutPlayerInput
 }
 
 export type TypingPlayerCreateOrConnectWithoutScoresInput = {
@@ -368,6 +391,7 @@ export type TypingPlayerUpdateWithoutScoresInput = {
   nameKey?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tetrisScores?: Prisma.TetrisScoreUpdateManyWithoutPlayerNestedInput
+  aimLabScores?: Prisma.AimLabScoreUpdateManyWithoutPlayerNestedInput
 }
 
 export type TypingPlayerUncheckedUpdateWithoutScoresInput = {
@@ -376,6 +400,7 @@ export type TypingPlayerUncheckedUpdateWithoutScoresInput = {
   nameKey?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tetrisScores?: Prisma.TetrisScoreUncheckedUpdateManyWithoutPlayerNestedInput
+  aimLabScores?: Prisma.AimLabScoreUncheckedUpdateManyWithoutPlayerNestedInput
 }
 
 export type TypingPlayerCreateWithoutTetrisScoresInput = {
@@ -384,6 +409,7 @@ export type TypingPlayerCreateWithoutTetrisScoresInput = {
   nameKey: string
   updatedAt?: Date | string
   scores?: Prisma.TypingScoreCreateNestedManyWithoutPlayerInput
+  aimLabScores?: Prisma.AimLabScoreCreateNestedManyWithoutPlayerInput
 }
 
 export type TypingPlayerUncheckedCreateWithoutTetrisScoresInput = {
@@ -392,6 +418,7 @@ export type TypingPlayerUncheckedCreateWithoutTetrisScoresInput = {
   nameKey: string
   updatedAt?: Date | string
   scores?: Prisma.TypingScoreUncheckedCreateNestedManyWithoutPlayerInput
+  aimLabScores?: Prisma.AimLabScoreUncheckedCreateNestedManyWithoutPlayerInput
 }
 
 export type TypingPlayerCreateOrConnectWithoutTetrisScoresInput = {
@@ -416,6 +443,7 @@ export type TypingPlayerUpdateWithoutTetrisScoresInput = {
   nameKey?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   scores?: Prisma.TypingScoreUpdateManyWithoutPlayerNestedInput
+  aimLabScores?: Prisma.AimLabScoreUpdateManyWithoutPlayerNestedInput
 }
 
 export type TypingPlayerUncheckedUpdateWithoutTetrisScoresInput = {
@@ -424,6 +452,59 @@ export type TypingPlayerUncheckedUpdateWithoutTetrisScoresInput = {
   nameKey?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   scores?: Prisma.TypingScoreUncheckedUpdateManyWithoutPlayerNestedInput
+  aimLabScores?: Prisma.AimLabScoreUncheckedUpdateManyWithoutPlayerNestedInput
+}
+
+export type TypingPlayerCreateWithoutAimLabScoresInput = {
+  userId: string
+  name: string
+  nameKey: string
+  updatedAt?: Date | string
+  scores?: Prisma.TypingScoreCreateNestedManyWithoutPlayerInput
+  tetrisScores?: Prisma.TetrisScoreCreateNestedManyWithoutPlayerInput
+}
+
+export type TypingPlayerUncheckedCreateWithoutAimLabScoresInput = {
+  userId: string
+  name: string
+  nameKey: string
+  updatedAt?: Date | string
+  scores?: Prisma.TypingScoreUncheckedCreateNestedManyWithoutPlayerInput
+  tetrisScores?: Prisma.TetrisScoreUncheckedCreateNestedManyWithoutPlayerInput
+}
+
+export type TypingPlayerCreateOrConnectWithoutAimLabScoresInput = {
+  where: Prisma.TypingPlayerWhereUniqueInput
+  create: Prisma.XOR<Prisma.TypingPlayerCreateWithoutAimLabScoresInput, Prisma.TypingPlayerUncheckedCreateWithoutAimLabScoresInput>
+}
+
+export type TypingPlayerUpsertWithoutAimLabScoresInput = {
+  update: Prisma.XOR<Prisma.TypingPlayerUpdateWithoutAimLabScoresInput, Prisma.TypingPlayerUncheckedUpdateWithoutAimLabScoresInput>
+  create: Prisma.XOR<Prisma.TypingPlayerCreateWithoutAimLabScoresInput, Prisma.TypingPlayerUncheckedCreateWithoutAimLabScoresInput>
+  where?: Prisma.TypingPlayerWhereInput
+}
+
+export type TypingPlayerUpdateToOneWithWhereWithoutAimLabScoresInput = {
+  where?: Prisma.TypingPlayerWhereInput
+  data: Prisma.XOR<Prisma.TypingPlayerUpdateWithoutAimLabScoresInput, Prisma.TypingPlayerUncheckedUpdateWithoutAimLabScoresInput>
+}
+
+export type TypingPlayerUpdateWithoutAimLabScoresInput = {
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameKey?: Prisma.StringFieldUpdateOperationsInput | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scores?: Prisma.TypingScoreUpdateManyWithoutPlayerNestedInput
+  tetrisScores?: Prisma.TetrisScoreUpdateManyWithoutPlayerNestedInput
+}
+
+export type TypingPlayerUncheckedUpdateWithoutAimLabScoresInput = {
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameKey?: Prisma.StringFieldUpdateOperationsInput | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  scores?: Prisma.TypingScoreUncheckedUpdateManyWithoutPlayerNestedInput
+  tetrisScores?: Prisma.TetrisScoreUncheckedUpdateManyWithoutPlayerNestedInput
 }
 
 
@@ -434,11 +515,13 @@ export type TypingPlayerUncheckedUpdateWithoutTetrisScoresInput = {
 export type TypingPlayerCountOutputType = {
   scores: number
   tetrisScores: number
+  aimLabScores: number
 }
 
 export type TypingPlayerCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   scores?: boolean | TypingPlayerCountOutputTypeCountScoresArgs
   tetrisScores?: boolean | TypingPlayerCountOutputTypeCountTetrisScoresArgs
+  aimLabScores?: boolean | TypingPlayerCountOutputTypeCountAimLabScoresArgs
 }
 
 /**
@@ -465,6 +548,13 @@ export type TypingPlayerCountOutputTypeCountTetrisScoresArgs<ExtArgs extends run
   where?: Prisma.TetrisScoreWhereInput
 }
 
+/**
+ * TypingPlayerCountOutputType without action
+ */
+export type TypingPlayerCountOutputTypeCountAimLabScoresArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AimLabScoreWhereInput
+}
+
 
 export type TypingPlayerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   userId?: boolean
@@ -473,6 +563,7 @@ export type TypingPlayerSelect<ExtArgs extends runtime.Types.Extensions.Internal
   updatedAt?: boolean
   scores?: boolean | Prisma.TypingPlayer$scoresArgs<ExtArgs>
   tetrisScores?: boolean | Prisma.TypingPlayer$tetrisScoresArgs<ExtArgs>
+  aimLabScores?: boolean | Prisma.TypingPlayer$aimLabScoresArgs<ExtArgs>
   _count?: boolean | Prisma.TypingPlayerCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["typingPlayer"]>
 
@@ -501,6 +592,7 @@ export type TypingPlayerOmit<ExtArgs extends runtime.Types.Extensions.InternalAr
 export type TypingPlayerInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   scores?: boolean | Prisma.TypingPlayer$scoresArgs<ExtArgs>
   tetrisScores?: boolean | Prisma.TypingPlayer$tetrisScoresArgs<ExtArgs>
+  aimLabScores?: boolean | Prisma.TypingPlayer$aimLabScoresArgs<ExtArgs>
   _count?: boolean | Prisma.TypingPlayerCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type TypingPlayerIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -514,6 +606,10 @@ export type $TypingPlayerPayload<ExtArgs extends runtime.Types.Extensions.Intern
      * The same name heads the Tetris leaderboard: one name for both games.
      */
     tetrisScores: Prisma.$TetrisScorePayload<ExtArgs>[]
+    /**
+     * And the Aim lab leaderboard.
+     */
+    aimLabScores: Prisma.$AimLabScorePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     userId: string
@@ -923,6 +1019,7 @@ export interface Prisma__TypingPlayerClient<T, Null = never, ExtArgs extends run
   readonly [Symbol.toStringTag]: "PrismaPromise"
   scores<T extends Prisma.TypingPlayer$scoresArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TypingPlayer$scoresArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TypingScorePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   tetrisScores<T extends Prisma.TypingPlayer$tetrisScoresArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TypingPlayer$tetrisScoresArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TetrisScorePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  aimLabScores<T extends Prisma.TypingPlayer$aimLabScoresArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TypingPlayer$aimLabScoresArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AimLabScorePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1394,6 +1491,30 @@ export type TypingPlayer$tetrisScoresArgs<ExtArgs extends runtime.Types.Extensio
   take?: number
   skip?: number
   distinct?: Prisma.TetrisScoreScalarFieldEnum | Prisma.TetrisScoreScalarFieldEnum[]
+}
+
+/**
+ * TypingPlayer.aimLabScores
+ */
+export type TypingPlayer$aimLabScoresArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AimLabScore
+   */
+  select?: Prisma.AimLabScoreSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AimLabScore
+   */
+  omit?: Prisma.AimLabScoreOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AimLabScoreInclude<ExtArgs> | null
+  where?: Prisma.AimLabScoreWhereInput
+  orderBy?: Prisma.AimLabScoreOrderByWithRelationInput | Prisma.AimLabScoreOrderByWithRelationInput[]
+  cursor?: Prisma.AimLabScoreWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AimLabScoreScalarFieldEnum | Prisma.AimLabScoreScalarFieldEnum[]
 }
 
 /**

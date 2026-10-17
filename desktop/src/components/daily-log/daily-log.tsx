@@ -23,6 +23,7 @@ import { HoursSummary } from './hours-summary'
 import { DraggedEntry } from './ui/dragged-entry'
 import { SetAsideConfirm } from './ui/set-aside-confirm'
 import { TrashBin } from './ui/trash-bin'
+import { AimLabDock } from '@/components/aim-lab/aim-lab-dock'
 import { RunYourselfDock } from '@/components/run-yourself/run-yourself-dock'
 import { TetrisDock } from '@/components/tetris/tetris-dock'
 import { TypingDock } from '@/components/typing-test/typing-dock'
@@ -32,9 +33,10 @@ interface DailyLogProps {
   onOpenTypingTest: () => void
   onOpenTetris: () => void
   onOpenRunYourself: () => void
+  onOpenAimLab: () => void
 }
 
-export function DailyLog({ onOpenSettings, onOpenTypingTest, onOpenTetris, onOpenRunYourself }: DailyLogProps) {
+export function DailyLog({ onOpenSettings, onOpenTypingTest, onOpenTetris, onOpenRunYourself, onOpenAimLab }: DailyLogProps) {
   const log = useDailyLog()
   const signedIn = useIsSignedIn()
   const timeInMinutes = useTimeIn(log.dateKey, signedIn)
@@ -234,6 +236,7 @@ export function DailyLog({ onOpenSettings, onOpenTypingTest, onOpenTetris, onOpe
       {/* A compact window has no room beside the content column, so both sit under the task list. */}
       {compactWindow ? (
         <div className="flex items-end justify-end gap-6 px-2">
+          <AimLabDock inline onOpen={onOpenAimLab} />
           <RunYourselfDock inline onOpen={onOpenRunYourself} />
           <TetrisDock inline onOpen={onOpenTetris} />
           <TypingDock inline onOpen={onOpenTypingTest} />
@@ -246,6 +249,7 @@ export function DailyLog({ onOpenSettings, onOpenTypingTest, onOpenTetris, onOpe
           {!trash.entry && <TypingDock onOpen={onOpenTypingTest} />}
           {!trash.entry && <TetrisDock onOpen={onOpenTetris} />}
           {!trash.entry && <RunYourselfDock onOpen={onOpenRunYourself} />}
+          {!trash.entry && <AimLabDock onOpen={onOpenAimLab} />}
         </>
       )}
       {trash.entry && <DraggedEntry entry={trash.entry} over={trash.overTrash} {...trash.motion} />}

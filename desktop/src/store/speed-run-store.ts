@@ -8,8 +8,8 @@ interface SpeedRunState {
   error: string | null
   /** The board, for the signed-in user. */
   fetchBoard: () => Promise<void>
-  /** Sends a run that crossed the line; the server keeps it only when it is a personal best. */
-  submitScore: (points: number, seconds: number) => Promise<void>
+  /** Sends a finished or knocked-out run; the server keeps it only when it is a personal best. */
+  submitScore: (points: number, metres: number, seconds: number) => Promise<void>
   /** Forgets the signed-out user's board. */
   reset: () => void
 }
@@ -30,8 +30,8 @@ export const useSpeedRunStore = create<SpeedRunState>((set, get) => ({
     })
   },
 
-  submitScore: async (points, seconds) => {
-    const result = await submitSpeedRunScore(points, seconds)
+  submitScore: async (points, metres, seconds) => {
+    const result = await submitSpeedRunScore(points, metres, seconds)
     if (!result.success) {
       set({ error: result.message })
       return

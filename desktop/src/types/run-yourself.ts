@@ -144,7 +144,9 @@ export interface SpeedRunLeaderboardEntry {
   id: string
   name: string
   points: number
-  /** Seconds to the finish line. */
+  /** SPEED_RUN_METRES when it finished; less when an enemy knocked it out. */
+  metres: number
+  /** Seconds to the finish line, or until the knockout. */
   seconds: number
   /** The signed-in user's own row. */
   you: boolean
@@ -152,10 +154,10 @@ export interface SpeedRunLeaderboardEntry {
 
 /** The top players' best speed runs, from the server. */
 export interface SpeedRunLeaderboard {
-  /** Most points first; ties go to the faster run. */
+  /** Most points first; ties go to the further, then the faster run. */
   entries: SpeedRunLeaderboardEntry[]
   /** The signed-in user's best run, on the board or not; null without one. */
-  you: { rank: number; points: number; seconds: number } | null
+  you: { rank: number; points: number; metres: number; seconds: number } | null
 }
 
 export interface SpeedRunScoreResult extends SpeedRunLeaderboard {
@@ -169,5 +171,7 @@ export interface RunLeaderboardEntry {
   metres: number
   /** Seconds the run took; a speed run's board shows its finish time. */
   seconds: number
+  /** False for a speed run knocked out short of the line: the time column shows its distance instead. */
+  finished?: boolean
   you?: boolean
 }

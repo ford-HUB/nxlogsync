@@ -10,8 +10,8 @@ const MAX_STEP = 1 / 30
 
 /**
  * One Run yourself game: the run state, ticked every animation frame while running, the moves,
- * and the result once it ends (recorded as the local best when it beats it). Signed in, a run
- * that crosses the line goes to the server's leaderboard.
+ * and the result once it ends (recorded as the local best when it beats it). Signed in, every
+ * speed run that scored goes to the server's leaderboard, knocked out or not.
  */
 export function useRunGame() {
   const config = useRunYourselfStore((s) => s.config)
@@ -59,10 +59,10 @@ export function useRunGame() {
       knockedOut: run.knockedOut,
       topSpeed: run.topSpeed,
       seconds: run.elapsed,
-      // Knocked out short of the finish, there's no finish time to rank.
-      personalBest: !run.knockedOut && submitBest(run.config, { points, metres, seconds }),
+      // A knockout still keeps its points; the board shows how far it got instead of a finish time.
+      personalBest: submitBest(run.config, { points, metres, seconds }),
     })
-    if (signedIn && !run.knockedOut && run.config.mode === 'speed-run') void submitScore(points, seconds)
+    if (signedIn && points > 0 && run.config.mode === 'speed-run') void submitScore(points, metres, seconds)
   }, [run, result, submitBest, signedIn, submitScore])
 
   const restart = useCallback(() => {

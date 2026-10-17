@@ -136,6 +136,8 @@ model TypingPlayer {
   scores       TypingScore[]
   /// The same name heads the Tetris leaderboard: one name for both games.
   tetrisScores TetrisScore[]
+  /// And the Aim lab leaderboard.
+  aimLabScores AimLabScore[]
 
   @@map("typing_players")
 }
@@ -175,7 +177,37 @@ model TetrisScore {
   @@map("tetris_scores")
 }
 
+/// A user's best Aim lab session for one mode; replaced only when beaten.
+model AimLabScore {
+  id         String       @id @default(uuid())
+  userId     String       @map("user_id")
+  /// The mode, e.g. "bot-reflex" or "dot-tracking" (the Unity build's AimLabBridge key).
+  setup      String
+  /// Kills or hits for most modes; seconds to 50 kills for "bot-time-attack", where lower wins.
+  score      Float
+  /// Hits out of shots fired, 0–100.
+  accuracy   Float
+  shotsFired Int          @map("shots_fired")
+  shotsHit   Int          @map("shots_hit")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  player     TypingPlayer @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([userId, setup])
+  @@index([setup, score])
+  @@map("aim_lab_scores")
+}
+
 /// A user's Tetris preferences, so they follow the account to any machine.
+/// Aim lab settings: each user's mouse sensitivity, so it follows the account to any machine.
+model AimLabSetting {
+  userId      String   @id @map("user_id")
+  /// On Valorant's scale (1 = 0.07° of turn per mouse count), 0.01–5.
+  sensitivity Float
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("aim_lab_settings")
+}
+
 model TetrisSetting {
   userId    String   @id @map("user_id")
   /// Key bindings per action, as the desktop's TetrisKeyBindings: { "left": ["ArrowLeft"], ... }.
@@ -219,9 +251,11 @@ model PassOrFallProgress {
 /// Run yourself's Speed run: each user's best finished run to the line (a knockout doesn't count).
 model SpeedRunBest {
   userId    String   @id @map("user_id")
-  /// Ranked by points, the faster run first on a tie.
+  /// Ranked by points, then the further run, then the faster one.
   points    Int
-  /// Seconds to the finish line.
+  /// How far it got: the full course (1000) when it crossed the finish line, less when knocked out.
+  metres    Int      @default(1000)
+  /// Seconds run: to the finish line, or until the knockout.
   seconds   Float
   updatedAt DateTime @updatedAt @map("updated_at")
 

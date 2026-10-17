@@ -86,7 +86,9 @@ export function ModePicker({ config, bests, onPick }: ModePickerProps) {
           art={SPRITES.run[0]}
           active={config.mode === 'speed-run'}
           best={bests[runBestKey({ mode: 'speed-run' })]}
-          bestLabel={(b) => `${b.seconds.toFixed(1)}s · ${b.points.toLocaleString()} pts`}
+          bestLabel={(b) =>
+            `${b.metres < SPEED_RUN_METRES ? `${b.metres}m` : `${b.seconds.toFixed(1)}s`} · ${b.points.toLocaleString()} pts`
+          }
           onPick={() => onPick({ mode: 'speed-run' })}
         />
         <ModeCard

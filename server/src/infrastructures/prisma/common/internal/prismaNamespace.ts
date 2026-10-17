@@ -406,6 +406,8 @@ export const ModelName = {
   TypingPlayer: 'TypingPlayer',
   TypingScore: 'TypingScore',
   TetrisScore: 'TetrisScore',
+  AimLabScore: 'AimLabScore',
+  AimLabSetting: 'AimLabSetting',
   TetrisSetting: 'TetrisSetting',
   RunSetting: 'RunSetting',
   PassOrFallProgress: 'PassOrFallProgress',
@@ -425,7 +427,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "logEntry" | "syncSchedule" | "syncRun" | "npaxCredential" | "userSession" | "reminderSetting" | "typingPlayer" | "typingScore" | "tetrisScore" | "tetrisSetting" | "runSetting" | "passOrFallProgress" | "speedRunBest"
+    modelProps: "logEntry" | "syncSchedule" | "syncRun" | "npaxCredential" | "userSession" | "reminderSetting" | "typingPlayer" | "typingScore" | "tetrisScore" | "aimLabScore" | "aimLabSetting" | "tetrisSetting" | "runSetting" | "passOrFallProgress" | "speedRunBest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1095,6 +1097,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AimLabScore: {
+      payload: Prisma.$AimLabScorePayload<ExtArgs>
+      fields: Prisma.AimLabScoreFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AimLabScoreFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabScorePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AimLabScoreFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabScorePayload>
+        }
+        findFirst: {
+          args: Prisma.AimLabScoreFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabScorePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AimLabScoreFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabScorePayload>
+        }
+        findMany: {
+          args: Prisma.AimLabScoreFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabScorePayload>[]
+        }
+        create: {
+          args: Prisma.AimLabScoreCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabScorePayload>
+        }
+        createMany: {
+          args: Prisma.AimLabScoreCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AimLabScoreCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabScorePayload>[]
+        }
+        delete: {
+          args: Prisma.AimLabScoreDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabScorePayload>
+        }
+        update: {
+          args: Prisma.AimLabScoreUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabScorePayload>
+        }
+        deleteMany: {
+          args: Prisma.AimLabScoreDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AimLabScoreUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AimLabScoreUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabScorePayload>[]
+        }
+        upsert: {
+          args: Prisma.AimLabScoreUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabScorePayload>
+        }
+        aggregate: {
+          args: Prisma.AimLabScoreAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAimLabScore>
+        }
+        groupBy: {
+          args: Prisma.AimLabScoreGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AimLabScoreGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AimLabScoreCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AimLabScoreCountAggregateOutputType> | number
+        }
+      }
+    }
+    AimLabSetting: {
+      payload: Prisma.$AimLabSettingPayload<ExtArgs>
+      fields: Prisma.AimLabSettingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AimLabSettingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabSettingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AimLabSettingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabSettingPayload>
+        }
+        findFirst: {
+          args: Prisma.AimLabSettingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabSettingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AimLabSettingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabSettingPayload>
+        }
+        findMany: {
+          args: Prisma.AimLabSettingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabSettingPayload>[]
+        }
+        create: {
+          args: Prisma.AimLabSettingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabSettingPayload>
+        }
+        createMany: {
+          args: Prisma.AimLabSettingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AimLabSettingCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabSettingPayload>[]
+        }
+        delete: {
+          args: Prisma.AimLabSettingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabSettingPayload>
+        }
+        update: {
+          args: Prisma.AimLabSettingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabSettingPayload>
+        }
+        deleteMany: {
+          args: Prisma.AimLabSettingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AimLabSettingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AimLabSettingUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabSettingPayload>[]
+        }
+        upsert: {
+          args: Prisma.AimLabSettingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AimLabSettingPayload>
+        }
+        aggregate: {
+          args: Prisma.AimLabSettingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAimLabSetting>
+        }
+        groupBy: {
+          args: Prisma.AimLabSettingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AimLabSettingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AimLabSettingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AimLabSettingCountAggregateOutputType> | number
+        }
+      }
+    }
     TetrisSetting: {
       payload: Prisma.$TetrisSettingPayload<ExtArgs>
       fields: Prisma.TetrisSettingFieldRefs
@@ -1553,6 +1703,29 @@ export const TetrisScoreScalarFieldEnum = {
 export type TetrisScoreScalarFieldEnum = (typeof TetrisScoreScalarFieldEnum)[keyof typeof TetrisScoreScalarFieldEnum]
 
 
+export const AimLabScoreScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  setup: 'setup',
+  score: 'score',
+  accuracy: 'accuracy',
+  shotsFired: 'shotsFired',
+  shotsHit: 'shotsHit',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AimLabScoreScalarFieldEnum = (typeof AimLabScoreScalarFieldEnum)[keyof typeof AimLabScoreScalarFieldEnum]
+
+
+export const AimLabSettingScalarFieldEnum = {
+  userId: 'userId',
+  sensitivity: 'sensitivity',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AimLabSettingScalarFieldEnum = (typeof AimLabSettingScalarFieldEnum)[keyof typeof AimLabSettingScalarFieldEnum]
+
+
 export const TetrisSettingScalarFieldEnum = {
   userId: 'userId',
   keys: 'keys',
@@ -1588,6 +1761,7 @@ export type PassOrFallProgressScalarFieldEnum = (typeof PassOrFallProgressScalar
 export const SpeedRunBestScalarFieldEnum = {
   userId: 'userId',
   points: 'points',
+  metres: 'metres',
   seconds: 'seconds',
   updatedAt: 'updatedAt'
 } as const
@@ -1877,6 +2051,8 @@ export type GlobalOmitConfig = {
   typingPlayer?: Prisma.TypingPlayerOmit
   typingScore?: Prisma.TypingScoreOmit
   tetrisScore?: Prisma.TetrisScoreOmit
+  aimLabScore?: Prisma.AimLabScoreOmit
+  aimLabSetting?: Prisma.AimLabSettingOmit
   tetrisSetting?: Prisma.TetrisSettingOmit
   runSetting?: Prisma.RunSettingOmit
   passOrFallProgress?: Prisma.PassOrFallProgressOmit

@@ -9,30 +9,44 @@ const MAX_POINTS = 200_000;
 const MIN_SECONDS = 30;
 /** An hour: far past any real run. */
 const MAX_SECONDS = 3_600;
+/** The course's length: a run that covers it crossed the finish line. */
+export const SPEED_RUN_METRES = 1000;
 
-/** A run that crossed the finish line. */
+/** A finished run, or one an enemy knocked out short of the line (it still scores its points). */
 export const SpeedRunScoreSchema = z
   .object({
     points: z.number().int().min(0).max(MAX_POINTS),
-    seconds: z.number().min(MIN_SECONDS).max(MAX_SECONDS),
+    metres: z.number().int().min(0).max(SPEED_RUN_METRES),
+    seconds: z.number().min(0).max(MAX_SECONDS),
   })
-  .strict();
+  .strict()
+  .refine((r) => r.metres < SPEED_RUN_METRES || r.seconds >= MIN_SECONDS, {
+    path: ['seconds'],
+    message: 'faster than the course can be run',
+  });
 
 export const SpeedRunLeaderboardEntrySchema = z.object({
   id: z.string(),
   name: z.string(),
   points: z.number(),
+  /** SPEED_RUN_METRES when it finished; less when knocked out. */
+  metres: z.number(),
   seconds: z.number(),
   /** The signed-in user's own row. */
   you: z.boolean(),
 });
 
 export const SpeedRunLeaderboardResponseSchema = z.object({
-  /** The top players, most points first; ties go to the faster run. */
+  /** The top players, most points first; ties go to the further, then the faster run. */
   entries: z.array(SpeedRunLeaderboardEntrySchema),
   /** The signed-in user's best run, on the board or not; null without one. */
   you: z
-    .object({ rank: z.number(), points: z.number(), seconds: z.number() })
+    .object({
+      rank: z.number(),
+      points: z.number(),
+      metres: z.number(),
+      seconds: z.number(),
+    })
     .nullable(),
 });
 

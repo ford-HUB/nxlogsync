@@ -11,7 +11,6 @@ import { AimLabTimeBar } from '@/components/aim-lab/ui/aim-lab-time-bar'
 import { AIM_LAB_CANVAS_ID, AIM_LAB_MISSING } from '@/constants/aim-lab'
 import { useAimLab } from '@/hooks/use-aim-lab'
 import { useAimLabLeaderboard } from '@/hooks/use-aim-lab-leaderboard'
-import { useFrameRate } from '@/hooks/use-frame-rate'
 
 /** How long after pausing an Esc is taken as the one that paused, not a request to exit. */
 const ESC_GRACE_MS = 300
@@ -37,7 +36,6 @@ export function AimLabGame({ onBack, playerName, paused = false }: AimLabGamePro
   const { phase } = game
   const inRound = phase === 'armed' || phase === 'running' || phase === 'paused'
   const lobby = ready && !inRound
-  const frameRate = useFrameRate(ready)
   const leaderboard = useAimLabLeaderboard(aim.setup)
   // The best on the server (maybe set on another machine) or this session's, whichever is higher.
   const serverBest = leaderboard.board?.you ?? undefined
@@ -80,7 +78,7 @@ export function AimLabGame({ onBack, playerName, paused = false }: AimLabGamePro
       <canvas ref={canvasRef} id={AIM_LAB_CANVAS_ID} tabIndex={-1} className="absolute inset-0 size-full outline-none" />
 
       {ready && inRound && <AimLabHud game={game} />}
-      {ready && <AimLabFps rate={frameRate} />}
+      {ready && <AimLabFps round={inRound} playing={phase === 'running'} />}
 
       <AnimatePresence>
         {lobby && (

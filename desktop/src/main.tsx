@@ -2,7 +2,6 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './app.tsx'
 import './index.css'
-// Sets the saved light/dark class before the first render.
 import './store/theme-store'
 
 

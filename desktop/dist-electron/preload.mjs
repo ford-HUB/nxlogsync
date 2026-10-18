@@ -1,1 +1,40 @@
-"use strict";const e=require("electron");e.contextBridge.exposeInMainWorld("ipcRenderer",{on(...n){const[r,t]=n;return e.ipcRenderer.on(r,(i,...o)=>t(i,...o))},off(...n){const[r,...t]=n;return e.ipcRenderer.off(r,...t)},send(...n){const[r,...t]=n;return e.ipcRenderer.send(r,...t)},invoke(...n){const[r,...t]=n;return e.ipcRenderer.invoke(r,...t)}});e.contextBridge.exposeInMainWorld("printing",{listPrinters:()=>e.ipcRenderer.invoke("printing:list-printers"),printHtml:n=>e.ipcRenderer.invoke("printing:print-html",n)});e.contextBridge.exposeInMainWorld("updater",{getStatus:()=>e.ipcRenderer.invoke("updater:get-status"),onStatus:n=>{const r=(t,i)=>n(i);return e.ipcRenderer.on("updater:status",r),()=>{e.ipcRenderer.off("updater:status",r)}}});
+"use strict";
+const electron = require("electron");
+electron.contextBridge.exposeInMainWorld("ipcRenderer", {
+  on(...args) {
+    const [channel, listener] = args;
+    return electron.ipcRenderer.on(channel, (event, ...args2) => listener(event, ...args2));
+  },
+  off(...args) {
+    const [channel, ...omit] = args;
+    return electron.ipcRenderer.off(channel, ...omit);
+  },
+  send(...args) {
+    const [channel, ...omit] = args;
+    return electron.ipcRenderer.send(channel, ...omit);
+  },
+  invoke(...args) {
+    const [channel, ...omit] = args;
+    return electron.ipcRenderer.invoke(channel, ...omit);
+  }
+  // You can expose other APTs you need here.
+  // ...
+});
+electron.contextBridge.exposeInMainWorld("printing", {
+  listPrinters: () => electron.ipcRenderer.invoke("printing:list-printers"),
+  printHtml: (request) => electron.ipcRenderer.invoke("printing:print-html", request)
+});
+electron.contextBridge.exposeInMainWorld("desktopNotifications", {
+  showIfAway: (request) => electron.ipcRenderer.invoke("notifications:show-if-away", request),
+  close: (id) => electron.ipcRenderer.invoke("notifications:close", id)
+});
+electron.contextBridge.exposeInMainWorld("updater", {
+  getStatus: () => electron.ipcRenderer.invoke("updater:get-status"),
+  onStatus: (listener) => {
+    const handler = (_event, status) => listener(status);
+    electron.ipcRenderer.on("updater:status", handler);
+    return () => {
+      electron.ipcRenderer.off("updater:status", handler);
+    };
+  }
+});

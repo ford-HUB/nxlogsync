@@ -1,12 +1,23 @@
+import { Flag } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { VISIBLE_LINES } from '@/constants/typing-test'
 import type { TypingSession } from '@/hooks/use-typing-test'
 import { cn } from '@/lib/utils'
 
+/** A racer's place in the words, drawn as a flag over that letter (1v1 races). */
+export interface WordFlag {
+  id: string
+  word: number
+  char: number
+  label: string
+  tone: 'you' | 'opponent'
+}
+
 interface WordsDisplayProps {
   session: TypingSession
   focused: boolean
+  flags?: WordFlag[]
 }
 
 /** Words after the caret that are rendered at all; the rest wait off-screen. */
@@ -17,7 +28,7 @@ const LOOKAHEAD = 80
  * extra letters appended in faded red, and a wrong finished word underlined. Three lines show
  * at a time and scroll a line at a time so the caret stays on the middle one.
  */
-export function WordsDisplay({ session, focused }: WordsDisplayProps) {
+export function WordsDisplay({ session, focused, flags }: WordsDisplayProps) {
   const { words, typed, input, status } = session
   const current = typed.length
   const containerRef = useRef<HTMLDivElement>(null)
@@ -51,6 +62,23 @@ export function WordsDisplay({ session, focused }: WordsDisplayProps) {
     setScroll(Math.max(0, line - 1) * lh)
   }, [input, current, words, layoutTick])
 
+  // Each flag sits on its racer's letter, measured like the caret. Off the rendered words, none.
+  const [flagSpots, setFlagSpots] = useState<Record<string, { x: number; y: number }>>({})
+  useLayoutEffect(() => {
+    const container = containerRef.current
+    if (!container || !flags?.length) return
+    const spots: Record<string, { x: number; y: number }> = {}
+    for (const flag of flags) {
+      const word = container.querySelector<HTMLElement>(`[data-word="${flag.word}"]`)
+      if (!word) continue
+      const letters = word.querySelectorAll<HTMLElement>('[data-letter]')
+      const at = letters[Math.min(flag.char, letters.length - 1)]
+      const x = at ? at.offsetLeft + (flag.char >= letters.length ? at.offsetWidth : 0) : word.offsetLeft
+      spots[flag.id] = { x, y: word.offsetTop }
+    }
+    setFlagSpots(spots)
+  }, [flags, input, current, words, layoutTick])
+
   const end = Math.min(words.length, current + LOOKAHEAD)
 
   return (
@@ -73,6 +101,7 @@ export function WordsDisplay({ session, focused }: WordsDisplayProps) {
           return (
             <span
               key={i}
+              data-word={i}
               ref={active ? activeRef : undefined}
               className={cn(
                 'mr-[0.5em] border-b-2 border-transparent',
@@ -101,6 +130,39 @@ export function WordsDisplay({ session, focused }: WordsDisplayProps) {
                 </span>
               ))}
             </span>
+          )
+        })}
+
+        {flags?.map((flag) => {
+          const spot = flagSpots[flag.id]
+          if (!spot || !lineHeight) return null
+          const opponent = flag.tone === 'opponent'
+          return (
+            <motion.span
+              key={flag.id}
+              aria-hidden
+              initial={false}
+              animate={{ x: spot.x, y: spot.y }}
+              transition={{ type: 'spring', stiffness: 700, damping: 45, mass: 0.5 }}
+              className="pointer-events-none absolute top-0 left-0 z-10"
+            >
+              {/* The opponent's caret; the user's own is the regular one. */}
+              {opponent && (
+                <span
+                  className="absolute -left-px w-[2px] rounded-full bg-score"
+                  style={{ top: lineHeight * 0.2, height: lineHeight * 0.6 }}
+                />
+              )}
+              <span
+                className={cn(
+                  'absolute -left-px flex -translate-y-1/2 items-center gap-0.5 rounded-sm rounded-bl-none px-1 font-sans text-[9px] leading-[14px] font-semibold tracking-normal whitespace-nowrap shadow-sm',
+                  opponent ? 'bg-score text-background' : 'bg-foreground text-background',
+                )}
+                style={{ top: lineHeight * 0.18 }}
+              >
+                <Flag className="size-2.5" /> {flag.label}
+              </span>
+            </motion.span>
           )
         })}
 

@@ -405,6 +405,7 @@ export const ModelName = {
   ReminderSetting: 'ReminderSetting',
   TypingPlayer: 'TypingPlayer',
   TypingScore: 'TypingScore',
+  TypingDuelRecord: 'TypingDuelRecord',
   TetrisScore: 'TetrisScore',
   AimLabScore: 'AimLabScore',
   AimLabSetting: 'AimLabSetting',
@@ -427,7 +428,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "logEntry" | "syncSchedule" | "syncRun" | "npaxCredential" | "userSession" | "reminderSetting" | "typingPlayer" | "typingScore" | "tetrisScore" | "aimLabScore" | "aimLabSetting" | "tetrisSetting" | "runSetting" | "passOrFallProgress" | "speedRunBest"
+    modelProps: "logEntry" | "syncSchedule" | "syncRun" | "npaxCredential" | "userSession" | "reminderSetting" | "typingPlayer" | "typingScore" | "typingDuelRecord" | "tetrisScore" | "aimLabScore" | "aimLabSetting" | "tetrisSetting" | "runSetting" | "passOrFallProgress" | "speedRunBest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1020,6 +1021,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.TypingScoreCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.TypingScoreCountAggregateOutputType> | number
+        }
+      }
+    }
+    TypingDuelRecord: {
+      payload: Prisma.$TypingDuelRecordPayload<ExtArgs>
+      fields: Prisma.TypingDuelRecordFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TypingDuelRecordFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingDuelRecordPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TypingDuelRecordFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingDuelRecordPayload>
+        }
+        findFirst: {
+          args: Prisma.TypingDuelRecordFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingDuelRecordPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TypingDuelRecordFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingDuelRecordPayload>
+        }
+        findMany: {
+          args: Prisma.TypingDuelRecordFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingDuelRecordPayload>[]
+        }
+        create: {
+          args: Prisma.TypingDuelRecordCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingDuelRecordPayload>
+        }
+        createMany: {
+          args: Prisma.TypingDuelRecordCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TypingDuelRecordCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingDuelRecordPayload>[]
+        }
+        delete: {
+          args: Prisma.TypingDuelRecordDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingDuelRecordPayload>
+        }
+        update: {
+          args: Prisma.TypingDuelRecordUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingDuelRecordPayload>
+        }
+        deleteMany: {
+          args: Prisma.TypingDuelRecordDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TypingDuelRecordUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TypingDuelRecordUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingDuelRecordPayload>[]
+        }
+        upsert: {
+          args: Prisma.TypingDuelRecordUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TypingDuelRecordPayload>
+        }
+        aggregate: {
+          args: Prisma.TypingDuelRecordAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTypingDuelRecord>
+        }
+        groupBy: {
+          args: Prisma.TypingDuelRecordGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TypingDuelRecordGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TypingDuelRecordCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TypingDuelRecordCountAggregateOutputType> | number
         }
       }
     }
@@ -1690,6 +1765,17 @@ export const TypingScoreScalarFieldEnum = {
 export type TypingScoreScalarFieldEnum = (typeof TypingScoreScalarFieldEnum)[keyof typeof TypingScoreScalarFieldEnum]
 
 
+export const TypingDuelRecordScalarFieldEnum = {
+  userId: 'userId',
+  wins: 'wins',
+  losses: 'losses',
+  draws: 'draws',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TypingDuelRecordScalarFieldEnum = (typeof TypingDuelRecordScalarFieldEnum)[keyof typeof TypingDuelRecordScalarFieldEnum]
+
+
 export const TetrisScoreScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -2050,6 +2136,7 @@ export type GlobalOmitConfig = {
   reminderSetting?: Prisma.ReminderSettingOmit
   typingPlayer?: Prisma.TypingPlayerOmit
   typingScore?: Prisma.TypingScoreOmit
+  typingDuelRecord?: Prisma.TypingDuelRecordOmit
   tetrisScore?: Prisma.TetrisScoreOmit
   aimLabScore?: Prisma.AimLabScoreOmit
   aimLabSetting?: Prisma.AimLabSettingOmit

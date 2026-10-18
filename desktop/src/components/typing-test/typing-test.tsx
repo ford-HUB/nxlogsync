@@ -1,7 +1,8 @@
 import { Lock, MousePointerClick, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { useTypingKeys } from '@/hooks/use-typing-keys'
 import { useLeaderboard } from '@/hooks/use-typing-leaderboard'
 import { useTypingTest } from '@/hooks/use-typing-test'
 import { cn } from '@/lib/utils'
@@ -22,9 +23,6 @@ interface TypingTestProps {
 
 /** The live wpm only counts toward the leaderboard after this long, past the first-second spikes. */
 const LIVE_RANK_AFTER_MS = 2000
-
-/** The keyboard's name for a key event: a lowercase letter, or 'space'. */
-const keyName = (e: KeyboardEvent) => (e.key === ' ' ? 'space' : e.key.toLowerCase())
 
 /**
  * A monkeytype-style typing test over the blurred daily log: live wpm, accuracy and time on top,
@@ -52,48 +50,8 @@ export function TypingTest({ onBack, paused = false }: TypingTestProps) {
     if (result && playerName) void submitScore(bestKey(result.config), result.wpm, result.accuracy)
   }, [result, playerName, submitScore])
   const running = session.status === 'running'
-  const [focused, setFocused] = useState(() => document.hasFocus())
-  const [pressed, setPressed] = useState<ReadonlySet<string>>(new Set())
-
   // Every key goes to the test, ahead of the daily log underneath; Escape closes it.
-  const keyRef = useRef(test.onKeyDown)
-  keyRef.current = test.onKeyDown
-  useEffect(() => {
-    if (paused) return
-    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
-    const onKey = (e: KeyboardEvent) => {
-      e.stopPropagation()
-      if (e.key === 'Escape') {
-        onBack()
-        return
-      }
-      setFocused(true)
-      const name = keyName(e)
-      setPressed((prev) => (prev.has(name) ? prev : new Set(prev).add(name)))
-      keyRef.current(e)
-    }
-    const onKeyUp = (e: KeyboardEvent) => {
-      const name = keyName(e)
-      setPressed((prev) => {
-        if (!prev.has(name)) return prev
-        const next = new Set(prev)
-        next.delete(name)
-        return next
-      })
-    }
-    const onBlur = () => {
-      setFocused(false)
-      setPressed(new Set())
-    }
-    window.addEventListener('keydown', onKey, true)
-    window.addEventListener('keyup', onKeyUp, true)
-    window.addEventListener('blur', onBlur)
-    return () => {
-      window.removeEventListener('keydown', onKey, true)
-      window.removeEventListener('keyup', onKeyUp, true)
-      window.removeEventListener('blur', onBlur)
-    }
-  }, [onBack, paused])
+  const { focused, setFocused, pressed } = useTypingKeys({ onKey: test.onKeyDown, onEscape: onBack, paused })
 
   const elapsed = Math.floor(elapsedMs / 1000)
   const seconds = config.mode === 'time' ? Math.max(0, config.amount - elapsed) : elapsed

@@ -4,6 +4,7 @@ import { UpdateScreen } from '@/components/app-update/update-screen'
 import { VersionBadge } from '@/components/changelog/version-badge'
 import { HiddenReportSwipe } from '@/components/excel-report/ui/hidden-report-swipe'
 import { PasscodeScreen } from '@/components/passcode/passcode-screen'
+import { DuelInvites } from '@/components/typing-test/duel-invites'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { usePasscodeExpiry } from '@/hooks/use-passcode-expiry'
 import { useSiteSessionPolling } from '@/hooks/use-site-session'
@@ -16,14 +17,19 @@ import { SettingsPage } from '@/pages/settings-page'
 import { TetrisPage } from '@/pages/tetris-page'
 import { TypingTestPage } from '@/pages/typing-test-page'
 import { usePasscodeStore } from '@/store/passcode-store'
+import { useTypingDuelStore } from '@/store/typing-duel-store'
 
 type AppView = 'daily-log' | 'settings' | 'typing-test' | 'tetris' | 'run-yourself' | 'aim-lab' | 'excel-report' | 'changelog'
 
-/** The app, with the update screen over everything, the passcode screen included. */
+/**
+ * The app, with the update screen over everything, the passcode screen included. Typing 1v1
+ * invites reach the user from the moment the app opens, locked or not.
+ */
 function App() {
   return (
     <>
       <AppScreens />
+      <DuelInvites />
       <UpdateScreen />
     </>
   )
@@ -42,6 +48,13 @@ function AppScreens() {
   useEffect(() => {
     if (status === 'locked') setView('daily-log')
   }, [status])
+
+  // A 1v1 just started (an invite accepted, here or by the other player): open the typing test on
+  // it. While locked it waits behind the passcode screen.
+  const matchId = useTypingDuelStore((s) => s.match?.id ?? null)
+  useEffect(() => {
+    if (matchId) setView('typing-test')
+  }, [matchId])
 
   if (status !== 'unlocked') return <PasscodeScreen />
 

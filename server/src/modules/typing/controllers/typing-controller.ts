@@ -15,6 +15,7 @@ import type {
   TypingPlayerDto,
   TypingScoreDto,
 } from '../dto/typing-dto';
+import { TypingDuelService } from '../services/typing-duel-service';
 import { TypingService } from '../services/typing-service';
 import {
   LeaderboardQuerySchema,
@@ -26,7 +27,10 @@ import {
 // The typing test's leaderboard: the signed-in user's name and best runs.
 @Controller('v1/typing')
 export class TypingController {
-  constructor(private readonly typingService: TypingService) {}
+  constructor(
+    private readonly typingService: TypingService,
+    private readonly duelService: TypingDuelService,
+  ) {}
 
   // GET /api/v1/typing/player → { name }; null until picked
   @Get('player')
@@ -61,6 +65,12 @@ export class TypingController {
     query: LeaderboardQueryDto,
   ) {
     return await this.typingService.leaderboard(user, query.setup);
+  }
+
+  // GET /api/v1/typing/duel/leaderboard → { entries, you }; most 1v1 races won
+  @Get('duel/leaderboard')
+  async duelLeaderboard(@CurrentUser() user: string) {
+    return await this.duelService.leaderboard(user);
   }
 
   // POST /api/v1/typing/scores { setup, wpm, accuracy } → leaderboard + { personalBest }

@@ -59,6 +59,7 @@ export const ModelName = {
   ReminderSetting: 'ReminderSetting',
   TypingPlayer: 'TypingPlayer',
   TypingScore: 'TypingScore',
+  TypingDuelRecord: 'TypingDuelRecord',
   TetrisScore: 'TetrisScore',
   AimLabScore: 'AimLabScore',
   AimLabSetting: 'AimLabSetting',
@@ -192,6 +193,17 @@ export const TypingScoreScalarFieldEnum = {
 } as const
 
 export type TypingScoreScalarFieldEnum = (typeof TypingScoreScalarFieldEnum)[keyof typeof TypingScoreScalarFieldEnum]
+
+
+export const TypingDuelRecordScalarFieldEnum = {
+  userId: 'userId',
+  wins: 'wins',
+  losses: 'losses',
+  draws: 'draws',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TypingDuelRecordScalarFieldEnum = (typeof TypingDuelRecordScalarFieldEnum)[keyof typeof TypingDuelRecordScalarFieldEnum]
 
 
 export const TetrisScoreScalarFieldEnum = {

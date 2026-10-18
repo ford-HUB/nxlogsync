@@ -32,15 +32,26 @@ const wordsFor = (config: TypingConfig) =>
 const freshSession = (words: string[]): TypingSession => ({ words, typed: [], input: '', status: 'idle' })
 
 /**
+ * A test dealt from outside, e.g. a 1v1 race: these words and this setup, no Tab restart, no
+ * personal bests, and the clock starts with start() rather than the first key. Keep the object
+ * stable (memoised); a new one starts a new test.
+ */
+export interface FixedTest {
+  config: TypingConfig
+  words: string[]
+}
+
+/**
  * A monkeytype-style typing test. Keys arrive through onKeyDown (wired to the window); the first
  * letter starts the clock. Space finishes a word (a wrong one can be reopened with Backspace),
  * Tab restarts. A time test ends on the clock, a words test on its last word.
  */
-export function useTypingTest() {
-  const config = useTypingTestStore((s) => s.config)
+export function useTypingTest(fixed?: FixedTest) {
+  const storeConfig = useTypingTestStore((s) => s.config)
+  const config = fixed?.config ?? storeConfig
   const submitBest = useTypingTestStore((s) => s.submitBest)
 
-  const [session, setSessionState] = useState(() => freshSession(wordsFor(config)))
+  const [session, setSessionState] = useState(() => freshSession(fixed?.words ?? wordsFor(config)))
   // Mirror of session, so keys pressed faster than React re-renders still see the latest state.
   const sessionRef = useRef(session)
   const setSession = useCallback((next: TypingSession) => {
@@ -65,10 +76,18 @@ export function useTypingTest() {
       setElapsedMs(0)
       setLiveAccuracy(100)
       setResult(null)
-      setSession(freshSession(repeat ? sessionRef.current.words : wordsFor(config)))
+      setSession(freshSession(fixed ? fixed.words : repeat ? sessionRef.current.words : wordsFor(config)))
     },
-    [config, setSession],
+    [config, fixed, setSession],
   )
+
+  /** Starts a fixed test's clock; keys before it are ignored. */
+  const start = useCallback(() => {
+    const s = sessionRef.current
+    if (s.status !== 'idle') return
+    startedAtRef.current = Date.now()
+    setSession({ ...s, status: 'running' })
+  }, [setSession])
 
   // A new setup means a new test.
   useEffect(() => restart(), [restart])
@@ -123,9 +142,9 @@ export function useTypingTest() {
       chars,
       seconds: ms / 1000,
       history,
-      personalBest: submitBest(config, rounded, accuracy),
+      personalBest: fixed ? false : submitBest(config, rounded, accuracy),
     })
-  }, [config, setSession, submitBest])
+  }, [config, fixed, setSession, submitBest])
 
   // The clock: drives the countdown and ends a time test.
   useEffect(() => {
@@ -158,7 +177,7 @@ export function useTypingTest() {
     setCapsLock(e.getModifierState('CapsLock'))
     if (e.key === 'Tab') {
       e.preventDefault()
-      restart()
+      if (!fixed) restart()
       return
     }
     const s = sessionRef.current
@@ -191,7 +210,8 @@ export function useTypingTest() {
       }
       // Keep a time test from running out of words.
       const words =
-        config.mode === 'time' && s.words.length - typed.length < TIME_TEST_BUFFER / 2
+        // A fixed test's words are dealt for both racers, so they are never added to.
+      config.mode === 'time' && !fixed && s.words.length - typed.length < TIME_TEST_BUFFER / 2
           ? [...s.words, ...generateWords(TIME_TEST_BUFFER, config, s.words[s.words.length - 1])]
           : s.words
       setSession({ ...s, words, typed, input: '' })
@@ -203,6 +223,7 @@ export function useTypingTest() {
     if (s.input.length >= target.length + MAX_EXTRA_LETTERS) return
     let status = s.status
     if (status === 'idle') {
+      if (fixed) return
       status = 'running'
       startedAtRef.current = Date.now()
     }
@@ -220,5 +241,5 @@ export function useTypingTest() {
   const correctChars = countCorrectWordChars(session.words, session.typed, session.input)
   const liveWpm = session.status === 'running' && elapsedMs > 1000 ? Math.round(toWpm(correctChars, elapsedMs)) : 0
 
-  return { config, session, elapsedMs, liveWpm, liveAccuracy, result, capsLock, restart, onKeyDown }
+  return { config, session, elapsedMs, liveWpm, liveAccuracy, result, capsLock, restart, start, finish, onKeyDown }
 }

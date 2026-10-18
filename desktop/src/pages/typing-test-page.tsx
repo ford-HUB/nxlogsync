@@ -1,11 +1,18 @@
 import { RotateCcw, WifiOff } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
+import { useEffect, useState } from 'react'
+import { DuelLobby } from '@/components/typing-test/duel-lobby'
+import { ModeSelect } from '@/components/typing-test/mode-select'
+import { TypingDuel } from '@/components/typing-test/typing-duel'
 import { TypingTest } from '@/components/typing-test/typing-test'
 import { ConnectRequiredDialog } from '@/components/typing-test/ui/connect-required-dialog'
 import { PlayerNameDialog } from '@/components/typing-test/ui/player-name-dialog'
 import { cn } from '@/lib/utils'
 import { useSiteSessionStore } from '@/store/site-session-store'
+import { useTypingDuelStore } from '@/store/typing-duel-store'
 import { useTypingPlayer } from '@/hooks/use-typing-leaderboard'
+
+type TypingMode = 'select' | 'solo' | 'duel'
 
 interface TypingTestPageProps {
   onBack: () => void
@@ -14,7 +21,8 @@ interface TypingTestPageProps {
 
 /**
  * The typing test as a full-window overlay; the daily log stays visible, blurred, behind it. The
- * first visit asks for the name the leaderboard shows.
+ * first visit asks for the name the leaderboard shows. It opens on a choice between solo and a
+ * 1v1; while the user is in a 1v1 (e.g. an invite accepted elsewhere), the race shows instead.
  */
 export function TypingTestPage({ onBack, onOpenSettings }: TypingTestPageProps) {
   const { playerName, playerStatus, savePlayer, retry } = useTypingPlayer()
@@ -24,6 +32,16 @@ export function TypingTestPage({ onBack, onOpenSettings }: TypingTestPageProps) 
   const needsName = connected && playerStatus === 'ready' && !playerName
   const blocked = !connected || needsName
   const paused = blocked || playerStatus === 'idle' || playerStatus === 'loading'
+
+  const [mode, setMode] = useState<TypingMode>('select')
+  const match = useTypingDuelStore((s) => s.match)
+  const duelLive = useTypingDuelStore((s) => s.live)
+  const onlineCount = useTypingDuelStore((s) => s.players.length)
+  // After a 1v1 ends, the lobby is where to find the next one.
+  const inMatch = match !== null
+  useEffect(() => {
+    if (inMatch) setMode('duel')
+  }, [inMatch])
 
   return (
     <motion.main
@@ -38,7 +56,22 @@ export function TypingTestPage({ onBack, onOpenSettings }: TypingTestPageProps) 
     >
       {/* Until a leaderboard name is picked, the test sits blurred and paused behind the prompt. */}
       <div className={cn('transition-[filter] duration-300', blocked && 'pointer-events-none blur-md select-none')}>
-        <TypingTest onBack={onBack} paused={paused} />
+        {match ? (
+          <TypingDuel match={match} paused={paused} />
+        ) : mode === 'solo' ? (
+          <TypingTest onBack={() => setMode('select')} paused={paused} />
+        ) : mode === 'duel' ? (
+          <DuelLobby onBack={() => setMode('select')} paused={paused} />
+        ) : (
+          <ModeSelect
+            onSolo={() => setMode('solo')}
+            onDuel={() => setMode('duel')}
+            onClose={onBack}
+            onlineCount={onlineCount}
+            live={duelLive}
+            paused={paused}
+          />
+        )}
       </div>
       {!connected && <ConnectRequiredDialog open onOpenSettings={onOpenSettings} onCancel={onBack} />}
       {needsName && <PlayerNameDialog open onSave={savePlayer} onCancel={onBack} />}

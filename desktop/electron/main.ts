@@ -1,7 +1,9 @@
 import { app, BrowserWindow, Menu } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { registerNotifications } from './notifications'
 import { registerPrintingHandlers } from './printing'
+import { registerTray } from './tray'
 import { registerUpdater } from './updater'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -31,8 +33,12 @@ function createWindow() {
     icon: path.join(process.env.VITE_PUBLIC, 'logo-nxlogsync.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
+      // Hidden in the tray it still has to answer the server and count invites down on time.
+      backgroundThrottling: false,
     },
   })
+  // Focused again: any notification flashing is answered.
+  win.on('focus', () => win?.flashFrame(false))
 
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {
@@ -65,9 +71,17 @@ app.on('activate', () => {
   }
 })
 
+// Closing the window keeps the app in the tray; a second launch shows this one instead.
+const primary = registerTray(() => win)
+if (!primary) app.quit()
+
 app.whenReady().then(() => {
+  if (!primary) return
+  // Packaged Windows builds need the installer's app id for notifications to show.
+  if (process.platform === 'win32' && app.isPackaged) app.setAppUserModelId('com.de4rd.nxlogsync')
   Menu.setApplicationMenu(null)
   registerPrintingHandlers(() => win)
+  registerNotifications(() => win)
   createWindow()
   // Downloads and installs a new release behind the update screen, then reopens the app.
   registerUpdater(() => win)

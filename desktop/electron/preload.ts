@@ -29,6 +29,12 @@ contextBridge.exposeInMainWorld('printing', {
   printHtml: (request: unknown) => ipcRenderer.invoke('printing:print-html', request),
 })
 
+// Desktop notifications while the window is away (see electron/notifications.ts).
+contextBridge.exposeInMainWorld('desktopNotifications', {
+  showIfAway: (request: unknown) => ipcRenderer.invoke('notifications:show-if-away', request),
+  close: (id: string) => ipcRenderer.invoke('notifications:close', id),
+})
+
 // The update screen (see electron/updater.ts).
 contextBridge.exposeInMainWorld('updater', {
   getStatus: () => ipcRenderer.invoke('updater:get-status'),

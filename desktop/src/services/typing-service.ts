@@ -1,4 +1,5 @@
 import { get, post, put, type ApiResult } from './api-client'
+import type { DuelLeaderboard } from '@/types/typing-duel'
 import type { TypingLeaderboard, TypingScoreResult } from '@/types/typing-test'
 
 /** The signed-in user's leaderboard name; null until they pick one. */
@@ -13,6 +14,11 @@ export function saveTypingPlayer(name: string): Promise<ApiResult<{ name: string
 /** The top 100 for one test setup (a bestKey, e.g. "time-30"). */
 export function getLeaderboard(setup: string): Promise<ApiResult<TypingLeaderboard>> {
   return get('/v1/typing/leaderboard', { setup })
+}
+
+/** The top 100 by 1v1 races won. */
+export function getDuelLeaderboard(): Promise<ApiResult<DuelLeaderboard>> {
+  return get('/v1/typing/duel/leaderboard')
 }
 
 /** Saves a finished run when it beats the user's best; resolves to the board after. */

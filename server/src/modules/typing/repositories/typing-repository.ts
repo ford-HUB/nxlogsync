@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
+  TypingDuelRecord,
   TypingPlayer,
   TypingScore,
 } from '../../../infrastructures/prisma/common/client';
@@ -9,6 +10,17 @@ import { TypingScoreDto } from '../dto/typing-dto';
 export type TypingScoreWithName = TypingScore & {
   player: Pick<TypingPlayer, 'name'>;
 };
+
+export type TypingDuelRecordWithName = TypingDuelRecord & {
+  player: Pick<TypingPlayer, 'name'>;
+};
+
+/** Most wins first; level on wins, fewer losses, then whoever got there first. */
+const DUEL_ORDER = [
+  { wins: 'desc' },
+  { losses: 'asc' },
+  { updatedAt: 'asc' },
+] as const;
 
 /** Leaderboard names (one per user) and each user's best run per test setup. */
 @Injectable()
@@ -56,6 +68,43 @@ export class TypingRepository {
     return this.prisma.typingScore.count({
       where: { setup, wpm: { gt: wpm } },
     });
+  }
+
+  /** The 1v1 records with the most wins. */
+  duelTop(take: number): Promise<TypingDuelRecordWithName[]> {
+    return this.prisma.typingDuelRecord.findMany({
+      where: { wins: { gt: 0 } },
+      orderBy: [...DUEL_ORDER],
+      take,
+      include: { player: { select: { name: true } } },
+    });
+  }
+
+  findDuelRecord(userId: string): Promise<TypingDuelRecord | null> {
+    return this.prisma.typingDuelRecord.findUnique({ where: { userId } });
+  }
+
+  /** Records ranked above one with these wins and losses, for a rank off the board. */
+  countDuelAhead(wins: number, losses: number): Promise<number> {
+    return this.prisma.typingDuelRecord.count({
+      where: {
+        OR: [{ wins: { gt: wins } }, { wins, losses: { lt: losses } }],
+      },
+    });
+  }
+
+  /** Adds one decided race to both racers' records, together. */
+  async recordDuel(
+    a: { userId: string; field: 'wins' | 'losses' | 'draws' },
+    b: { userId: string; field: 'wins' | 'losses' | 'draws' },
+  ): Promise<void> {
+    const upsert = ({ userId, field }: typeof a) =>
+      this.prisma.typingDuelRecord.upsert({
+        where: { userId },
+        create: { userId, [field]: 1 },
+        update: { [field]: { increment: 1 } },
+      });
+    await this.prisma.$transaction([upsert(a), upsert(b)]);
   }
 
   saveScore(userId: string, data: TypingScoreDto): Promise<TypingScore> {

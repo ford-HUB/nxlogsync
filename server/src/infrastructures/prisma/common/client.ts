@@ -85,6 +85,12 @@ export type TypingPlayer = Prisma.TypingPlayerModel
  */
 export type TypingScore = Prisma.TypingScoreModel
 /**
+ * Model TypingDuelRecord
+ * A user's typing 1v1 record. A race won is a point, as in the match score; a race
+ * abandoned before it was decided counts for neither side.
+ */
+export type TypingDuelRecord = Prisma.TypingDuelRecordModel
+/**
  * Model TetrisScore
  * A user's best Tetris game for one start level; replaced only when beaten.
  */

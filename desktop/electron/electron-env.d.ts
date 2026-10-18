@@ -28,6 +28,11 @@ interface Window {
     listPrinters: () => Promise<import('./printing').PrinterSummary[]>
     printHtml: (request: import('./printing').PrintRequest) => Promise<import('./printing').PrintResult>
   }
+  desktopNotifications: {
+    /** Shows a native notification only when the window is minimised, hidden or unfocused. */
+    showIfAway: (request: import('./notifications').NotifyRequest) => Promise<boolean>
+    close: (id: string) => Promise<void>
+  }
   updater: {
     getStatus: () => Promise<import('./updater').UpdateStatus>
     /** Calls back on every change; returns the unsubscribe. */

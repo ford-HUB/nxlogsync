@@ -43,8 +43,12 @@ export const AIM_LAB_SENSITIVITY_KEY = 'nxlogsync-aim-lab-sensitivity-valorant'
 /** A slider drag settles for this long before the value is sent to the account. */
 export const AIM_LAB_SENSITIVITY_SAVE_DELAY_MS = 600
 
-/** How often the FPS readout updates, and the frame rates it colours as smooth or struggling. */
-export const AIM_LAB_FPS_SAMPLE_MS = 500
+/**
+ * How often the FPS readout updates; a frame slower than the hitch time updates it at once. Then
+ * the frame rates it colours as smooth or struggling.
+ */
+export const AIM_LAB_FPS_SAMPLE_MS = 100
+export const AIM_LAB_FPS_HITCH_MS = 50
 export const AIM_LAB_FPS_GOOD = 100
 export const AIM_LAB_FPS_LOW = 45
 

@@ -183,7 +183,7 @@ export function CredentialsDialog({ siteName, userId, connection, onConnect, onL
                   size="icon-sm"
                   onClick={() => setShowPassword((v) => !v)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
+                  className="absolute inset-y-0 right-1 my-auto text-muted-foreground active:not-aria-[haspopup]:translate-y-0"
                 >
                   {showPassword ? <EyeOff /> : <Eye />}
                 </Button>

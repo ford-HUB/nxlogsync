@@ -68,8 +68,19 @@ export type TypingScore = Prisma.TypingScoreModel
  */
 export type TetrisScore = Prisma.TetrisScoreModel
 /**
- * Model TetrisSetting
+ * Model AimLabScore
+ * A user's best Aim lab session for one mode; replaced only when beaten.
+ */
+export type AimLabScore = Prisma.AimLabScoreModel
+/**
+ * Model AimLabSetting
  * A user's Tetris preferences, so they follow the account to any machine.
+ * Aim lab settings: each user's mouse sensitivity, so it follows the account to any machine.
+ */
+export type AimLabSetting = Prisma.AimLabSettingModel
+/**
+ * Model TetrisSetting
+ * 
  */
 export type TetrisSetting = Prisma.TetrisSettingModel
 /**

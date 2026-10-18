@@ -7,6 +7,7 @@ import { PasscodeScreen } from '@/components/passcode/passcode-screen'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { usePasscodeExpiry } from '@/hooks/use-passcode-expiry'
 import { useSiteSessionPolling } from '@/hooks/use-site-session'
+import { AimLabPage } from '@/pages/aim-lab-page'
 import { ChangelogPage } from '@/pages/changelog-page'
 import { DailyLogPage } from '@/pages/daily-log-page'
 import { ExcelReportPage } from '@/pages/excel-report-page'
@@ -16,7 +17,7 @@ import { TetrisPage } from '@/pages/tetris-page'
 import { TypingTestPage } from '@/pages/typing-test-page'
 import { usePasscodeStore } from '@/store/passcode-store'
 
-type AppView = 'daily-log' | 'settings' | 'typing-test' | 'tetris' | 'run-yourself' | 'excel-report' | 'changelog'
+type AppView = 'daily-log' | 'settings' | 'typing-test' | 'tetris' | 'run-yourself' | 'aim-lab' | 'excel-report' | 'changelog'
 
 /** The app, with the update screen over everything, the passcode screen included. */
 function App() {
@@ -61,6 +62,7 @@ function AppScreens() {
             onOpenTypingTest={() => setView('typing-test')}
             onOpenTetris={() => setView('tetris')}
             onOpenRunYourself={() => setView('run-yourself')}
+            onOpenAimLab={() => setView('aim-lab')}
           />
           {view === 'daily-log' && <HiddenReportSwipe onOpen={() => setView('excel-report')} />}
           <AnimatePresence>
@@ -71,6 +73,7 @@ function AppScreens() {
               />}
             {view === 'tetris' && <TetrisPage key="tetris" onBack={() => setView('daily-log')} />}
             {view === 'run-yourself' && <RunYourselfPage key="run-yourself" onBack={() => setView('daily-log')} />}
+            {view === 'aim-lab' && <AimLabPage key="aim-lab" onBack={() => setView('daily-log')} />}
             {view === 'excel-report' && <ExcelReportPage key="excel-report" onBack={() => setView('daily-log')} />}
           </AnimatePresence>
         </>

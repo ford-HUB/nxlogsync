@@ -1,1 +1,4 @@
 .claude
+
+# Unity aim trainer source lives in its own repo; only its WebGL build ships in desktop/public/aim-lab
+aimlab-engine/

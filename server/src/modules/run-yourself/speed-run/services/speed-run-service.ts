@@ -8,8 +8,9 @@ import { SpeedRunRepository } from '../repositories/speed-run-repository';
 import { SPEED_RUN_LEADERBOARD_SIZE } from '../validators/speed-run-validator';
 
 /**
- * Speed run: the leaderboard of best runs to the finish line, under the name picked for the
- * typing test. Players without a name keep their best but aren't listed.
+ * Speed run: the leaderboard of best runs, under the name picked for the typing test. A run an
+ * enemy knocked out still scores its points; on a tie the one that got further, then the faster,
+ * wins. Players without a name keep their best but aren't listed.
  */
 @Injectable()
 export class SpeedRunService {
@@ -31,6 +32,7 @@ export class SpeedRunService {
         id: r.userId,
         name: names.get(r.userId) ?? '',
         points: r.points,
+        metres: r.metres,
         seconds: r.seconds,
         you: r.userId === userId,
       }));
@@ -41,24 +43,37 @@ export class SpeedRunService {
     const rank =
       listed >= 0
         ? listed + 1
-        : (await this.repository.countAhead(own.points, own.seconds)) + 1;
+        : (await this.repository.countAhead(
+            own.points,
+            own.metres,
+            own.seconds,
+          )) + 1;
     return {
       entries,
-      you: { rank, points: own.points, seconds: own.seconds },
+      you: {
+        rank,
+        points: own.points,
+        metres: own.metres,
+        seconds: own.seconds,
+      },
     };
   }
 
-  /** Keeps the run when it beats the user's best (more points, or as many and faster); returns the board after. */
+  /** Keeps the run when it beats the user's best; returns the board after. */
   async submitScore(
     userId: string,
     data: SpeedRunScoreDto,
   ): Promise<SpeedRunScoreResponseDto> {
     const own = await this.repository.find(userId);
-    const personalBest =
-      !own ||
-      data.points > own.points ||
-      (data.points === own.points && data.seconds < own.seconds);
+    const personalBest = !own || this.beats(data, own);
     if (personalBest) await this.repository.saveBest(userId, data);
     return { ...(await this.leaderboard(userId)), personalBest };
+  }
+
+  /** More points, or as many and further, or as far and faster. */
+  private beats(run: SpeedRunScoreDto, best: SpeedRunScoreDto): boolean {
+    if (run.points !== best.points) return run.points > best.points;
+    if (run.metres !== best.metres) return run.metres > best.metres;
+    return run.seconds < best.seconds;
   }
 }

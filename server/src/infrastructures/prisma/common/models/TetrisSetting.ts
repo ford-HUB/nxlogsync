@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model TetrisSetting
- * A user's Tetris preferences, so they follow the account to any machine.
+ * 
  */
 export type TetrisSettingModel = runtime.Types.Result.DefaultSelection<Prisma.$TetrisSettingPayload>
 

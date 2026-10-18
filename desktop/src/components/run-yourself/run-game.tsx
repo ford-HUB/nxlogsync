@@ -188,13 +188,13 @@ export function RunGame({ onBack, paused = false }: RunGameProps) {
   // The clock counts up from 0 in both games; a speed run shows tenths, since that's the score.
   const seconds = speedRun ? Math.floor(run.elapsed * 10) / 10 : elapsed
   // Speed run's best is the account's on the server, or this machine's when signed out.
-  const runBest = speedAccount.board?.you ?? (best ? { points: best.points, seconds: best.seconds } : undefined)
+  const runBest = speedAccount.board?.you ?? (best ? { points: best.points, metres: best.metres, seconds: best.seconds } : undefined)
   // The board ranks the best run, or this run as soon as it is beating it.
   const liveLeads = playing && points > (runBest?.points ?? 0)
-  // The board adds the user's own row itself; everyone ran the same 1000 m.
+  // The board adds the user's own row itself; a knocked-out run shows how far it got.
   const runEntries = (speedAccount.board?.entries ?? [])
     .filter((e) => !e.you)
-    .map((e) => ({ id: e.id, name: e.name, points: e.points, metres: SPEED_RUN_METRES, seconds: e.seconds }))
+    .map((e) => ({ id: e.id, name: e.name, points: e.points, metres: e.metres, seconds: e.seconds, finished: e.metres >= SPEED_RUN_METRES }))
   // Pass or fall's best is the account's on the server, or this machine's when signed out.
   const roomBest = account.board?.you ?? (best ? { points: best.points, seconds: best.seconds } : undefined)
   const roomLeads = playing && room.points > (roomBest?.points ?? 0)
@@ -228,8 +228,9 @@ export function RunGame({ onBack, paused = false }: RunGameProps) {
               playerName={playerName}
               entries={runEntries}
               points={liveLeads ? points : runBest?.points}
-              metres={liveLeads ? metres : SPEED_RUN_METRES}
+              metres={liveLeads ? metres : runBest?.metres}
               seconds={liveLeads ? run.elapsed : runBest?.seconds}
+              finished={liveLeads || !runBest ? undefined : runBest.metres >= SPEED_RUN_METRES}
               column="time"
               boost={runBoost(run.speed)}
             />

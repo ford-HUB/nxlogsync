@@ -9,6 +9,7 @@ interface DailyLogPageProps {
   onOpenTypingTest: () => void
   onOpenTetris: () => void
   onOpenRunYourself: () => void
+  onOpenAimLab: () => void
 }
 
 /**
@@ -27,7 +28,7 @@ function useDockLanes(): CSSProperties {
   }
 }
 
-export function DailyLogPage({ onOpenSettings, onOpenTypingTest, onOpenTetris, onOpenRunYourself }: DailyLogPageProps) {
+export function DailyLogPage({ onOpenSettings, onOpenTypingTest, onOpenTetris, onOpenRunYourself, onOpenAimLab }: DailyLogPageProps) {
   const lanes = useDockLanes()
   return (
     <main style={lanes} className="min-h-dvh bg-muted/40 lg:h-dvh lg:overflow-y-auto">
@@ -36,6 +37,7 @@ export function DailyLogPage({ onOpenSettings, onOpenTypingTest, onOpenTetris, o
         onOpenTypingTest={onOpenTypingTest}
         onOpenTetris={onOpenTetris}
         onOpenRunYourself={onOpenRunYourself}
+        onOpenAimLab={onOpenAimLab}
       />
     </main>
   )

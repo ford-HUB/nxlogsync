@@ -249,12 +249,8 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
           `N-PAX showed date ${form.date || '(none)'} instead of ${expected}`,
         );
       }
-      const replacing = form.existing.trim() !== '';
-      if (replacing) {
-        if (options.dryRun) return 'already-recorded';
-        page = await this.clearAllocationDay(session, page, day0, expected);
-        form = await readAllocationForm(page);
-      }
+      // Both checks run before CLEAR, so a day that can't be filled is never
+      // cleared and left empty on N-PAX.
       // Work Hours are computed from the day's shift ("... [HH:mm ... HH:mm]");
       // without one (no time record yet, e.g. a rest day) every row stays incomplete.
       if (!/\d{2}:\d{2}/.test(form.shift)) return 'no-time-record';
@@ -263,6 +259,17 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
         throw new ServiceUnavailableException(
           `N-PAX does not take allocations on ${day.date} (day flag ${form.dayFlag})`,
         );
+      }
+      const replacing = form.existing.trim() !== '';
+      if (replacing) {
+        if (options.dryRun) return 'already-recorded';
+        page = await this.clearAllocationDay(session, page, day0, expected);
+        form = await readAllocationForm(page);
+        if (!/\d{2}:\d{2}/.test(form.shift)) {
+          throw new ServiceUnavailableException(
+            `N-PAX lost the shift for ${day.date} after Clear`,
+          );
+        }
       }
 
       const overtime = isOvertimeDay(day.entries);
@@ -1361,6 +1368,10 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
    * today (its date box is read-only and it has no calendar), so other days
    * go through Allocation Modification, which has the same form plus a
    * calendar. `expected` is the date as the form shows it (MM/DD/YYYY).
+   *
+   * Today is also looked up on Allocation Modification when Allocation Entry
+   * shows nothing saved, so an allocation already on N-PAX is always found
+   * (and cleared by the caller) instead of being saved over or added to.
    */
   private async openAllocationForm(
     session: NpaxSession,
@@ -1368,12 +1379,17 @@ export class NpaxWorkflowClient implements OnModuleDestroy {
     expected: string,
   ): Promise<Page> {
     const entry = await this.openSignedInPage(session, ALLOCATION_ENTRY_PATH);
-    if ((await readAllocationForm(entry)).date.trim() === expected) {
+    const entryForm = await readAllocationForm(entry);
+    if (entryForm.date.trim() === expected && entryForm.existing.trim()) {
       return entry;
     }
     const page = await this.openJobSplitPage(session);
     await this.selectDate(page, date);
-    return page;
+    if (entryForm.date.trim() !== expected) return page;
+    const saved = await readAllocationForm(page);
+    if (saved.date.trim() === expected && saved.existing.trim()) return page;
+    // Nothing saved today: a new day is entered on Allocation Entry as before.
+    return this.openSignedInPage(session, ALLOCATION_ENTRY_PATH);
   }
 
   /**

@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { HealthController } from './health-controller';
 import { PrismaModule } from './infrastructures/prisma/prisma-module';
+import { AimLabModule } from './modules/aim-lab/modules/aim-lab-module';
 import { AttendanceModule } from './modules/attendance/modules/attendance-module';
 import { CredentialsModule } from './modules/credentials/modules/credentials-module';
 import { JobsModule } from './modules/jobs/modules/jobs-module';
@@ -19,6 +20,7 @@ import { SessionAuthGuard } from './shared/guards/session-auth-guard';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    AimLabModule,
     AttendanceModule,
     CredentialsModule,
     JobsModule,

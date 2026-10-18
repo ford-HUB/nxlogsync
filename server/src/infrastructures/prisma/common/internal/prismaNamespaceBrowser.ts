@@ -60,6 +60,8 @@ export const ModelName = {
   TypingPlayer: 'TypingPlayer',
   TypingScore: 'TypingScore',
   TetrisScore: 'TetrisScore',
+  AimLabScore: 'AimLabScore',
+  AimLabSetting: 'AimLabSetting',
   TetrisSetting: 'TetrisSetting',
   RunSetting: 'RunSetting',
   PassOrFallProgress: 'PassOrFallProgress',
@@ -205,6 +207,29 @@ export const TetrisScoreScalarFieldEnum = {
 export type TetrisScoreScalarFieldEnum = (typeof TetrisScoreScalarFieldEnum)[keyof typeof TetrisScoreScalarFieldEnum]
 
 
+export const AimLabScoreScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  setup: 'setup',
+  score: 'score',
+  accuracy: 'accuracy',
+  shotsFired: 'shotsFired',
+  shotsHit: 'shotsHit',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AimLabScoreScalarFieldEnum = (typeof AimLabScoreScalarFieldEnum)[keyof typeof AimLabScoreScalarFieldEnum]
+
+
+export const AimLabSettingScalarFieldEnum = {
+  userId: 'userId',
+  sensitivity: 'sensitivity',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AimLabSettingScalarFieldEnum = (typeof AimLabSettingScalarFieldEnum)[keyof typeof AimLabSettingScalarFieldEnum]
+
+
 export const TetrisSettingScalarFieldEnum = {
   userId: 'userId',
   keys: 'keys',
@@ -240,6 +265,7 @@ export type PassOrFallProgressScalarFieldEnum = (typeof PassOrFallProgressScalar
 export const SpeedRunBestScalarFieldEnum = {
   userId: 'userId',
   points: 'points',
+  metres: 'metres',
   seconds: 'seconds',
   updatedAt: 'updatedAt'
 } as const

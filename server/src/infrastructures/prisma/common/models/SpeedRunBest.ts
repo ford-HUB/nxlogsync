@@ -28,17 +28,20 @@ export type AggregateSpeedRunBest = {
 
 export type SpeedRunBestAvgAggregateOutputType = {
   points: number | null
+  metres: number | null
   seconds: number | null
 }
 
 export type SpeedRunBestSumAggregateOutputType = {
   points: number | null
+  metres: number | null
   seconds: number | null
 }
 
 export type SpeedRunBestMinAggregateOutputType = {
   userId: string | null
   points: number | null
+  metres: number | null
   seconds: number | null
   updatedAt: Date | null
 }
@@ -46,6 +49,7 @@ export type SpeedRunBestMinAggregateOutputType = {
 export type SpeedRunBestMaxAggregateOutputType = {
   userId: string | null
   points: number | null
+  metres: number | null
   seconds: number | null
   updatedAt: Date | null
 }
@@ -53,6 +57,7 @@ export type SpeedRunBestMaxAggregateOutputType = {
 export type SpeedRunBestCountAggregateOutputType = {
   userId: number
   points: number
+  metres: number
   seconds: number
   updatedAt: number
   _all: number
@@ -61,17 +66,20 @@ export type SpeedRunBestCountAggregateOutputType = {
 
 export type SpeedRunBestAvgAggregateInputType = {
   points?: true
+  metres?: true
   seconds?: true
 }
 
 export type SpeedRunBestSumAggregateInputType = {
   points?: true
+  metres?: true
   seconds?: true
 }
 
 export type SpeedRunBestMinAggregateInputType = {
   userId?: true
   points?: true
+  metres?: true
   seconds?: true
   updatedAt?: true
 }
@@ -79,6 +87,7 @@ export type SpeedRunBestMinAggregateInputType = {
 export type SpeedRunBestMaxAggregateInputType = {
   userId?: true
   points?: true
+  metres?: true
   seconds?: true
   updatedAt?: true
 }
@@ -86,6 +95,7 @@ export type SpeedRunBestMaxAggregateInputType = {
 export type SpeedRunBestCountAggregateInputType = {
   userId?: true
   points?: true
+  metres?: true
   seconds?: true
   updatedAt?: true
   _all?: true
@@ -180,6 +190,7 @@ export type SpeedRunBestGroupByArgs<ExtArgs extends runtime.Types.Extensions.Int
 export type SpeedRunBestGroupByOutputType = {
   userId: string
   points: number
+  metres: number
   seconds: number
   updatedAt: Date
   _count: SpeedRunBestCountAggregateOutputType | null
@@ -210,6 +221,7 @@ export type SpeedRunBestWhereInput = {
   NOT?: Prisma.SpeedRunBestWhereInput | Prisma.SpeedRunBestWhereInput[]
   userId?: Prisma.StringFilter<"SpeedRunBest"> | string
   points?: Prisma.IntFilter<"SpeedRunBest"> | number
+  metres?: Prisma.IntFilter<"SpeedRunBest"> | number
   seconds?: Prisma.FloatFilter<"SpeedRunBest"> | number
   updatedAt?: Prisma.DateTimeFilter<"SpeedRunBest"> | Date | string
 }
@@ -217,6 +229,7 @@ export type SpeedRunBestWhereInput = {
 export type SpeedRunBestOrderByWithRelationInput = {
   userId?: Prisma.SortOrder
   points?: Prisma.SortOrder
+  metres?: Prisma.SortOrder
   seconds?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -227,6 +240,7 @@ export type SpeedRunBestWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.SpeedRunBestWhereInput[]
   NOT?: Prisma.SpeedRunBestWhereInput | Prisma.SpeedRunBestWhereInput[]
   points?: Prisma.IntFilter<"SpeedRunBest"> | number
+  metres?: Prisma.IntFilter<"SpeedRunBest"> | number
   seconds?: Prisma.FloatFilter<"SpeedRunBest"> | number
   updatedAt?: Prisma.DateTimeFilter<"SpeedRunBest"> | Date | string
 }, "userId">
@@ -234,6 +248,7 @@ export type SpeedRunBestWhereUniqueInput = Prisma.AtLeast<{
 export type SpeedRunBestOrderByWithAggregationInput = {
   userId?: Prisma.SortOrder
   points?: Prisma.SortOrder
+  metres?: Prisma.SortOrder
   seconds?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.SpeedRunBestCountOrderByAggregateInput
@@ -249,6 +264,7 @@ export type SpeedRunBestScalarWhereWithAggregatesInput = {
   NOT?: Prisma.SpeedRunBestScalarWhereWithAggregatesInput | Prisma.SpeedRunBestScalarWhereWithAggregatesInput[]
   userId?: Prisma.StringWithAggregatesFilter<"SpeedRunBest"> | string
   points?: Prisma.IntWithAggregatesFilter<"SpeedRunBest"> | number
+  metres?: Prisma.IntWithAggregatesFilter<"SpeedRunBest"> | number
   seconds?: Prisma.FloatWithAggregatesFilter<"SpeedRunBest"> | number
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"SpeedRunBest"> | Date | string
 }
@@ -256,6 +272,7 @@ export type SpeedRunBestScalarWhereWithAggregatesInput = {
 export type SpeedRunBestCreateInput = {
   userId: string
   points: number
+  metres?: number
   seconds: number
   updatedAt?: Date | string
 }
@@ -263,6 +280,7 @@ export type SpeedRunBestCreateInput = {
 export type SpeedRunBestUncheckedCreateInput = {
   userId: string
   points: number
+  metres?: number
   seconds: number
   updatedAt?: Date | string
 }
@@ -270,6 +288,7 @@ export type SpeedRunBestUncheckedCreateInput = {
 export type SpeedRunBestUpdateInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.IntFieldUpdateOperationsInput | number
+  metres?: Prisma.IntFieldUpdateOperationsInput | number
   seconds?: Prisma.FloatFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -277,6 +296,7 @@ export type SpeedRunBestUpdateInput = {
 export type SpeedRunBestUncheckedUpdateInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.IntFieldUpdateOperationsInput | number
+  metres?: Prisma.IntFieldUpdateOperationsInput | number
   seconds?: Prisma.FloatFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -284,6 +304,7 @@ export type SpeedRunBestUncheckedUpdateInput = {
 export type SpeedRunBestCreateManyInput = {
   userId: string
   points: number
+  metres?: number
   seconds: number
   updatedAt?: Date | string
 }
@@ -291,6 +312,7 @@ export type SpeedRunBestCreateManyInput = {
 export type SpeedRunBestUpdateManyMutationInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.IntFieldUpdateOperationsInput | number
+  metres?: Prisma.IntFieldUpdateOperationsInput | number
   seconds?: Prisma.FloatFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -298,6 +320,7 @@ export type SpeedRunBestUpdateManyMutationInput = {
 export type SpeedRunBestUncheckedUpdateManyInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.IntFieldUpdateOperationsInput | number
+  metres?: Prisma.IntFieldUpdateOperationsInput | number
   seconds?: Prisma.FloatFieldUpdateOperationsInput | number
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -305,18 +328,21 @@ export type SpeedRunBestUncheckedUpdateManyInput = {
 export type SpeedRunBestCountOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   points?: Prisma.SortOrder
+  metres?: Prisma.SortOrder
   seconds?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type SpeedRunBestAvgOrderByAggregateInput = {
   points?: Prisma.SortOrder
+  metres?: Prisma.SortOrder
   seconds?: Prisma.SortOrder
 }
 
 export type SpeedRunBestMaxOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   points?: Prisma.SortOrder
+  metres?: Prisma.SortOrder
   seconds?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -324,12 +350,14 @@ export type SpeedRunBestMaxOrderByAggregateInput = {
 export type SpeedRunBestMinOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   points?: Prisma.SortOrder
+  metres?: Prisma.SortOrder
   seconds?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type SpeedRunBestSumOrderByAggregateInput = {
   points?: Prisma.SortOrder
+  metres?: Prisma.SortOrder
   seconds?: Prisma.SortOrder
 }
 
@@ -338,6 +366,7 @@ export type SpeedRunBestSumOrderByAggregateInput = {
 export type SpeedRunBestSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   userId?: boolean
   points?: boolean
+  metres?: boolean
   seconds?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["speedRunBest"]>
@@ -345,6 +374,7 @@ export type SpeedRunBestSelect<ExtArgs extends runtime.Types.Extensions.Internal
 export type SpeedRunBestSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   userId?: boolean
   points?: boolean
+  metres?: boolean
   seconds?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["speedRunBest"]>
@@ -352,6 +382,7 @@ export type SpeedRunBestSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
 export type SpeedRunBestSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   userId?: boolean
   points?: boolean
+  metres?: boolean
   seconds?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["speedRunBest"]>
@@ -359,11 +390,12 @@ export type SpeedRunBestSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
 export type SpeedRunBestSelectScalar = {
   userId?: boolean
   points?: boolean
+  metres?: boolean
   seconds?: boolean
   updatedAt?: boolean
 }
 
-export type SpeedRunBestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"userId" | "points" | "seconds" | "updatedAt", ExtArgs["result"]["speedRunBest"]>
+export type SpeedRunBestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"userId" | "points" | "metres" | "seconds" | "updatedAt", ExtArgs["result"]["speedRunBest"]>
 
 export type $SpeedRunBestPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "SpeedRunBest"
@@ -371,11 +403,15 @@ export type $SpeedRunBestPayload<ExtArgs extends runtime.Types.Extensions.Intern
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     userId: string
     /**
-     * Ranked by points, the faster run first on a tie.
+     * Ranked by points, then the further run, then the faster one.
      */
     points: number
     /**
-     * Seconds to the finish line.
+     * How far it got: the full course (1000) when it crossed the finish line, less when knocked out.
+     */
+    metres: number
+    /**
+     * Seconds run: to the finish line, or until the knockout.
      */
     seconds: number
     updatedAt: Date
@@ -804,6 +840,7 @@ export interface Prisma__SpeedRunBestClient<T, Null = never, ExtArgs extends run
 export interface SpeedRunBestFieldRefs {
   readonly userId: Prisma.FieldRef<"SpeedRunBest", 'String'>
   readonly points: Prisma.FieldRef<"SpeedRunBest", 'Int'>
+  readonly metres: Prisma.FieldRef<"SpeedRunBest", 'Int'>
   readonly seconds: Prisma.FieldRef<"SpeedRunBest", 'Float'>
   readonly updatedAt: Prisma.FieldRef<"SpeedRunBest", 'DateTime'>
 }

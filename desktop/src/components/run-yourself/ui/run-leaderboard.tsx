@@ -23,6 +23,8 @@ interface RunLeaderboardProps {
   points: number | undefined
   metres: number | undefined
   seconds: number | undefined
+  /** False when the user's run was knocked out short of the line: their row shows its distance. */
+  finished?: boolean
   /** A speed run's last column is the finish time (everyone runs the same distance); otherwise distance. */
   column: 'time' | 'dist'
   /** How hard the rocket fires while climbing (runBoost of the current speed). */
@@ -65,7 +67,13 @@ const Row = memo(function Row({ entry, column, rank, you = false, boost }: RowPr
       </span>
       <span className="text-right">{entry.points > 0 ? entry.points.toLocaleString() : '—'}</span>
       <span className={cn('text-right', !you && 'text-muted-foreground')}>
-        {column === 'time' ? (entry.seconds > 0 ? `${entry.seconds.toFixed(1)}s` : '—') : entry.metres > 0 ? `${entry.metres}m` : '—'}
+        {column === 'time' && entry.finished !== false
+          ? entry.seconds > 0
+            ? `${entry.seconds.toFixed(1)}s`
+            : '—'
+          : entry.metres > 0
+            ? `${entry.metres}m`
+            : '—'}
       </span>
     </motion.li>
   )
@@ -76,12 +84,20 @@ const Row = memo(function Row({ entry, column, rank, you = false, boost }: RowPr
  * row climbs past each player it beats, a rocket under it and speed lines down the board, both
  * firing harder the faster the run is going.
  */
-export function RunLeaderboard({ label, playerName, preview = false, entries, points, metres, seconds, column, boost }: RunLeaderboardProps) {
+export function RunLeaderboard({ label, playerName, preview = false, entries, points, metres, seconds, finished, column, boost }: RunLeaderboardProps) {
   const scored = points !== undefined && points > 0
   // Ties go to the player already on the board.
   const rank = scored ? entries.filter((o) => o.points >= points).length + 1 : undefined
   const onBoard = rank !== undefined && rank <= RUN_LEADERBOARD_SIZE
-  const you: RunLeaderboardEntry = { id: YOU_ID, name: playerName || 'you', points: points ?? 0, metres: metres ?? 0, seconds: seconds ?? 0, you: true }
+  const you: RunLeaderboardEntry = {
+    id: YOU_ID,
+    name: playerName || 'you',
+    points: points ?? 0,
+    metres: metres ?? 0,
+    seconds: seconds ?? 0,
+    finished,
+    you: true,
+  }
   const rows = onBoard
     ? [...entries.slice(0, rank - 1), you, ...entries.slice(rank - 1, RUN_LEADERBOARD_SIZE - 1)]
     : [...entries.slice(0, RUN_LEADERBOARD_SIZE), you]

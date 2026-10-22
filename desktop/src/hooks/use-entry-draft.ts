@@ -136,11 +136,16 @@ export function useEntryDraft({
   // The day's first entry can't start before the N-PAX shift start; later ones can.
   const earliestStart = otherEntries.length === 0 ? timeInMinutes : null
 
-  const [range, setRange] = useState(() =>
+  const [draftRange, setRange] = useState(() =>
     editingEntry
       ? { startMinutes: editingEntry.startMinutes, endMinutes: editingEntry.endMinutes }
       : suggestRange(entries, remainingMinutes, timeInMinutes),
   )
+  // An edited entry's times are fixed (it's moved by swapping it with another task in the list),
+  // so they always follow the saved entry, even when a swap moves it mid-edit.
+  const range = editingEntry
+    ? { startMinutes: editingEntry.startMinutes, endMinutes: editingEntry.endMinutes }
+    : draftRange
   const [description, setDescriptionState] = useState(() => editingEntry?.description ?? readCachedDescription(dateKey))
   // Only a new entry's text is cached; an edit starts from the saved entry.
   const setDescription = (value: string) => {

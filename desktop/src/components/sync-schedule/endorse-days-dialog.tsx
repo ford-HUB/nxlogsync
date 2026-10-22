@@ -46,7 +46,7 @@ export function EndorseDaysDialog({ open, onOpenChange }: EndorseDaysDialogProps
           <DialogDescription className="text-[12px]">
             {showResults
               ? 'Endorsing each picked day on N-PAX in turn. Keep this open until every day is done.'
-              : 'Pick days already synced to N-PAX to endorse to your checker. Days with entries still waiting for a sync can’t be picked.'}
+              : 'Pick days already synced to N-PAX to endorse to your checker. Days still waiting for a sync, or already endorsed, can’t be picked.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -72,10 +72,12 @@ export function EndorseDaysDialog({ open, onOpenChange }: EndorseDaysDialogProps
               modifiers={{
                 synced: (day) => e.dayState(toDateKey(day)) === 'synced',
                 pending: (day) => e.dayState(toDateKey(day)) === 'pending',
+                endorsed: (day) => e.dayState(toDateKey(day)) === 'endorsed',
               }}
               modifiersClassNames={{
                 synced: `${DOT} after:bg-success`,
                 pending: `${DOT} after:bg-warning`,
+                endorsed: `${DOT} after:bg-muted-foreground`,
               }}
               onSelect={(days) => e.setSelected((days ?? []).map(toDateKey).sort())}
             />
@@ -88,6 +90,10 @@ export function EndorseDaysDialog({ open, onOpenChange }: EndorseDaysDialogProps
               <span className="flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-warning" />
                 Waiting for sync
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-muted-foreground" />
+                Already endorsed
               </span>
               <Button
                 type="button"

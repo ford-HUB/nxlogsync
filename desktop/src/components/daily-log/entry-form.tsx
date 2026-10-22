@@ -73,6 +73,8 @@ interface EntryFormProps {
   timeInMinutes: number | null
   /** The task timer only runs against today's log. */
   isToday: boolean
+  /** Endorsed on N-PAX: nothing more can be logged on the day. */
+  endorsed: boolean
   editingEntry: LogEntry | null
   onAdd: (draft: EntryDraft) => void
   onUpdate: (id: string, draft: EntryDraft) => void
@@ -86,6 +88,7 @@ export function EntryForm({
   overtimeMinutes,
   timeInMinutes,
   isToday,
+  endorsed,
   editingEntry,
   onAdd,
   onUpdate,
@@ -104,7 +107,9 @@ export function EntryForm({
   const isWeekend = isWeekendKey(dateKey)
   // The clock span less the counted work: the part of the 12–1 PM break the task covers.
   const lunchMinutes = draft.endMinutes - draft.startMinutes - draft.durationMinutes
-  const locked = isWeekend || draft.isDayFull
+  const locked = isWeekend || endorsed || draft.isDayFull
+  // An existing task's times are fixed; it moves by swapping places with another in the list.
+  const timesLocked = locked || editingEntry !== null
   // A run timing this form (paused or not) holds back saving until Stop fills in its times.
   const timing = isToday && timer.running && (editingEntry === null || timesEdit)
 
@@ -152,14 +157,14 @@ export function EntryForm({
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    if (!isWeekend && !timing) draft.submit()
+    if (!isWeekend && !endorsed && !timing) draft.submit()
   }
 
   // Enter adds the entry; Shift+Enter keeps a newline in the description.
   const handleDescriptionKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
     event.preventDefault()
-    if (!isWeekend && !timing) draft.submit()
+    if (!isWeekend && !endorsed && !timing) draft.submit()
   }
 
   const handleFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
@@ -177,12 +182,14 @@ export function EntryForm({
           <CardDescription className="text-[12px]">
             {isWeekend
               ? 'Weekends are off; tasks can only be logged Monday to Friday.'
+              : endorsed
+              ? 'This day is endorsed on N-PAX; its tasks can no longer be added to or changed.'
               : timesEdit
               ? timer.paused
                 ? 'Timer paused; paused time is not counted. Press Resume to continue, or Stop to fill in the finish.'
                 : 'Timer running; the saved Started time stays. Press Stop when the task is done to fill in its finish, then Update.'
               : editingEntry
-              ? `Changing the ${formatClock(editingEntry.startMinutes)} – ${formatClock(editingEntry.endMinutes)} task. Press Update to save, or Esc to cancel.`
+              ? `Changing the ${formatClock(editingEntry.startMinutes)} – ${formatClock(editingEntry.endMinutes)} task. Its times are fixed; right-click drag it onto another task to swap them. Press Update to save, or Esc to cancel.`
               : timer.running && isToday
                 ? timer.paused
                   ? 'Timer paused; paused time is not counted. Press Resume to continue, or Stop to fill in its finish.'
@@ -202,7 +209,7 @@ export function EntryForm({
                   onPause={timer.pause}
                   onResume={timer.resume}
                   onStop={stopTimer}
-                  startBlockedReason={isWeekend ? 'Tasks can’t be logged on weekends' : draft.isDayFull ? `${DAILY_LIMIT_HOURS}h already logged for this day` : undefined}
+                  startBlockedReason={isWeekend ? 'Tasks can’t be logged on weekends' : endorsed ? 'This day is endorsed on N-PAX' : draft.isDayFull ? `${DAILY_LIMIT_HOURS}h already logged for this day` : editingEntry && !timesEdit ? 'An edited task’s times are fixed' : undefined}
                   stopBlockedReason={editingEntry && !timesEdit ? 'Finish or cancel the edit first' : undefined}
                 />
               )}
@@ -266,12 +273,12 @@ export function EntryForm({
 
           <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
             <div className="flex items-end gap-3">
-              <TimePicker label="Started" value={draft.startMinutes} onChange={draft.setStartMinutes} isTaken={draft.isStartTaken} invalid={draft.issue !== null && !draft.limitMet} complete={draft.limitMet} disabled={locked} />
+              <TimePicker label="Started" value={draft.startMinutes} onChange={draft.setStartMinutes} isTaken={draft.isStartTaken} invalid={draft.issue !== null && !draft.limitMet} complete={draft.limitMet} disabled={timesLocked} />
               <div aria-hidden className="flex items-center" style={{ height: WHEEL_BOX_HEIGHT }}>
                 <ArrowRight className="size-4 text-muted-foreground" />
               </div>
-              <TimePicker label="Finished" value={draft.endMinutes} onChange={draft.setEndMinutes} isTaken={draft.isEndTaken} invalid={draft.issue !== null && !draft.limitMet} complete={draft.limitMet} disabled={locked} />
-              <DurationInput value={draft.durationMinutes} onChange={draft.setDurationMinutes} invalid={draft.issue !== null && !draft.limitMet} complete={draft.limitMet} disabled={locked} />
+              <TimePicker label="Finished" value={draft.endMinutes} onChange={draft.setEndMinutes} isTaken={draft.isEndTaken} invalid={draft.issue !== null && !draft.limitMet} complete={draft.limitMet} disabled={timesLocked} />
+              <DurationInput value={draft.durationMinutes} onChange={draft.setDurationMinutes} invalid={draft.issue !== null && !draft.limitMet} complete={draft.limitMet} disabled={timesLocked} />
             </div>
 
             <div className="flex min-w-60 flex-1 flex-col gap-1.5">
@@ -288,12 +295,23 @@ export function EntryForm({
                 id="entry-description"
                 value={draft.description}
                 // Workflow stores allocation descriptions in uppercase.
-                onChange={(e) => draft.setDescription(e.target.value.toUpperCase())}
+                // Uppercase in the DOM first and put the caret back, so React sees no change to
+                // write and editing mid-text doesn't jump the caret to the end.
+                onChange={(e) => {
+                  const el = e.target
+                  const { selectionStart, selectionEnd } = el
+                  const upper = el.value.toUpperCase()
+                  if (upper !== el.value) {
+                    el.value = upper
+                    el.setSelectionRange(selectionStart, selectionEnd)
+                  }
+                  draft.setDescription(upper)
+                }}
                 onKeyDown={handleDescriptionKeyDown}
                 maxLength={DESCRIPTION_MAX_LENGTH}
                 // The 9h are logged: nothing more to describe until an entry is shortened or removed.
                 disabled={locked}
-                placeholder={isWeekend ? 'No tasks on weekends' : draft.isDayFull ? `${DAILY_LIMIT_HOURS}h logged for this day` : 'What did you work on?'}
+                placeholder={isWeekend ? 'No tasks on weekends' : endorsed ? 'Endorsed on N-PAX' : draft.isDayFull ? `${DAILY_LIMIT_HOURS}h logged for this day` : 'What did you work on?'}
                 className="min-h-0 resize-none text-[13px]"
                 style={{ height: WHEEL_BOX_HEIGHT }}
               />
@@ -309,6 +327,8 @@ export function EntryForm({
             <span aria-hidden className="h-3 w-px bg-border" />
             {isWeekend ? (
               <span className="truncate text-muted-foreground">Weekend · no task entries</span>
+            ) : endorsed ? (
+              <span className="truncate text-muted-foreground">Endorsed on N-PAX · no more changes</span>
             ) : draft.issue ? (
               <span
                 role={draft.limitMet ? 'status' : 'alert'}
@@ -332,7 +352,7 @@ export function EntryForm({
               <Button
                 type="submit"
                 className="flex-1 sm:flex-none"
-                disabled={isWeekend || timing || !draft.canSubmit}
+                disabled={isWeekend || endorsed || timing || !draft.canSubmit}
                 title={timing ? 'Stop the timer first' : undefined}
               >
                 {draft.isEditing ? <Check /> : <Plus />}

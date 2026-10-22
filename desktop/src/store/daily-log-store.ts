@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { createEntry, deleteEntry, listEntries, resyncDays, updateEntry } from '@/services/log-entries-service'
+import { createEntry, deleteEntry, listEntries, rescheduleEntries, resyncDays, updateEntry } from '@/services/log-entries-service'
 import type { EntryMove } from '@/lib/insert-entry'
 import type { EntryDraft, LogEntry } from '@/types/daily-log'
 
@@ -20,7 +20,15 @@ interface DailyLogState {
    * whether everything saved. On a failure the day is reloaded, since some moves may have saved.
    */
   insertEntry: (date: string, draft: EntryDraft, moves: EntryMove[]) => Promise<boolean>
-  /** Marks every entry on the days unsynced so the next sync uploads them again; resolves to the failure message, if any. */
+  /**
+   * Moves several entries at once (two tasks swapping places, as planned by planSwap); resolves to
+   * whether it saved. On a failure the day is reloaded to show what the server has.
+   */
+  moveEntries: (date: string, moves: EntryMove[]) => Promise<boolean>
+  /**
+   * Marks every entry on the days unsynced so the next sync uploads them again, and counts the attempt;
+   * resolves to the failure message, if any.
+   */
   resyncDays: (dates: string[]) => Promise<string | null>
   dismissError: () => void
   /** Forgets the signed-out user's entries so the next user never sees them. */
@@ -50,7 +58,7 @@ export const useDailyLogStore = create<DailyLogState>((set, get) => ({
 
   addEntry: async (date, draft) => {
     const tempId = `pending-${crypto.randomUUID()}`
-    set((s) => ({ ...mapDay(s, date, (day) => [...day, { id: tempId, ...draft, synced: false, editedSinceSync: false }]), error: null }))
+    set((s) => ({ ...mapDay(s, date, (day) => [...day, { id: tempId, ...draft, synced: false, editedSinceSync: false, endorsed: false, resyncCount: 0 }]), error: null }))
     const result = await createEntry(date, draft)
     if (result.success) set((s) => mapDay(s, date, (day) => day.map((e) => (e.id === tempId ? result.data : e))))
     else set((s) => ({ ...mapDay(s, date, (day) => day.filter((e) => e.id !== tempId)), error: result.message }))
@@ -106,7 +114,7 @@ export const useDailyLogStore = create<DailyLogState>((set, get) => ({
           const { startMinutes, endMinutes } = move
           return { ...e, startMinutes, endMinutes, synced: false, editedSinceSync: e.synced || e.editedSinceSync }
         }),
-        { id: tempId, ...draft, synced: false, editedSinceSync: false },
+        { id: tempId, ...draft, synced: false, editedSinceSync: false, endorsed: false, resyncCount: 0 },
       ]),
       error: null,
     }))
@@ -132,6 +140,29 @@ export const useDailyLogStore = create<DailyLogState>((set, get) => ({
     return true
   },
 
+  moveEntries: async (date, moves) => {
+    const before = get().entriesByDate[date] ?? []
+    set((s) => ({
+      ...mapDay(s, date, (day) =>
+        day.map((e) => {
+          const move = moves.find((m) => m.id === e.id)
+          if (!move) return e
+          const { startMinutes, endMinutes } = move
+          return { ...e, startMinutes, endMinutes, synced: false, editedSinceSync: e.synced || e.editedSinceSync }
+        }),
+      ),
+      error: null,
+    }))
+    const result = await rescheduleEntries(date, moves)
+    if (result.success) {
+      set((s) => mapDay(s, date, (day) => day.map((e) => result.data.find((m) => m.id === e.id) ?? e)))
+      return true
+    }
+    const fresh = await listEntries(date, date)
+    set((s) => ({ ...mapDay(s, date, () => (fresh.success ? (fresh.data[date] ?? []) : before)), error: result.message }))
+    return false
+  },
+
   resyncDays: async (dates) => {
     const result = await resyncDays(dates)
     if (!result.success) return result.message
@@ -139,7 +170,7 @@ export const useDailyLogStore = create<DailyLogState>((set, get) => ({
       entriesByDate: {
         ...s.entriesByDate,
         ...Object.fromEntries(
-          result.data.dates.map((date) => [date, (s.entriesByDate[date] ?? []).map((e) => ({ ...e, synced: false }))]),
+          result.data.dates.map((date) => [date, (s.entriesByDate[date] ?? []).map((e) => ({ ...e, synced: false, resyncCount: e.resyncCount + 1 }))]),
         ),
       },
     }))

@@ -56,6 +56,29 @@ export const ResyncDaysSchema = z
   .object({ dates: z.array(DateKeySchema).min(1).max(366) })
   .strict();
 
+export const RescheduleEntriesSchema = z
+  .object({
+    date: DateKeySchema,
+    moves: z
+      .array(
+        z
+          .object({
+            id: z.string().uuid(),
+            startMinutes: MinutesSchema,
+            endMinutes: MinutesSchema,
+          })
+          .strict()
+          .refine(endsAfterStart.check, endsAfterStart.params),
+      )
+      .min(1)
+      .max(100),
+  })
+  .strict()
+  .refine((b) => new Set(b.moves.map((m) => m.id)).size === b.moves.length, {
+    message: 'Each entry can only be moved once',
+    path: ['moves'],
+  });
+
 export const LogEntryResponseSchema = z.object({
   id: z.string(),
   date: z.string(),
@@ -66,4 +89,6 @@ export const LogEntryResponseSchema = z.object({
   jobCode: z.string().nullable(),
   syncedAt: z.string().nullable(),
   editedSinceSync: z.boolean(),
+  endorsedAt: z.string().nullable(),
+  resyncCount: z.number(),
 });

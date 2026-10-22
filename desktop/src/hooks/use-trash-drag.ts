@@ -2,8 +2,8 @@ import { animate, useMotionValue } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { LogEntry } from '@/types/daily-log'
 
-/** idle → dragging → [confirming] → (consuming | returning) → idle */
-export type TrashDragPhase = 'idle' | 'dragging' | 'confirming' | 'consuming' | 'returning'
+/** idle → dragging → [confirming] → (consuming | swapping | returning) → idle */
+export type TrashDragPhase = 'idle' | 'dragging' | 'confirming' | 'consuming' | 'swapping' | 'returning'
 
 /** Extra pixels around the bin that still count as "over" it, so the drop isn't fiddly. */
 const TRASH_HIT_SLOP = 40
@@ -27,6 +27,13 @@ function zoneEdgeOf(list: HTMLElement | null, bin: HTMLElement | null): TrashZon
   return null
 }
 
+/** The task row under the pointer (rows carry data-entry-id), other than the one being dragged. */
+function rowUnder(px: number, py: number, draggedId: string): string | null {
+  const row = document.elementFromPoint(px, py)?.closest<HTMLElement>('[data-entry-id]')
+  const id = row?.dataset.entryId ?? null
+  return id === draggedId ? null : id
+}
+
 /**
  * Right-click-and-drag a task into the Trash to set it aside. The drop zone is the bin plus,
  * when the bin is docked beside the list, everything past the list's border on that side, so the
@@ -35,8 +42,14 @@ function zoneEdgeOf(list: HTMLElement | null, bin: HTMLElement | null): TrashZon
  * releasing in the zone plays the swallow animation and only then hands the entry to `onDrop`,
  * releasing elsewhere flies it back. When `needsConfirm` says so, a release in the zone holds the
  * file there (phase `confirming`) until `confirm` swallows it or `cancel` flies it back.
+ * Releasing over another task row hands both to `onSwap` instead; it returns whether they swap,
+ * and the file flies back when they don't.
  */
-export function useTrashDrag(onDrop: (entry: LogEntry) => void, needsConfirm?: () => boolean) {
+export function useTrashDrag(
+  onDrop: (entry: LogEntry) => void,
+  needsConfirm?: () => boolean,
+  onSwap?: (entry: LogEntry, targetId: string) => boolean,
+) {
   const x = useMotionValue(0)
   const y = useMotionValue(0)
   const scale = useMotionValue(1)
@@ -52,6 +65,8 @@ export function useTrashDrag(onDrop: (entry: LogEntry) => void, needsConfirm?: (
   const [entry, setEntry] = useState<LogEntry | null>(null)
   const [phase, setPhase] = useState<TrashDragPhase>('idle')
   const [overTrash, setOverTrash] = useState(false)
+  // The task row the file is over, which it swaps places with on release.
+  const [swapTargetId, setSwapTargetId] = useState<string | null>(null)
   // Bumped after each swallow; the bin keys its gulp + ring animation off it.
   const [consumedCount, setConsumedCount] = useState(0)
 
@@ -82,6 +97,7 @@ export function useTrashDrag(onDrop: (entry: LogEntry) => void, needsConfirm?: (
       setEntry(picked)
       setZoneEdge(zoneEdgeOf(zoneRef.current, trashRef.current))
       setOverTrash(false)
+      setSwapTargetId(null)
       setPhase('dragging')
     },
     [phase, x, y, spin, opacity, scale],
@@ -90,6 +106,7 @@ export function useTrashDrag(onDrop: (entry: LogEntry) => void, needsConfirm?: (
   const reset = useCallback(() => {
     setEntry(null)
     setOverTrash(false)
+    setSwapTargetId(null)
     setPhase('idle')
   }, [])
 
@@ -135,6 +152,13 @@ export function useTrashDrag(onDrop: (entry: LogEntry) => void, needsConfirm?: (
     [x, y, scale, spin, opacity, onDrop, reset],
   )
 
+  // The swap is already in the list; the file just settles into the row and fades.
+  const settle = useCallback(() => {
+    setPhase('swapping')
+    const transition = { duration: 0.18, ease: 'easeOut' } as const
+    void Promise.all([animate(scale, 0.7, transition), animate(opacity, 0, transition)]).then(reset)
+  }, [scale, opacity, reset])
+
   const confirm = useCallback(() => {
     if (phase === 'confirming' && entry) swallow(entry)
   }, [phase, entry, swallow])
@@ -149,12 +173,17 @@ export function useTrashDrag(onDrop: (entry: LogEntry) => void, needsConfirm?: (
     const onMove = (e: MouseEvent) => {
       x.set(e.clientX)
       y.set(e.clientY)
-      setOverTrash(isOverTrash(e.clientX, e.clientY))
+      const over = isOverTrash(e.clientX, e.clientY)
+      setOverTrash(over)
+      setSwapTargetId(!over && onSwap ? rowUnder(e.clientX, e.clientY, entry.id) : null)
     }
     const onUp = (e: MouseEvent) => {
       if (e.button !== RIGHT_BUTTON) return
-      if (!isOverTrash(e.clientX, e.clientY)) flyBack()
-      else if (needsConfirm?.()) setPhase('confirming')
+      if (!isOverTrash(e.clientX, e.clientY)) {
+        const target = onSwap ? rowUnder(e.clientX, e.clientY, entry.id) : null
+        if (target && onSwap?.(entry, target)) settle()
+        else flyBack()
+      } else if (needsConfirm?.()) setPhase('confirming')
       else swallow(entry)
     }
     const onKey = (e: KeyboardEvent) => {
@@ -177,7 +206,7 @@ export function useTrashDrag(onDrop: (entry: LogEntry) => void, needsConfirm?: (
       // contextmenu fires just after mouseup, so let it through the blocker first.
       setTimeout(() => window.removeEventListener('contextmenu', blockMenu, true), 0)
     }
-  }, [phase, entry, x, y, isOverTrash, needsConfirm, flyBack, swallow])
+  }, [phase, entry, x, y, isOverTrash, needsConfirm, onSwap, flyBack, swallow, settle])
 
   return {
     trashRef,
@@ -186,6 +215,7 @@ export function useTrashDrag(onDrop: (entry: LogEntry) => void, needsConfirm?: (
     entry,
     phase,
     overTrash,
+    swapTargetId,
     consumedCount,
     grab,
     confirm,

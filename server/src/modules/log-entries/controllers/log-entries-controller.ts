@@ -14,6 +14,7 @@ import { ZodValidationPipe } from '../../../shared/pipes/zod-validation-pipe';
 import type {
   CreateLogEntryDto,
   ListLogEntriesQueryDto,
+  RescheduleEntriesDto,
   ResyncDaysDto,
   UpdateLogEntryDto,
 } from '../dto/log-entries-dto';
@@ -21,6 +22,7 @@ import { LogEntriesService } from '../services/log-entries-service';
 import {
   CreateLogEntrySchema,
   ListLogEntriesQuerySchema,
+  RescheduleEntriesSchema,
   ResyncDaysSchema,
   UpdateLogEntrySchema,
 } from '../validators/log-entries-validator';
@@ -57,6 +59,17 @@ export class LogEntriesController {
     @Body(new ZodValidationPipe(ResyncDaysSchema)) body: ResyncDaysDto,
   ) {
     return await this.logEntriesService.resyncDays(user, body.dates);
+  }
+
+  // POST /api/v1/log-entries/reschedule { date, moves: [{ id, startMinutes, endMinutes }] } → moved entries
+  // Moves several of a day's entries at once (e.g. swapping two tasks); overlaps are checked on the result.
+  @Post('reschedule')
+  async reschedule(
+    @CurrentUser() user: string,
+    @Body(new ZodValidationPipe(RescheduleEntriesSchema))
+    body: RescheduleEntriesDto,
+  ) {
+    return await this.logEntriesService.reschedule(user, body);
   }
 
   // PATCH /api/v1/log-entries/:id { startMinutes, endMinutes, description } → entry

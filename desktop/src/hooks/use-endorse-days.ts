@@ -7,6 +7,9 @@ import { endorseDay } from '@/services/sync-service'
 import { useDailyLogStore } from '@/store/daily-log-store'
 import type { EndorseDayResult } from '@/types/sync-schedule'
 
+/** As the Resync dialog's states, plus 'endorsed': already sent to the checker, so it can't be picked again. */
+export type EndorseDayState = ResyncDayState | 'endorsed'
+
 /**
  * The Endorse days dialog: pick days whose entries are all synced to N-PAX,
  * confirm, and endorse them one at a time. Endorsing can't be undone.
@@ -35,9 +38,10 @@ export function useEndorseDays(open: boolean) {
     }
   }
 
-  const dayState = (key: string): ResyncDayState => {
+  const dayState = (key: string): EndorseDayState => {
     const entries = entriesByDate[key] ?? []
     if (entries.length === 0) return 'none'
+    if (entries.some((e) => e.endorsed)) return 'endorsed'
     return entries.every((e) => e.synced) ? 'synced' : 'pending'
   }
 
@@ -67,6 +71,8 @@ export function useEndorseDays(open: boolean) {
       }))
     }
     setRunning(false)
+    // Pick up the endorsed flags the server just set.
+    void fetchEntries(shiftDateKey(todayKey, -ACTIVITY_WEEKS * 7), todayKey)
   }
 
   const finished = Object.keys(results).length > 0 && !running

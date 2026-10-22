@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -8,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { fromDateKey, toDateKey } from '@/constants/time-format'
+import { formatDayLabel, fromDateKey, toDateKey } from '@/constants/time-format'
 import { useResyncDays } from '@/hooks/use-resync-days'
 
 interface ResyncDaysDialogProps {
@@ -47,13 +48,33 @@ export function ResyncDaysDialog({ open, onOpenChange }: ResyncDaysDialogProps) 
           modifiers={{
             synced: (day) => r.dayState(toDateKey(day)) === 'synced',
             pending: (day) => r.dayState(toDateKey(day)) === 'pending',
+            endorsed: (day) => r.dayState(toDateKey(day)) === 'endorsed',
           }}
           modifiersClassNames={{
             synced: `${DOT} after:bg-success`,
             pending: `${DOT} after:bg-warning`,
+            endorsed: `${DOT} after:bg-muted-foreground`,
           }}
           onSelect={(days) => r.setSelected((days ?? []).map(toDateKey).sort())}
         />
+
+        {count > 0 && (
+          <ul aria-label="Days picked for resync" className="flex flex-wrap gap-1.5 border-t pt-3">
+            {r.selected.map((key) => {
+              const attempts = r.resyncCount(key)
+              return (
+                <li key={key}>
+                  <Badge variant="outline" className="gap-1.5 text-[12px] font-normal">
+                    {formatDayLabel(key)}
+                    <span className="text-muted-foreground tabular-nums">
+                      {attempts === 0 ? 'never resynced' : `resynced ${attempts}×`}
+                    </span>
+                  </Badge>
+                </li>
+              )
+            })}
+          </ul>
+        )}
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t pt-3 text-[12px] text-muted-foreground">
           <span className="flex items-center gap-1.5">
@@ -63,6 +84,10 @@ export function ResyncDaysDialog({ open, onOpenChange }: ResyncDaysDialogProps) 
           <span className="flex items-center gap-1.5">
             <span className="size-2 rounded-full bg-warning" />
             Already waiting for sync
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-2 rounded-full bg-muted-foreground" />
+            Endorsed · can&apos;t be changed
           </span>
           {r.error && (
             <span role="alert" className="text-destructive">

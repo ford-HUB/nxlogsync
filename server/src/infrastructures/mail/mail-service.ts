@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BrevoMailClient } from './brevo-mail-client';
 import {
+  AutoEndorseEmailData,
+  renderAutoEndorseEmail,
+} from './templates/auto-endorse-email-template';
+import {
   ReminderEmailData,
   renderReminderEmail,
 } from './templates/reminder-email-template';
@@ -35,6 +39,17 @@ export class MailService {
   ): Promise<void> {
     await this.client.send(
       renderSyncReportEmail({
+        ...data,
+        logoUrl: this.config.get<string>('MAIL_LOGO_URL') || undefined,
+      }),
+    );
+  }
+
+  async sendAutoEndorseReport(
+    data: Omit<AutoEndorseEmailData, 'logoUrl'>,
+  ): Promise<void> {
+    await this.client.send(
+      renderAutoEndorseEmail({
         ...data,
         logoUrl: this.config.get<string>('MAIL_LOGO_URL') || undefined,
       }),

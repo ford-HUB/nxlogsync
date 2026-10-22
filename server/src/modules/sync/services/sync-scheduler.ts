@@ -66,6 +66,11 @@ export class SyncScheduler implements OnApplicationBootstrap, OnModuleDestroy {
         this.syncService.deferUntilConnected(user);
         continue;
       }
+      // Auto-endorse holds the user's N-PAX session; sync right after it.
+      if (this.syncService.isEndorsing(user)) {
+        this.syncService.deferUntilConnected(user);
+        continue;
+      }
       if (this.syncService.isRunning(user)) {
         this.logger.warn(
           `Scheduled sync for ${user} skipped: a sync is already running`,

@@ -81,24 +81,24 @@ export function SyncStatusSummary({ schedule: s }: SyncStatusSummaryProps) {
           </Stat>
           <div className="hidden w-px self-stretch bg-border md:block" />
           <Stat label="Uploaded" className="hidden md:flex">
-            {s.successCount}
-            <span className="ml-1 text-sm font-normal text-muted-foreground">of {s.finishedCount} runs</span>
+            {pending.uploadedEntries}
+            <span className="ml-1 text-sm font-normal text-muted-foreground">
+              of {pending.uploadedEntries + pending.entries} entries
+            </span>
           </Stat>
         </dl>
       </CardContent>
 
       <CardFooter className="justify-between gap-3 py-3">
         <div className="flex items-center gap-2.5">
-          <Switch
-            id="auto-sync"
-            checked={s.draft.enabled}
-            disabled={s.draft.mode === 'manual' || s.saving}
-            onCheckedChange={s.setEnabled}
-          />
+          {/* Read-only: the mode decides it. Timed modes always run; only Manual only turns it off. */}
+          <Switch id="auto-sync" checked={s.draft.mode !== 'manual'} disabled aria-readonly />
           <Label htmlFor="auto-sync" className="text-[13px] font-normal">
             Automatic sync
             <span className="text-muted-foreground">
-              {s.draft.mode === 'manual' ? ' · off in manual mode' : s.draft.enabled ? '' : ' · paused'}
+              {s.draft.mode === 'manual'
+                ? ' · off in Manual only — pick a schedule to turn it on'
+                : ' · on — pick Manual only to turn it off'}
             </span>
           </Label>
         </div>

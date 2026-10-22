@@ -5,12 +5,20 @@ import { LogEntriesModule } from '../../log-entries/modules/log-entries-module';
 import { RemindersModule } from '../../reminders/modules/reminders-module';
 import { SyncController } from '../controllers/sync-controller';
 import { SyncRepository } from '../repositories/sync-repository';
+import { AutoEndorseScheduler } from '../services/auto-endorse-scheduler';
+import { AutoEndorseService } from '../services/auto-endorse-service';
 import { SyncScheduler } from '../services/sync-scheduler';
 import { SyncService } from '../services/sync-service';
 
 @Module({
   imports: [NpaxWorkflowModule, LogEntriesModule, MailModule, RemindersModule],
   controllers: [SyncController],
-  providers: [SyncService, SyncScheduler, SyncRepository],
+  providers: [
+    SyncService,
+    SyncScheduler,
+    SyncRepository,
+    AutoEndorseService,
+    AutoEndorseScheduler,
+  ],
 })
 export class SyncModule {}

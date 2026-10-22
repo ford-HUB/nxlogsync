@@ -25,7 +25,7 @@ export interface SyncSchedule {
   skipEmptyDays: boolean
 }
 
-export type ScheduleState = 'scheduled' | 'paused' | 'manual'
+export type ScheduleState = 'scheduled' | 'manual'
 
 /**
  * 'disconnected' = no verified login yet, or the user logged out.
@@ -65,6 +65,8 @@ export interface SyncRun {
   entryCount: number
   minutes: number
   message?: string
+  /** Hidden from Recent syncs; still counts as the last sync. */
+  cleared: boolean
 }
 
 /**
@@ -83,6 +85,17 @@ export type EndorseDayResult =
 export interface PendingUpload {
   days: number
   minutes: number
+  /** Entries waiting to upload, flagged-for-resync days included. */
+  entries: number
+  /** Entries N-PAX holds; with `entries`, every entry logged through today. */
+  uploadedEntries: number
 }
 
 export type ScheduleIssue = 'no-days' | 'window-order' | 'invalid-url'
+
+/** Endorses synced 9h days at 11:59 PM on this day of each month; a shorter month runs on its last day. */
+export interface AutoEndorseSetting {
+  enabled: boolean
+  /** Null until a day is picked. */
+  dayOfMonth: number | null
+}

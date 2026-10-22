@@ -34,6 +34,7 @@ export type SyncScheduleAvgAggregateOutputType = {
   days: number | null
   monthlyDaysBeforeEnd: number | null
   retryAttempts: number | null
+  autoEndorseDay: number | null
 }
 
 export type SyncScheduleSumAggregateOutputType = {
@@ -44,6 +45,7 @@ export type SyncScheduleSumAggregateOutputType = {
   days: number[]
   monthlyDaysBeforeEnd: number | null
   retryAttempts: number | null
+  autoEndorseDay: number | null
 }
 
 export type SyncScheduleMinAggregateOutputType = {
@@ -59,6 +61,9 @@ export type SyncScheduleMinAggregateOutputType = {
   targetUrl: string | null
   retryAttempts: number | null
   skipEmptyDays: boolean | null
+  autoEndorseEnabled: boolean | null
+  autoEndorseDay: number | null
+  autoEndorsedAt: Date | null
   updatedAt: Date | null
 }
 
@@ -75,6 +80,9 @@ export type SyncScheduleMaxAggregateOutputType = {
   targetUrl: string | null
   retryAttempts: number | null
   skipEmptyDays: boolean | null
+  autoEndorseEnabled: boolean | null
+  autoEndorseDay: number | null
+  autoEndorsedAt: Date | null
   updatedAt: Date | null
 }
 
@@ -92,6 +100,9 @@ export type SyncScheduleCountAggregateOutputType = {
   targetUrl: number
   retryAttempts: number
   skipEmptyDays: number
+  autoEndorseEnabled: number
+  autoEndorseDay: number
+  autoEndorsedAt: number
   updatedAt: number
   _all: number
 }
@@ -105,6 +116,7 @@ export type SyncScheduleAvgAggregateInputType = {
   days?: true
   monthlyDaysBeforeEnd?: true
   retryAttempts?: true
+  autoEndorseDay?: true
 }
 
 export type SyncScheduleSumAggregateInputType = {
@@ -115,6 +127,7 @@ export type SyncScheduleSumAggregateInputType = {
   days?: true
   monthlyDaysBeforeEnd?: true
   retryAttempts?: true
+  autoEndorseDay?: true
 }
 
 export type SyncScheduleMinAggregateInputType = {
@@ -130,6 +143,9 @@ export type SyncScheduleMinAggregateInputType = {
   targetUrl?: true
   retryAttempts?: true
   skipEmptyDays?: true
+  autoEndorseEnabled?: true
+  autoEndorseDay?: true
+  autoEndorsedAt?: true
   updatedAt?: true
 }
 
@@ -146,6 +162,9 @@ export type SyncScheduleMaxAggregateInputType = {
   targetUrl?: true
   retryAttempts?: true
   skipEmptyDays?: true
+  autoEndorseEnabled?: true
+  autoEndorseDay?: true
+  autoEndorsedAt?: true
   updatedAt?: true
 }
 
@@ -163,6 +182,9 @@ export type SyncScheduleCountAggregateInputType = {
   targetUrl?: true
   retryAttempts?: true
   skipEmptyDays?: true
+  autoEndorseEnabled?: true
+  autoEndorseDay?: true
+  autoEndorsedAt?: true
   updatedAt?: true
   _all?: true
 }
@@ -267,6 +289,9 @@ export type SyncScheduleGroupByOutputType = {
   targetUrl: string
   retryAttempts: number
   skipEmptyDays: boolean
+  autoEndorseEnabled: boolean
+  autoEndorseDay: number | null
+  autoEndorsedAt: Date | null
   updatedAt: Date
   _count: SyncScheduleCountAggregateOutputType | null
   _avg: SyncScheduleAvgAggregateOutputType | null
@@ -307,6 +332,9 @@ export type SyncScheduleWhereInput = {
   targetUrl?: Prisma.StringFilter<"SyncSchedule"> | string
   retryAttempts?: Prisma.IntFilter<"SyncSchedule"> | number
   skipEmptyDays?: Prisma.BoolFilter<"SyncSchedule"> | boolean
+  autoEndorseEnabled?: Prisma.BoolFilter<"SyncSchedule"> | boolean
+  autoEndorseDay?: Prisma.IntNullableFilter<"SyncSchedule"> | number | null
+  autoEndorsedAt?: Prisma.DateTimeNullableFilter<"SyncSchedule"> | Date | string | null
   updatedAt?: Prisma.DateTimeFilter<"SyncSchedule"> | Date | string
 }
 
@@ -324,6 +352,9 @@ export type SyncScheduleOrderByWithRelationInput = {
   targetUrl?: Prisma.SortOrder
   retryAttempts?: Prisma.SortOrder
   skipEmptyDays?: Prisma.SortOrder
+  autoEndorseEnabled?: Prisma.SortOrder
+  autoEndorseDay?: Prisma.SortOrderInput | Prisma.SortOrder
+  autoEndorsedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -344,6 +375,9 @@ export type SyncScheduleWhereUniqueInput = Prisma.AtLeast<{
   targetUrl?: Prisma.StringFilter<"SyncSchedule"> | string
   retryAttempts?: Prisma.IntFilter<"SyncSchedule"> | number
   skipEmptyDays?: Prisma.BoolFilter<"SyncSchedule"> | boolean
+  autoEndorseEnabled?: Prisma.BoolFilter<"SyncSchedule"> | boolean
+  autoEndorseDay?: Prisma.IntNullableFilter<"SyncSchedule"> | number | null
+  autoEndorsedAt?: Prisma.DateTimeNullableFilter<"SyncSchedule"> | Date | string | null
   updatedAt?: Prisma.DateTimeFilter<"SyncSchedule"> | Date | string
 }, "userId">
 
@@ -361,6 +395,9 @@ export type SyncScheduleOrderByWithAggregationInput = {
   targetUrl?: Prisma.SortOrder
   retryAttempts?: Prisma.SortOrder
   skipEmptyDays?: Prisma.SortOrder
+  autoEndorseEnabled?: Prisma.SortOrder
+  autoEndorseDay?: Prisma.SortOrderInput | Prisma.SortOrder
+  autoEndorsedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.SyncScheduleCountOrderByAggregateInput
   _avg?: Prisma.SyncScheduleAvgOrderByAggregateInput
@@ -386,6 +423,9 @@ export type SyncScheduleScalarWhereWithAggregatesInput = {
   targetUrl?: Prisma.StringWithAggregatesFilter<"SyncSchedule"> | string
   retryAttempts?: Prisma.IntWithAggregatesFilter<"SyncSchedule"> | number
   skipEmptyDays?: Prisma.BoolWithAggregatesFilter<"SyncSchedule"> | boolean
+  autoEndorseEnabled?: Prisma.BoolWithAggregatesFilter<"SyncSchedule"> | boolean
+  autoEndorseDay?: Prisma.IntNullableWithAggregatesFilter<"SyncSchedule"> | number | null
+  autoEndorsedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SyncSchedule"> | Date | string | null
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"SyncSchedule"> | Date | string
 }
 
@@ -403,6 +443,9 @@ export type SyncScheduleCreateInput = {
   targetUrl?: string
   retryAttempts?: number
   skipEmptyDays?: boolean
+  autoEndorseEnabled?: boolean
+  autoEndorseDay?: number | null
+  autoEndorsedAt?: Date | string | null
   updatedAt?: Date | string
 }
 
@@ -420,6 +463,9 @@ export type SyncScheduleUncheckedCreateInput = {
   targetUrl?: string
   retryAttempts?: number
   skipEmptyDays?: boolean
+  autoEndorseEnabled?: boolean
+  autoEndorseDay?: number | null
+  autoEndorsedAt?: Date | string | null
   updatedAt?: Date | string
 }
 
@@ -437,6 +483,9 @@ export type SyncScheduleUpdateInput = {
   targetUrl?: Prisma.StringFieldUpdateOperationsInput | string
   retryAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   skipEmptyDays?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoEndorseEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoEndorseDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  autoEndorsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -454,6 +503,9 @@ export type SyncScheduleUncheckedUpdateInput = {
   targetUrl?: Prisma.StringFieldUpdateOperationsInput | string
   retryAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   skipEmptyDays?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoEndorseEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoEndorseDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  autoEndorsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -471,6 +523,9 @@ export type SyncScheduleCreateManyInput = {
   targetUrl?: string
   retryAttempts?: number
   skipEmptyDays?: boolean
+  autoEndorseEnabled?: boolean
+  autoEndorseDay?: number | null
+  autoEndorsedAt?: Date | string | null
   updatedAt?: Date | string
 }
 
@@ -488,6 +543,9 @@ export type SyncScheduleUpdateManyMutationInput = {
   targetUrl?: Prisma.StringFieldUpdateOperationsInput | string
   retryAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   skipEmptyDays?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoEndorseEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoEndorseDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  autoEndorsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -505,6 +563,9 @@ export type SyncScheduleUncheckedUpdateManyInput = {
   targetUrl?: Prisma.StringFieldUpdateOperationsInput | string
   retryAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   skipEmptyDays?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoEndorseEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  autoEndorseDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  autoEndorsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -530,6 +591,9 @@ export type SyncScheduleCountOrderByAggregateInput = {
   targetUrl?: Prisma.SortOrder
   retryAttempts?: Prisma.SortOrder
   skipEmptyDays?: Prisma.SortOrder
+  autoEndorseEnabled?: Prisma.SortOrder
+  autoEndorseDay?: Prisma.SortOrder
+  autoEndorsedAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -541,6 +605,7 @@ export type SyncScheduleAvgOrderByAggregateInput = {
   days?: Prisma.SortOrder
   monthlyDaysBeforeEnd?: Prisma.SortOrder
   retryAttempts?: Prisma.SortOrder
+  autoEndorseDay?: Prisma.SortOrder
 }
 
 export type SyncScheduleMaxOrderByAggregateInput = {
@@ -556,6 +621,9 @@ export type SyncScheduleMaxOrderByAggregateInput = {
   targetUrl?: Prisma.SortOrder
   retryAttempts?: Prisma.SortOrder
   skipEmptyDays?: Prisma.SortOrder
+  autoEndorseEnabled?: Prisma.SortOrder
+  autoEndorseDay?: Prisma.SortOrder
+  autoEndorsedAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -572,6 +640,9 @@ export type SyncScheduleMinOrderByAggregateInput = {
   targetUrl?: Prisma.SortOrder
   retryAttempts?: Prisma.SortOrder
   skipEmptyDays?: Prisma.SortOrder
+  autoEndorseEnabled?: Prisma.SortOrder
+  autoEndorseDay?: Prisma.SortOrder
+  autoEndorsedAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -583,6 +654,7 @@ export type SyncScheduleSumOrderByAggregateInput = {
   days?: Prisma.SortOrder
   monthlyDaysBeforeEnd?: Prisma.SortOrder
   retryAttempts?: Prisma.SortOrder
+  autoEndorseDay?: Prisma.SortOrder
 }
 
 export type SyncScheduleCreatedaysInput = {
@@ -592,6 +664,14 @@ export type SyncScheduleCreatedaysInput = {
 export type SyncScheduleUpdatedaysInput = {
   set?: number[]
   push?: number | number[]
+}
+
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
 }
 
 
@@ -610,6 +690,9 @@ export type SyncScheduleSelect<ExtArgs extends runtime.Types.Extensions.Internal
   targetUrl?: boolean
   retryAttempts?: boolean
   skipEmptyDays?: boolean
+  autoEndorseEnabled?: boolean
+  autoEndorseDay?: boolean
+  autoEndorsedAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["syncSchedule"]>
 
@@ -627,6 +710,9 @@ export type SyncScheduleSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   targetUrl?: boolean
   retryAttempts?: boolean
   skipEmptyDays?: boolean
+  autoEndorseEnabled?: boolean
+  autoEndorseDay?: boolean
+  autoEndorsedAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["syncSchedule"]>
 
@@ -644,6 +730,9 @@ export type SyncScheduleSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   targetUrl?: boolean
   retryAttempts?: boolean
   skipEmptyDays?: boolean
+  autoEndorseEnabled?: boolean
+  autoEndorseDay?: boolean
+  autoEndorsedAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["syncSchedule"]>
 
@@ -661,10 +750,13 @@ export type SyncScheduleSelectScalar = {
   targetUrl?: boolean
   retryAttempts?: boolean
   skipEmptyDays?: boolean
+  autoEndorseEnabled?: boolean
+  autoEndorseDay?: boolean
+  autoEndorsedAt?: boolean
   updatedAt?: boolean
 }
 
-export type SyncScheduleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"userId" | "enabled" | "mode" | "dailyAtMinutes" | "intervalHours" | "windowStartMinutes" | "windowEndMinutes" | "days" | "monthlyDaysBeforeEnd" | "monthlyWeekdaysOnly" | "targetUrl" | "retryAttempts" | "skipEmptyDays" | "updatedAt", ExtArgs["result"]["syncSchedule"]>
+export type SyncScheduleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"userId" | "enabled" | "mode" | "dailyAtMinutes" | "intervalHours" | "windowStartMinutes" | "windowEndMinutes" | "days" | "monthlyDaysBeforeEnd" | "monthlyWeekdaysOnly" | "targetUrl" | "retryAttempts" | "skipEmptyDays" | "autoEndorseEnabled" | "autoEndorseDay" | "autoEndorsedAt" | "updatedAt", ExtArgs["result"]["syncSchedule"]>
 
 export type $SyncSchedulePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "SyncSchedule"
@@ -673,7 +765,7 @@ export type $SyncSchedulePayload<ExtArgs extends runtime.Types.Extensions.Intern
     userId: string
     enabled: boolean
     /**
-     * 'daily' | 'interval' | 'monthly' | 'manual'
+     * 'daily' | 'interval' | 'monthly' | 'manual'; enabled is true exactly when mode isn't manual
      */
     mode: string
     dailyAtMinutes: number
@@ -689,6 +781,15 @@ export type $SyncSchedulePayload<ExtArgs extends runtime.Types.Extensions.Intern
     targetUrl: string
     retryAttempts: number
     skipEmptyDays: boolean
+    autoEndorseEnabled: boolean
+    /**
+     * Day of the month auto-endorse runs on at 11:59 PM; a shorter month runs on its last day.
+     */
+    autoEndorseDay: number | null
+    /**
+     * Last auto-endorse run, or when it was last saved; only run times after this are due.
+     */
+    autoEndorsedAt: Date | null
     updatedAt: Date
   }, ExtArgs["result"]["syncSchedule"]>
   composites: {}
@@ -1126,6 +1227,9 @@ export interface SyncScheduleFieldRefs {
   readonly targetUrl: Prisma.FieldRef<"SyncSchedule", 'String'>
   readonly retryAttempts: Prisma.FieldRef<"SyncSchedule", 'Int'>
   readonly skipEmptyDays: Prisma.FieldRef<"SyncSchedule", 'Boolean'>
+  readonly autoEndorseEnabled: Prisma.FieldRef<"SyncSchedule", 'Boolean'>
+  readonly autoEndorseDay: Prisma.FieldRef<"SyncSchedule", 'Int'>
+  readonly autoEndorsedAt: Prisma.FieldRef<"SyncSchedule", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"SyncSchedule", 'DateTime'>
 }
     

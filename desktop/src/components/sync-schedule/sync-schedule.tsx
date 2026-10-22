@@ -61,7 +61,7 @@ function ScheduleBody({ schedule, locked }: { schedule: SyncScheduleState; locke
         <div className="flex flex-col gap-4">
           <TargetSiteCard schedule={schedule} />
           <fieldset disabled={locked} className={lockClass}>
-            <RunHistory runs={schedule.runs} now={schedule.now} />
+            <RunHistory runs={schedule.visibleRuns} now={schedule.now} onClear={schedule.clearRuns} />
           </fieldset>
         </div>
       </div>

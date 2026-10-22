@@ -119,6 +119,9 @@ export const SyncScheduleScalarFieldEnum = {
   targetUrl: 'targetUrl',
   retryAttempts: 'retryAttempts',
   skipEmptyDays: 'skipEmptyDays',
+  autoEndorseEnabled: 'autoEndorseEnabled',
+  autoEndorseDay: 'autoEndorseDay',
+  autoEndorsedAt: 'autoEndorsedAt',
   updatedAt: 'updatedAt'
 } as const
 
@@ -134,7 +137,8 @@ export const SyncRunScalarFieldEnum = {
   status: 'status',
   entryCount: 'entryCount',
   minutes: 'minutes',
-  message: 'message'
+  message: 'message',
+  clearedAt: 'clearedAt'
 } as const
 
 export type SyncRunScalarFieldEnum = (typeof SyncRunScalarFieldEnum)[keyof typeof SyncRunScalarFieldEnum]

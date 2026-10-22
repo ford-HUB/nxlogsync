@@ -67,6 +67,17 @@ export const EndorseDaySchema = z
   })
   .strict();
 
+export const AutoEndorseSchema = z
+  .object({
+    enabled: z.boolean(),
+    dayOfMonth: z.number().int().min(1).max(31).nullable(),
+  })
+  .strict()
+  .refine((s) => !s.enabled || s.dayOfMonth !== null, {
+    message: 'Pick the day of the month to auto-endorse on.',
+    path: ['dayOfMonth'],
+  });
+
 export const EndorseDayResponseSchema = z.object({
   date: z.string(),
   outcome: z.enum(ENDORSE_OUTCOMES),
@@ -81,9 +92,15 @@ export const SyncRunResponseSchema = z.object({
   entryCount: z.number(),
   minutes: z.number(),
   message: z.string().nullable(),
+  /** Set once the user cleared it from Recent syncs; it still counts as the last sync. */
+  clearedAt: z.string().nullable(),
 });
 
 export const PendingUploadResponseSchema = z.object({
   days: z.number(),
   minutes: z.number(),
+  /** Entries waiting to upload, flagged-for-resync days included. */
+  entries: z.number(),
+  /** Entries N-PAX holds; with `entries`, every entry logged through today. */
+  uploadedEntries: z.number(),
 });

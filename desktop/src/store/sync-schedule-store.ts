@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { getPending, getSchedule, listRuns, saveSchedule, startRun } from '@/services/sync-service'
+import { clearRuns, getPending, getSchedule, listRuns, saveSchedule, startRun } from '@/services/sync-service'
 import type { PendingUpload, SyncRun, SyncSchedule } from '@/types/sync-schedule'
 
 interface SyncScheduleState {
@@ -15,6 +15,8 @@ interface SyncScheduleState {
   refreshActivity: () => Promise<void>
   saveSchedule: (schedule: SyncSchedule) => Promise<boolean>
   startRun: () => Promise<void>
+  /** Soft-clears Recent syncs; a run still uploading stays. */
+  clearRuns: () => Promise<void>
   dismissError: () => void
   /** Forgets the signed-out user's schedule and runs so the next user never sees them. */
   reset: () => void
@@ -23,7 +25,7 @@ interface SyncScheduleState {
 export const useSyncScheduleStore = create<SyncScheduleState>((set) => ({
   schedule: null,
   runs: [],
-  pending: { days: 0, minutes: 0 },
+  pending: { days: 0, minutes: 0, entries: 0, uploadedEntries: 0 },
   initialized: false,
   saving: false,
   error: null,
@@ -74,8 +76,18 @@ export const useSyncScheduleStore = create<SyncScheduleState>((set) => ({
     else set({ error: result.message })
   },
 
+  clearRuns: async () => {
+    set({ error: null })
+    const result = await clearRuns()
+    if (!result.success) {
+      set({ error: result.message })
+      return
+    }
+    set((s) => ({ runs: s.runs.map((r) => (r.status === 'running' ? r : { ...r, cleared: true })) }))
+  },
+
   dismissError: () => set({ error: null }),
 
   reset: () =>
-    set({ schedule: null, runs: [], pending: { days: 0, minutes: 0 }, initialized: false, saving: false, error: null }),
+    set({ schedule: null, runs: [], pending: { days: 0, minutes: 0, entries: 0, uploadedEntries: 0 }, initialized: false, saving: false, error: null }),
 }))

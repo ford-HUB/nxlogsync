@@ -42,6 +42,13 @@ export class LogEntriesRepository {
     });
   }
 
+  /** Entries up to and including `throughDate` that N-PAX holds; a day flagged for resync drops out until it uploads again. */
+  countSynced(userId: string, throughDate: string): Promise<number> {
+    return this.prisma.logEntry.count({
+      where: { userId, syncedAt: { not: null }, date: { lte: throughDate } },
+    });
+  }
+
   create(userId: string, data: CreateLogEntryDto): Promise<LogEntry> {
     return this.prisma.logEntry.create({ data: { ...data, userId } });
   }
@@ -156,6 +163,18 @@ export class LogEntriesRepository {
       distinct: ['date'],
     });
     return days.map((d) => d.date);
+  }
+
+  /** Entries on days not yet endorsed, up to and including `throughDate`. */
+  async findUnendorsed(
+    userId: string,
+    throughDate: string,
+  ): Promise<LogEntry[]> {
+    const endorsed = await this.findEndorsedDates(userId);
+    return this.prisma.logEntry.findMany({
+      where: { userId, date: { lte: throughDate, notIn: endorsed } },
+      orderBy: [{ date: 'asc' }, { startMinutes: 'asc' }],
+    });
   }
 
   /** Flags every entry on the day as endorsed on N-PAX. */

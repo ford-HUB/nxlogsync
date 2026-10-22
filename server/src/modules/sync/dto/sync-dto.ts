@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  AutoEndorseSchema,
   ENDORSE_OUTCOMES,
   EndorseDayResponseSchema,
   EndorseDaySchema,
@@ -19,6 +20,7 @@ export type PendingUploadResponseDto = z.infer<
 >;
 export type EndorseDayDto = z.infer<typeof EndorseDaySchema>;
 export type EndorseDayResponseDto = z.infer<typeof EndorseDayResponseSchema>;
+export type AutoEndorseDto = z.infer<typeof AutoEndorseSchema>;
 export type EndorseOutcome = (typeof ENDORSE_OUTCOMES)[number];
 export type SyncTrigger = (typeof RUN_TRIGGERS)[number];
 export type SyncRunStatus = (typeof RUN_STATUSES)[number];

@@ -4,7 +4,12 @@ import {
   SyncSchedule,
 } from '../../../infrastructures/prisma/common/client';
 import { PrismaService } from '../../../infrastructures/prisma/prisma-service';
-import { SyncRunStatus, SyncScheduleDto, SyncTrigger } from '../dto/sync-dto';
+import {
+  AutoEndorseDto,
+  SyncRunStatus,
+  SyncScheduleDto,
+  SyncTrigger,
+} from '../dto/sync-dto';
 
 /**
  * Schedules and runs, one schedule row per user (keyed by the user's key, see
@@ -36,12 +41,52 @@ export class SyncRepository {
     });
   }
 
+  /** Saving restarts the clock, so a run time already past this month isn't due at once. */
+  saveAutoEndorse(userId: string, data: AutoEndorseDto): Promise<SyncSchedule> {
+    const fields = {
+      autoEndorseEnabled: data.enabled,
+      autoEndorseDay: data.enabled ? data.dayOfMonth : null,
+      autoEndorsedAt: new Date(),
+    };
+    return this.prisma.syncSchedule.upsert({
+      where: { userId },
+      create: { userId, ...fields },
+      update: fields,
+    });
+  }
+
+  /** Users with auto-endorse on, for the scheduler. */
+  listAutoEndorse(): Promise<SyncSchedule[]> {
+    return this.prisma.syncSchedule.findMany({
+      where: { autoEndorseEnabled: true, autoEndorseDay: { not: null } },
+    });
+  }
+
+  async markAutoEndorsed(userId: string, at: Date): Promise<void> {
+    await this.prisma.syncSchedule.update({
+      where: { userId },
+      data: { autoEndorsedAt: at },
+    });
+  }
+
   listRuns(userId: string, limit: number): Promise<SyncRun[]> {
     return this.prisma.syncRun.findMany({
       where: { userId },
       orderBy: { startedAt: 'desc' },
       take: limit,
     });
+  }
+
+  /**
+   * Soft clear: stamps clearedAt on the user's finished runs, never deletes them.
+   * A run still in flight stays visible until it finishes.
+   */
+  async clearRuns(userId: string): Promise<number> {
+    const { count } = await this.prisma.syncRun.updateMany({
+      where: { userId, clearedAt: null, status: { not: 'running' } },
+      data: { clearedAt: new Date() },
+    });
+    return count;
   }
 
   createRun(userId: string, trigger: SyncTrigger): Promise<SyncRun> {

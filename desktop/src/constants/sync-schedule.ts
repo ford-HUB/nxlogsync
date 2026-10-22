@@ -58,6 +58,13 @@ export function formatMonthlyOffset(daysBeforeEnd: number): string {
   return `${daysBeforeEnd} ${daysBeforeEnd === 1 ? 'day' : 'days'} before the last day`
 }
 
+/** 1 → "1st", 22 → "22nd", 28 → "28th". */
+export function formatDayOfMonth(day: number): string {
+  const tens = day % 100
+  const suffix = tens >= 11 && tens <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[day % 10] ?? 'th'
+  return `${day}${suffix}`
+}
+
 export const CREDENTIALS_INVALID_MESSAGE = 'The site rejected this User ID and password.'
 
 /** How often the screen re-reads the server's session status (the server checks the site on its own schedule). */
@@ -73,7 +80,7 @@ export const TARGET_SITE_NAME = 'NX Timesheet portal'
 /** Stands in for the server's schedule until it loads (the screen shows a skeleton meanwhile). Matches the server's defaults. */
 export const FALLBACK_SCHEDULE: SyncSchedule = {
   enabled: false,
-  mode: 'daily',
+  mode: 'manual',
   dailyAtMinutes: 18 * 60,
   intervalHours: 2,
   windowStartMinutes: 8 * 60,
@@ -94,13 +101,11 @@ export const SCHEDULE_ISSUE_MESSAGE: Record<ScheduleIssue, string> = {
 
 export const SCHEDULE_STATE_LABEL: Record<ScheduleState, string> = {
   scheduled: 'Scheduled',
-  paused: 'Paused',
   manual: 'Manual only',
 }
 
 export const SCHEDULE_STATE_BADGE: Record<ScheduleState, string> = {
   scheduled: 'bg-success/15 text-success',
-  paused: 'bg-warning/15 text-warning',
   manual: 'bg-muted text-muted-foreground',
 }
 

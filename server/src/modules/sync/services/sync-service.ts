@@ -46,6 +46,8 @@ const DEFERRED_RECHECK_MS = 5 * 60_000;
 export class SyncService implements OnApplicationBootstrap {
   private readonly logger = new Logger(SyncService.name);
   private readonly activeRuns = new Set<string>();
+  /** Users with an endorse in flight; their sync waits, as their endorse waits for a sync. */
+  private readonly endorsing = new Set<string>();
   /** Users with a sync waiting for their N-PAX session to be logged in again. */
   private readonly deferredRuns = new Set<string>();
   /** When each deferred user's login was last re-checked. */
@@ -83,7 +85,12 @@ export class SyncService implements OnApplicationBootstrap {
   async resumeDeferred(): Promise<void> {
     for (const user of [...this.deferredRuns]) {
       // No login (signed out or rejected) waits for the user's next Connect.
-      if (this.activeRuns.has(user) || !this.npax.hasLogin(user)) continue;
+      if (
+        this.activeRuns.has(user) ||
+        this.endorsing.has(user) ||
+        !this.npax.hasLogin(user)
+      )
+        continue;
       if (!this.isConnected(user)) {
         const last = this.lastRecheck.get(user) ?? 0;
         if (Date.now() - last < DEFERRED_RECHECK_MS) continue;
@@ -123,8 +130,10 @@ export class SyncService implements OnApplicationBootstrap {
     data: SyncScheduleDto,
   ): Promise<SyncScheduleDto> {
     const days = [...new Set(data.days)].sort((a, b) => a - b);
+    // Automatic sync follows the mode: every timed mode runs, only manual is off.
+    const enabled = data.mode !== 'manual';
     return toScheduleResponse(
-      await this.repository.saveSchedule(user, { ...data, days }),
+      await this.repository.saveSchedule(user, { ...data, days, enabled }),
     );
   }
 
@@ -135,14 +144,22 @@ export class SyncService implements OnApplicationBootstrap {
     return (await this.repository.listRuns(user, limit)).map(toRunResponse);
   }
 
+  /** Hides the user's finished runs from Recent syncs; the rows stay for the record. */
+  async clearRuns(user: string): Promise<{ cleared: number }> {
+    return { cleared: await this.repository.clearRuns(user) };
+  }
+
   async getPending(user: string): Promise<PendingUploadResponseDto> {
-    const entries = await this.logEntries.findUnsynced(
-      user,
-      toDateKey(new Date()),
-    );
+    const today = toDateKey(new Date());
+    const [entries, uploadedEntries] = await Promise.all([
+      this.logEntries.findUnsynced(user, today),
+      this.logEntries.countSynced(user, today),
+    ]);
     return {
       days: new Set(entries.map((e) => e.date)).size,
       minutes: sumMinutes(entries),
+      entries: entries.length,
+      uploadedEntries,
     };
   }
 
@@ -152,12 +169,40 @@ export class SyncService implements OnApplicationBootstrap {
    * while a sync for the user is running. Endorsing can't be undone here: the
    * day can no longer be cleared or saved over on N-PAX.
    */
-  async endorseDay(user: string, date: string): Promise<EndorseDayResponseDto> {
+  endorseDay(user: string, date: string): Promise<EndorseDayResponseDto> {
+    return this.whileEndorsing(user, () => this.endorseDayHeld(user, date));
+  }
+
+  /**
+   * Runs `task` holding the user's endorse slot: refused while their sync or
+   * another endorse runs, and their sync is refused (or deferred) until it ends.
+   */
+  async whileEndorsing<T>(user: string, task: () => Promise<T>): Promise<T> {
     if (this.activeRuns.has(user)) {
       throw new ConflictException(
         'A sync is running; endorse once it finishes',
       );
     }
+    if (this.endorsing.has(user)) {
+      throw new ConflictException('An endorse is already running');
+    }
+    this.endorsing.add(user);
+    try {
+      return await task();
+    } finally {
+      this.endorsing.delete(user);
+    }
+  }
+
+  isEndorsing(user: string): boolean {
+    return this.endorsing.has(user);
+  }
+
+  /** `endorseDay` for a caller already holding the endorse slot. */
+  async endorseDayHeld(
+    user: string,
+    date: string,
+  ): Promise<EndorseDayResponseDto> {
     const entries = await this.logEntries.findByDate(user, date);
     if (entries.length === 0) {
       throw new BadRequestException(`Nothing is logged on ${date}`);
@@ -202,6 +247,10 @@ export class SyncService implements OnApplicationBootstrap {
   ): Promise<SyncRunResponseDto> {
     if (this.activeRuns.has(user))
       throw new ConflictException('A sync is already running');
+    if (this.endorsing.has(user))
+      throw new ConflictException(
+        'Days are being endorsed; sync once that finishes',
+      );
     // Claim the slot before the first await so two requests can't both start.
     this.activeRuns.add(user);
     try {
@@ -401,6 +450,7 @@ function toRunResponse(run: SyncRun): SyncRunResponseDto {
     entryCount: run.entryCount,
     minutes: run.minutes,
     message: run.message,
+    clearedAt: run.clearedAt?.toISOString() ?? null,
   };
 }
 

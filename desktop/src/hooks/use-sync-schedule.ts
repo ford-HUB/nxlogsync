@@ -34,7 +34,7 @@ function monthlyRunFor(schedule: SyncSchedule, year: number, month: number): Dat
   return run
 }
 
-/** The next `count` automatic runs after `now`; empty when paused, manual, or no days are picked. */
+/** The next `count` automatic runs after `now`; empty in manual mode or no days are picked. */
 export function getUpcomingRuns(schedule: SyncSchedule, now: Date, count: number): Date[] {
   if (!schedule.enabled || schedule.mode === 'manual' || getScheduleIssue(schedule) !== null) return []
   const runs: Date[] = []
@@ -68,8 +68,13 @@ function getScheduleIssue(schedule: SyncSchedule): ScheduleIssue | null {
 }
 
 function getScheduleState(schedule: SyncSchedule): ScheduleState {
-  if (schedule.mode === 'manual') return 'manual'
-  return schedule.enabled ? 'scheduled' : 'paused'
+  return schedule.mode === 'manual' ? 'manual' : 'scheduled'
+}
+
+/** Automatic sync follows the mode: on for every timed mode, off only in manual. */
+function withModeEnabled(schedule: SyncSchedule): SyncSchedule {
+  const enabled = schedule.mode !== 'manual'
+  return schedule.enabled === enabled ? schedule : { ...schedule, enabled }
 }
 
 const sameSchedule = (a: SyncSchedule, b: SyncSchedule) => JSON.stringify(a) === JSON.stringify(b)
@@ -93,11 +98,13 @@ export function useSyncSchedule() {
   const refreshActivity = useSyncScheduleStore((s) => s.refreshActivity)
   const persist = useSyncScheduleStore((s) => s.saveSchedule)
   const startRun = useSyncScheduleStore((s) => s.startRun)
+  const clearRuns = useSyncScheduleStore((s) => s.clearRuns)
   const dismissError = useSyncScheduleStore((s) => s.dismissError)
   const reset = useSyncScheduleStore((s) => s.reset)
 
-  const saved = serverSchedule ?? FALLBACK_SCHEDULE
-  const [draft, setDraft] = useState(saved)
+  const saved = serverSchedule ?? withModeEnabled(FALLBACK_SCHEDULE)
+  // A schedule saved as paused before the switch was tied to the mode loads switched on and shows as unsaved.
+  const [draft, setDraft] = useState(() => withModeEnabled(saved))
   const target = useSiteSessionStore((s) => s.target)
   const testConnection = useSiteSessionStore((s) => s.testConnection)
   const connect = useSiteSessionStore((s) => s.connect)
@@ -107,7 +114,7 @@ export function useSyncSchedule() {
   const [loadedSchedule, setLoadedSchedule] = useState(serverSchedule)
   if (serverSchedule !== loadedSchedule) {
     setLoadedSchedule(serverSchedule)
-    if (serverSchedule) setDraft(serverSchedule)
+    if (serverSchedule) setDraft(withModeEnabled(serverSchedule))
   }
 
   // The schedule, runs and pending minutes are the signed-in user's; signed out, the
@@ -120,11 +127,7 @@ export function useSyncSchedule() {
 
   const update = useCallback(
     (patch: Partial<SyncSchedule>) =>
-      setDraft((d) => {
-        // Leaving manual for a timed mode means the user wants it to run, so switch it on.
-        const turnsOn = patch.mode !== undefined && patch.mode !== 'manual' && d.mode === 'manual'
-        return { ...d, ...(turnsOn && { enabled: true }), ...patch }
-      }),
+      setDraft((d) => withModeEnabled({ ...d, ...patch })),
     [],
   )
 
@@ -161,6 +164,9 @@ export function useSyncSchedule() {
     saved,
     draft,
     target,
+    // Cleared runs leave Recent syncs but still feed lastRun and isSyncing.
+    visibleRuns: runs.filter((r) => !r.cleared),
+    clearRuns,
     runs,
     lastRun,
     pending,
@@ -171,21 +177,12 @@ export function useSyncSchedule() {
     state: getScheduleState(draft),
     nextRun: getUpcomingRuns(draft, now, 1)[0] ?? null,
     previewRuns: getUpcomingRuns(draft, now, UPCOMING_PREVIEW_COUNT),
-    successCount: finishedRuns.filter((r) => r.status === 'success').length,
-    finishedCount: finishedRuns.length,
     update,
     toggleDay,
     save: () => {
       if (issue === null && !saving) void persist(draft)
     },
-    discard: () => setDraft(saved),
-    // With nothing else pending, the header switch takes effect immediately, like a pause
-    // button. With unsaved edits (e.g. a new mode) it joins the draft and goes in with Save,
-    // so it never saves the old mode behind the user's back.
-    setEnabled: (enabled: boolean) => {
-      if (isDirty || !serverSchedule) update({ enabled })
-      else void persist({ ...serverSchedule, enabled })
-    },
+    discard: () => setDraft(withModeEnabled(saved)),
     syncNow,
     testConnection,
     connect,

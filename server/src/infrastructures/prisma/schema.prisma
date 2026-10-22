@@ -44,8 +44,8 @@ model LogEntry {
 model SyncSchedule {
   userId               String   @id @map("user_id")
   enabled              Boolean  @default(false)
-  /// 'daily' | 'interval' | 'monthly' | 'manual'
-  mode                 String   @default("daily")
+  /// 'daily' | 'interval' | 'monthly' | 'manual'; enabled is true exactly when mode isn't manual
+  mode                 String   @default("manual")
   dailyAtMinutes       Int      @default(1080) @map("daily_at_minutes")
   intervalHours        Int      @default(2) @map("interval_hours")
   windowStartMinutes   Int      @default(480) @map("window_start_minutes")
@@ -57,6 +57,11 @@ model SyncSchedule {
   targetUrl            String   @default("https://workflow.n-pax.com/index.aspx") @map("target_url")
   retryAttempts        Int      @default(3) @map("retry_attempts")
   skipEmptyDays        Boolean  @default(true) @map("skip_empty_days")
+  autoEndorseEnabled   Boolean  @default(false) @map("auto_endorse_enabled")
+  /// Day of the month auto-endorse runs on at 11:59 PM; a shorter month runs on its last day.
+  autoEndorseDay       Int?     @map("auto_endorse_day")
+  /// Last auto-endorse run, or when it was last saved; only run times after this are due.
+  autoEndorsedAt       DateTime? @map("auto_endorsed_at")
   updatedAt            DateTime @updatedAt @map("updated_at")
 
   @@map("sync_schedule")
@@ -74,6 +79,8 @@ model SyncRun {
   entryCount Int       @default(0) @map("entry_count")
   minutes    Int       @default(0)
   message    String?
+  /// When the user cleared it from Recent syncs; the row is kept for the record.
+  clearedAt  DateTime? @map("cleared_at")
 
   @@index([userId, startedAt])
   @@map("sync_runs")

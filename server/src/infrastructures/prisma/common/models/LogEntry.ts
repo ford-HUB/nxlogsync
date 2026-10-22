@@ -29,11 +29,13 @@ export type AggregateLogEntry = {
 export type LogEntryAvgAggregateOutputType = {
   startMinutes: number | null
   endMinutes: number | null
+  resyncCount: number | null
 }
 
 export type LogEntrySumAggregateOutputType = {
   startMinutes: number | null
   endMinutes: number | null
+  resyncCount: number | null
 }
 
 export type LogEntryMinAggregateOutputType = {
@@ -47,6 +49,8 @@ export type LogEntryMinAggregateOutputType = {
   jobCode: string | null
   syncedAt: Date | null
   editedSinceSync: boolean | null
+  endorsedAt: Date | null
+  resyncCount: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -62,6 +66,8 @@ export type LogEntryMaxAggregateOutputType = {
   jobCode: string | null
   syncedAt: Date | null
   editedSinceSync: boolean | null
+  endorsedAt: Date | null
+  resyncCount: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -77,6 +83,8 @@ export type LogEntryCountAggregateOutputType = {
   jobCode: number
   syncedAt: number
   editedSinceSync: number
+  endorsedAt: number
+  resyncCount: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -86,11 +94,13 @@ export type LogEntryCountAggregateOutputType = {
 export type LogEntryAvgAggregateInputType = {
   startMinutes?: true
   endMinutes?: true
+  resyncCount?: true
 }
 
 export type LogEntrySumAggregateInputType = {
   startMinutes?: true
   endMinutes?: true
+  resyncCount?: true
 }
 
 export type LogEntryMinAggregateInputType = {
@@ -104,6 +114,8 @@ export type LogEntryMinAggregateInputType = {
   jobCode?: true
   syncedAt?: true
   editedSinceSync?: true
+  endorsedAt?: true
+  resyncCount?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -119,6 +131,8 @@ export type LogEntryMaxAggregateInputType = {
   jobCode?: true
   syncedAt?: true
   editedSinceSync?: true
+  endorsedAt?: true
+  resyncCount?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -134,6 +148,8 @@ export type LogEntryCountAggregateInputType = {
   jobCode?: true
   syncedAt?: true
   editedSinceSync?: true
+  endorsedAt?: true
+  resyncCount?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -236,6 +252,8 @@ export type LogEntryGroupByOutputType = {
   jobCode: string | null
   syncedAt: Date | null
   editedSinceSync: boolean
+  endorsedAt: Date | null
+  resyncCount: number
   createdAt: Date
   updatedAt: Date
   _count: LogEntryCountAggregateOutputType | null
@@ -274,6 +292,8 @@ export type LogEntryWhereInput = {
   jobCode?: Prisma.StringNullableFilter<"LogEntry"> | string | null
   syncedAt?: Prisma.DateTimeNullableFilter<"LogEntry"> | Date | string | null
   editedSinceSync?: Prisma.BoolFilter<"LogEntry"> | boolean
+  endorsedAt?: Prisma.DateTimeNullableFilter<"LogEntry"> | Date | string | null
+  resyncCount?: Prisma.IntFilter<"LogEntry"> | number
   createdAt?: Prisma.DateTimeFilter<"LogEntry"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"LogEntry"> | Date | string
 }
@@ -289,6 +309,8 @@ export type LogEntryOrderByWithRelationInput = {
   jobCode?: Prisma.SortOrderInput | Prisma.SortOrder
   syncedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   editedSinceSync?: Prisma.SortOrder
+  endorsedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  resyncCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -307,6 +329,8 @@ export type LogEntryWhereUniqueInput = Prisma.AtLeast<{
   jobCode?: Prisma.StringNullableFilter<"LogEntry"> | string | null
   syncedAt?: Prisma.DateTimeNullableFilter<"LogEntry"> | Date | string | null
   editedSinceSync?: Prisma.BoolFilter<"LogEntry"> | boolean
+  endorsedAt?: Prisma.DateTimeNullableFilter<"LogEntry"> | Date | string | null
+  resyncCount?: Prisma.IntFilter<"LogEntry"> | number
   createdAt?: Prisma.DateTimeFilter<"LogEntry"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"LogEntry"> | Date | string
 }, "id">
@@ -322,6 +346,8 @@ export type LogEntryOrderByWithAggregationInput = {
   jobCode?: Prisma.SortOrderInput | Prisma.SortOrder
   syncedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   editedSinceSync?: Prisma.SortOrder
+  endorsedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  resyncCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.LogEntryCountOrderByAggregateInput
@@ -345,6 +371,8 @@ export type LogEntryScalarWhereWithAggregatesInput = {
   jobCode?: Prisma.StringNullableWithAggregatesFilter<"LogEntry"> | string | null
   syncedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"LogEntry"> | Date | string | null
   editedSinceSync?: Prisma.BoolWithAggregatesFilter<"LogEntry"> | boolean
+  endorsedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"LogEntry"> | Date | string | null
+  resyncCount?: Prisma.IntWithAggregatesFilter<"LogEntry"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"LogEntry"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"LogEntry"> | Date | string
 }
@@ -360,6 +388,8 @@ export type LogEntryCreateInput = {
   jobCode?: string | null
   syncedAt?: Date | string | null
   editedSinceSync?: boolean
+  endorsedAt?: Date | string | null
+  resyncCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -375,6 +405,8 @@ export type LogEntryUncheckedCreateInput = {
   jobCode?: string | null
   syncedAt?: Date | string | null
   editedSinceSync?: boolean
+  endorsedAt?: Date | string | null
+  resyncCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -390,6 +422,8 @@ export type LogEntryUpdateInput = {
   jobCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   syncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   editedSinceSync?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  endorsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resyncCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -405,6 +439,8 @@ export type LogEntryUncheckedUpdateInput = {
   jobCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   syncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   editedSinceSync?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  endorsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resyncCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -420,6 +456,8 @@ export type LogEntryCreateManyInput = {
   jobCode?: string | null
   syncedAt?: Date | string | null
   editedSinceSync?: boolean
+  endorsedAt?: Date | string | null
+  resyncCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -435,6 +473,8 @@ export type LogEntryUpdateManyMutationInput = {
   jobCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   syncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   editedSinceSync?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  endorsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resyncCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -450,6 +490,8 @@ export type LogEntryUncheckedUpdateManyInput = {
   jobCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   syncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   editedSinceSync?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  endorsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resyncCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -465,6 +507,8 @@ export type LogEntryCountOrderByAggregateInput = {
   jobCode?: Prisma.SortOrder
   syncedAt?: Prisma.SortOrder
   editedSinceSync?: Prisma.SortOrder
+  endorsedAt?: Prisma.SortOrder
+  resyncCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -472,6 +516,7 @@ export type LogEntryCountOrderByAggregateInput = {
 export type LogEntryAvgOrderByAggregateInput = {
   startMinutes?: Prisma.SortOrder
   endMinutes?: Prisma.SortOrder
+  resyncCount?: Prisma.SortOrder
 }
 
 export type LogEntryMaxOrderByAggregateInput = {
@@ -485,6 +530,8 @@ export type LogEntryMaxOrderByAggregateInput = {
   jobCode?: Prisma.SortOrder
   syncedAt?: Prisma.SortOrder
   editedSinceSync?: Prisma.SortOrder
+  endorsedAt?: Prisma.SortOrder
+  resyncCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -500,6 +547,8 @@ export type LogEntryMinOrderByAggregateInput = {
   jobCode?: Prisma.SortOrder
   syncedAt?: Prisma.SortOrder
   editedSinceSync?: Prisma.SortOrder
+  endorsedAt?: Prisma.SortOrder
+  resyncCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -507,6 +556,7 @@ export type LogEntryMinOrderByAggregateInput = {
 export type LogEntrySumOrderByAggregateInput = {
   startMinutes?: Prisma.SortOrder
   endMinutes?: Prisma.SortOrder
+  resyncCount?: Prisma.SortOrder
 }
 
 export type StringFieldUpdateOperationsInput = {
@@ -550,6 +600,8 @@ export type LogEntrySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   jobCode?: boolean
   syncedAt?: boolean
   editedSinceSync?: boolean
+  endorsedAt?: boolean
+  resyncCount?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["logEntry"]>
@@ -565,6 +617,8 @@ export type LogEntrySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   jobCode?: boolean
   syncedAt?: boolean
   editedSinceSync?: boolean
+  endorsedAt?: boolean
+  resyncCount?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["logEntry"]>
@@ -580,6 +634,8 @@ export type LogEntrySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   jobCode?: boolean
   syncedAt?: boolean
   editedSinceSync?: boolean
+  endorsedAt?: boolean
+  resyncCount?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["logEntry"]>
@@ -595,11 +651,13 @@ export type LogEntrySelectScalar = {
   jobCode?: boolean
   syncedAt?: boolean
   editedSinceSync?: boolean
+  endorsedAt?: boolean
+  resyncCount?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type LogEntryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "date" | "startMinutes" | "endMinutes" | "description" | "workActivityCode" | "jobCode" | "syncedAt" | "editedSinceSync" | "createdAt" | "updatedAt", ExtArgs["result"]["logEntry"]>
+export type LogEntryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "date" | "startMinutes" | "endMinutes" | "description" | "workActivityCode" | "jobCode" | "syncedAt" | "editedSinceSync" | "endorsedAt" | "resyncCount" | "createdAt" | "updatedAt", ExtArgs["result"]["logEntry"]>
 
 export type $LogEntryPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "LogEntry"
@@ -630,6 +688,14 @@ export type $LogEntryPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
      * Changed after a sync had saved it to N-PAX; cleared when a sync saves it again.
      */
     editedSinceSync: boolean
+    /**
+     * Set on the day's entries once Endorse sent the day to the checker on N-PAX; it can't be endorsed again.
+     */
+    endorsedAt: Date | null
+    /**
+     * Times the day was marked for resync; entries added later start at 0, so a day's count is its entries' highest.
+     */
+    resyncCount: number
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["logEntry"]>
@@ -1065,6 +1131,8 @@ export interface LogEntryFieldRefs {
   readonly jobCode: Prisma.FieldRef<"LogEntry", 'String'>
   readonly syncedAt: Prisma.FieldRef<"LogEntry", 'DateTime'>
   readonly editedSinceSync: Prisma.FieldRef<"LogEntry", 'Boolean'>
+  readonly endorsedAt: Prisma.FieldRef<"LogEntry", 'DateTime'>
+  readonly resyncCount: Prisma.FieldRef<"LogEntry", 'Int'>
   readonly createdAt: Prisma.FieldRef<"LogEntry", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"LogEntry", 'DateTime'>
 }

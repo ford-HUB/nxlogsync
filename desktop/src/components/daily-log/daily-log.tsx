@@ -11,6 +11,8 @@ import { useTimeIn } from '@/hooks/use-time-in'
 import { useTrashDrag } from '@/hooks/use-trash-drag'
 import { useTrashRestoreDrag } from '@/hooks/use-trash-restore-drag'
 import { planInsert } from '@/lib/insert-entry'
+import { planSwap } from '@/lib/swap-entries'
+import { useDailyLogStore } from '@/store/daily-log-store'
 import { cn } from '@/lib/utils'
 import { useSiteSessionStore } from '@/store/site-session-store'
 import { useTrashStore } from '@/store/trash-store'
@@ -62,7 +64,26 @@ export function DailyLog({ onOpenSettings, onOpenTypingTest, onOpenTetris, onOpe
     () => userId !== null && useTrashStore.getState().confirmedOn[userId] !== todayKey,
     [userId, todayKey],
   )
-  const trash = useTrashDrag(setAsideEntry, needsSetAsideConfirm)
+  const { isEndorsed, entries } = log
+  // Dropping a task on another swaps their places; the times between them are laid out again.
+  const swapEntries = useCallback(
+    (entry: LogEntry, targetId: string) => {
+      const moves = isEndorsed ? null : planSwap(entries, entry.id, targetId)
+      if (!moves || moves.length === 0) return false
+      void useDailyLogStore.getState().moveEntries(dateKey, moves)
+      return true
+    },
+    [entries, isEndorsed, dateKey],
+  )
+  const trash = useTrashDrag(setAsideEntry, needsSetAsideConfirm, swapEntries)
+  const swapTargetId = trash.swapTargetId
+  const swapDrop = useMemo(
+    () =>
+      trash.entry && swapTargetId
+        ? { targetId: swapTargetId, moves: planSwap(entries, trash.entry.id, swapTargetId) }
+        : null,
+    [trash.entry, swapTargetId, entries],
+  )
   const compactWindow = useCompactWindow()
   const confirmSetAside = () => {
     if (userId !== null) useTrashStore.getState().markConfirmed(userId, todayKey)
@@ -73,6 +94,7 @@ export function DailyLog({ onOpenSettings, onOpenTypingTest, onOpenTetris, onOpe
     listRef: trash.zoneRef,
     binRef: trash.trashRef,
     onDrop: (item, index) => {
+      if (isEndorsed) return false
       const plan = planInsert(log.entries, item.entry, index)
       if (plan) void useTrashStore.getState().placeInDay(item, dateKey, plan)
       return plan !== null
@@ -83,12 +105,12 @@ export function DailyLog({ onOpenSettings, onOpenTypingTest, onOpenTetris, onOpe
   const restoreDrop = useMemo(
     () =>
       restoreItem && restoreIndex !== null
-        ? { index: restoreIndex, plan: planInsert(log.entries, restoreItem.entry, restoreIndex) }
+        ? { index: restoreIndex, plan: isEndorsed ? null : planInsert(log.entries, restoreItem.entry, restoreIndex) }
         : null,
-    [restoreItem, restoreIndex, log.entries],
+    [restoreItem, restoreIndex, log.entries, isEndorsed],
   )
-  // Resolves to null if the entry is deleted or the day changes, which ends editing.
-  const editingEntry = log.entries.find((e) => e.id === editingId) ?? null
+  // Resolves to null if the entry is deleted, the day changes or gets endorsed, which ends editing.
+  const editingEntry = isEndorsed ? null : (log.entries.find((e) => e.id === editingId) ?? null)
   const stopEditing = () => setEditingId(null)
   const changeDay = (go: () => void) => {
     stopEditing()
@@ -188,6 +210,7 @@ export function DailyLog({ onOpenSettings, onOpenTypingTest, onOpenTetris, onOpe
           overtimeMinutes={log.overtimeMinutes}
           timeInMinutes={timeInMinutes}
           isToday={log.isToday}
+          endorsed={isEndorsed}
           editingEntry={editingEntry}
           onAdd={log.addEntry}
           onUpdate={(id, draft) => {
@@ -202,6 +225,7 @@ export function DailyLog({ onOpenSettings, onOpenTypingTest, onOpenTetris, onOpe
             dateKey={log.dateKey}
             entries={log.entries}
             initialized={log.initialized}
+            endorsed={isEndorsed}
             highlightedId={highlightedId}
             editingId={editingEntry?.id ?? null}
             onHighlight={setHighlightedId}
@@ -210,6 +234,7 @@ export function DailyLog({ onOpenSettings, onOpenTypingTest, onOpenTetris, onOpe
             grabbedId={trash.entry?.id ?? null}
             onGrab={trash.grab}
             drop={restoreDrop}
+            swap={swapDrop}
           />
         </div>
       </fieldset>
@@ -252,7 +277,9 @@ export function DailyLog({ onOpenSettings, onOpenTypingTest, onOpenTetris, onOpe
           {!trash.entry && <AimLabDock onOpen={onOpenAimLab} />}
         </>
       )}
-      {trash.entry && <DraggedEntry entry={trash.entry} over={trash.overTrash} {...trash.motion} />}
+      {trash.entry && (
+        <DraggedEntry entry={trash.entry} over={trash.overTrash || swapDrop?.moves != null} {...trash.motion} />
+      )}
       <SetAsideConfirm
         entry={trash.phase === 'confirming' ? trash.entry : null}
         onConfirm={confirmSetAside}

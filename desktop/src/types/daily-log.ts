@@ -12,6 +12,10 @@ export interface LogEntry {
   synced: boolean
   /** Changed after a sync saved it to N-PAX, and not uploaded again since. */
   editedSinceSync: boolean
+  /** The day was endorsed to the checker on N-PAX; it can't be endorsed again. */
+  endorsed: boolean
+  /** Times the entry's day was marked for resync. */
+  resyncCount: number
 }
 
 export interface EntryDraft {

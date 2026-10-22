@@ -87,6 +87,8 @@ export function useDailyLog() {
   const remainingMinutes = Math.max(0, DAILY_LIMIT_MINUTES - totalMinutes)
   const overtimeMinutes = Math.max(0, totalMinutes - DAILY_LIMIT_MINUTES)
   const status = getDayStatus(totalMinutes, entries.length)
+  // Endorsed to the checker on N-PAX: the day's entries can't be added to, edited or set aside.
+  const isEndorsed = entries.some((e) => e.endorsed)
 
   const addEntry = useCallback((draft: EntryDraft) => void saveNew(dateKey, draft), [saveNew, dateKey])
   const updateEntry = useCallback(
@@ -115,6 +117,7 @@ export function useDailyLog() {
     remainingMinutes,
     overtimeMinutes,
     status,
+    isEndorsed,
     addEntry,
     updateEntry,
     removeEntry,

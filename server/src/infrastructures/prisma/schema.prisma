@@ -29,6 +29,10 @@ model LogEntry {
   syncedAt         DateTime? @map("synced_at")
   /// Changed after a sync had saved it to N-PAX; cleared when a sync saves it again.
   editedSinceSync  Boolean   @default(false) @map("edited_since_sync")
+  /// Set on the day's entries once Endorse sent the day to the checker on N-PAX; it can't be endorsed again.
+  endorsedAt       DateTime? @map("endorsed_at")
+  /// Times the day was marked for resync; entries added later start at 0, so a day's count is its entries' highest.
+  resyncCount      Int       @default(0) @map("resync_count")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 

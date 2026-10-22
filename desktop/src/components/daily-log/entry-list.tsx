@@ -3,7 +3,7 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import type { LogEntry } from '@/types/daily-log'
 import { ENTRY_SKELETON_ROWS, workMinutes } from '@/constants/daily-log'
 import { formatClock, formatDuration, fromDateKey, isWeekendKey } from '@/constants/time-format'
-import type { InsertPlan } from '@/lib/insert-entry'
+import type { EntryMove, InsertPlan } from '@/lib/insert-entry'
 import { cn } from '@/lib/utils'
 import { EntryItem } from './ui/entry-item'
 import { EntryListSkeleton } from './ui/entry-list-skeleton'
@@ -13,6 +13,8 @@ interface EntryListProps {
   entries: LogEntry[]
   /** False until the first load finishes; shows placeholder rows instead of the empty state. */
   initialized: boolean
+  /** Endorsed on N-PAX: rows can't be edited, deleted or dragged to the Trash. */
+  endorsed: boolean
   highlightedId: string | null
   editingId: string | null
   onHighlight: (id: string | null) => void
@@ -20,14 +22,17 @@ interface EntryListProps {
   onRemove: (id: string) => void
   grabbedId: string | null
   onGrab: (entry: LogEntry, x: number, y: number) => void
-  /** A task dragged in from the Trash: the slot it would land in, and its plan (null when it doesn't fit). */
+  /** A task dragged in from the Trash: the slot it would land in, and its plan (null when it doesn't fit or the day is endorsed). */
   drop: { index: number; plan: InsertPlan | null } | null
+  /** A task dragged over another row: the row it swaps with, and the moves (null when it can't). */
+  swap: { targetId: string; moves: EntryMove[] | null } | null
 }
 
 export function EntryList({
   dateKey,
   entries,
   initialized,
+  endorsed,
   highlightedId,
   editingId,
   onHighlight,
@@ -36,13 +41,18 @@ export function EntryList({
   grabbedId,
   onGrab,
   drop,
+  swap,
 }: EntryListProps) {
-  const marker = drop && <DropMarker key="drop-marker" plan={drop.plan} />
+  const marker = drop && <DropMarker key="drop-marker" plan={drop.plan} endorsed={endorsed} />
   return (
     <Card aria-busy={!initialized} className="min-h-72 gap-0 py-0 shadow-sm">
       <CardHeader className="border-b py-4">
         <CardTitle>Tasks</CardTitle>
-        <CardDescription className="text-[12px]">In order of start time · click a task to edit it · right-click drag it to the Trash to set it aside</CardDescription>
+        <CardDescription className="text-[12px]">
+          {endorsed
+            ? 'In order of start time · endorsed on N-PAX, so these tasks can no longer be changed'
+            : 'In order of start time · click a task to edit it · right-click drag it onto another task to swap their times, or to the Trash to set it aside'}
+        </CardDescription>
         {initialized && (
           <CardAction className="text-[12px] text-muted-foreground tabular-nums">
             {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
@@ -61,6 +71,7 @@ export function EntryList({
               <EntryItem
                 key={entry.id}
                 entry={entry}
+                locked={endorsed}
                 highlighted={highlightedId === entry.id}
                 selected={editingId === entry.id}
                 onHighlight={onHighlight}
@@ -68,7 +79,8 @@ export function EntryList({
                 onRemove={onRemove}
                 grabbed={grabbedId === entry.id}
                 onGrab={onGrab}
-                pendingMove={drop?.plan?.moves.find((m) => m.id === entry.id)}
+                pendingMove={(drop?.plan?.moves ?? swap?.moves)?.find((m) => m.id === entry.id)}
+                swapTarget={swap?.targetId === entry.id ? { ok: swap.moves !== null } : undefined}
               />,
             ])}
             {drop && drop.index >= entries.length && marker}
@@ -80,7 +92,7 @@ export function EntryList({
 }
 
 /** Where a task dragged in from the Trash will land, with the times it gets. */
-function DropMarker({ plan }: { plan: InsertPlan | null }) {
+function DropMarker({ plan, endorsed }: { plan: InsertPlan | null; endorsed: boolean }) {
   return (
     <li
       aria-live="polite"
@@ -105,7 +117,11 @@ function DropMarker({ plan }: { plan: InsertPlan | null }) {
           )}
         </span>
       ) : (
-        <span>Doesn&apos;t fit here: the tasks below would run past midnight.</span>
+        <span>
+          {endorsed
+            ? 'This day is endorsed on N-PAX; tasks can’t be added to it.'
+            : 'Doesn’t fit here: the tasks below would run past midnight.'}
+        </span>
       )}
     </li>
   )

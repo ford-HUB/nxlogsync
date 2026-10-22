@@ -167,6 +167,9 @@ export class SyncService implements OnApplicationBootstrap {
         `${date} has entries not yet synced to N-PAX; sync it before endorsing`,
       );
     }
+    if (entries.some((e) => e.endorsedAt !== null)) {
+      throw new BadRequestException(`${date} is already endorsed`);
+    }
     const outcome = await this.npax.endorseAllocationDay(
       user,
       { date, entries },
@@ -175,6 +178,9 @@ export class SyncService implements OnApplicationBootstrap {
     // Only a dry run reports 'ready'; this one never is.
     if (outcome === 'ready') {
       throw new Error(`N-PAX endorse of ${date} ran as a dry run`);
+    }
+    if (outcome === 'endorsed') {
+      await this.logEntries.markDayEndorsed(user, date, new Date());
     }
     this.logger.log(`Endorse of ${date} for ${user}: ${outcome}`);
     return { date, outcome };

@@ -2,15 +2,28 @@ import { del, get, patch, post, type ApiResult } from './api-client'
 import type { EntryDraft, LogEntry } from '@/types/daily-log'
 
 /** The server's entry; `date` is the local day it belongs to ("YYYY-MM-DD"). */
-interface LogEntryWire extends Omit<LogEntry, 'synced' | 'editedSinceSync'> {
+interface LogEntryWire extends Omit<LogEntry, 'synced' | 'editedSinceSync' | 'endorsed' | 'resyncCount'> {
   date: string
   syncedAt: string | null
   editedSinceSync?: boolean
+  endorsedAt?: string | null
+  resyncCount?: number
 }
 
 function toEntry(wire: LogEntryWire): LogEntry {
-  const { id, startMinutes, endMinutes, description, jobCode, workActivityCode, syncedAt, editedSinceSync } = wire
-  // An older server leaves the flag out; treat its entries as not edited.
+  const {
+    id,
+    startMinutes,
+    endMinutes,
+    description,
+    jobCode,
+    workActivityCode,
+    syncedAt,
+    editedSinceSync,
+    endorsedAt,
+    resyncCount,
+  } = wire
+  // An older server leaves the flags out; treat its entries as not edited, endorsed or resynced.
   return {
     id,
     startMinutes,
@@ -20,6 +33,8 @@ function toEntry(wire: LogEntryWire): LogEntry {
     workActivityCode,
     synced: syncedAt !== null,
     editedSinceSync: editedSinceSync ?? false,
+    endorsed: endorsedAt != null,
+    resyncCount: resyncCount ?? 0,
   }
 }
 
@@ -40,6 +55,15 @@ export async function createEntry(date: string, draft: EntryDraft): Promise<ApiR
 export async function updateEntry(id: string, draft: EntryDraft): Promise<ApiResult<LogEntry>> {
   const result = await patch<LogEntryWire>(`/v1/log-entries/${id}`, draft)
   return result.success ? { success: true, data: toEntry(result.data) } : result
+}
+
+/** Moves several of a day's entries at once, so tasks can swap places without overlapping on the way. */
+export async function rescheduleEntries(
+  date: string,
+  moves: { id: string; startMinutes: number; endMinutes: number }[],
+): Promise<ApiResult<LogEntry[]>> {
+  const result = await post<LogEntryWire[]>('/v1/log-entries/reschedule', { date, moves })
+  return result.success ? { success: true, data: result.data.map(toEntry) } : result
 }
 
 /** Marks days for upload again (days without entries are skipped); the next sync replaces them on N-PAX. */

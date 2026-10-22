@@ -5,8 +5,11 @@ import { useNow } from '@/hooks/use-now'
 import { useDailyLogStore } from '@/store/daily-log-store'
 import { useSyncScheduleStore } from '@/store/sync-schedule-store'
 
-/** 'synced' days can be picked for resync; 'pending' ones already wait for the next sync. */
-export type ResyncDayState = 'none' | 'synced' | 'pending'
+/**
+ * 'synced' days can be picked for resync; 'pending' ones already wait for the next sync;
+ * 'endorsed' ones are with the checker on N-PAX and can't be uploaded again.
+ */
+export type ResyncDayState = 'none' | 'synced' | 'pending' | 'endorsed'
 
 /**
  * The Resync days dialog: pick synced days and mark them in the database for
@@ -42,13 +45,21 @@ export function useResyncDays(open: boolean, onDone: () => void) {
   const dayState = (key: string): ResyncDayState => {
     const entries = entriesByDate[key] ?? []
     if (entries.length === 0) return 'none'
+    // With the checker on N-PAX: it can't be uploaded again.
+    if (entries.some((e) => e.endorsed)) return 'endorsed'
     return entries.every((e) => e.synced) ? 'synced' : 'pending'
   }
 
+  /** Times the day was marked for resync; entries added since start at 0, so take the highest. */
+  const resyncCount = (key: string) => Math.max(0, ...(entriesByDate[key] ?? []).map((e) => e.resyncCount))
+
+  // Only synced days may be marked: a day endorsed since it was picked is dropped, never sent.
+  const picked = selected.filter((key) => dayState(key) === 'synced')
+
   const submit = async () => {
-    if (selected.length === 0) return
+    if (picked.length === 0) return
     setSaving(true)
-    const message = await markDays(selected)
+    const message = await markDays(picked)
     setSaving(false)
     if (message) {
       setError(message)
@@ -62,7 +73,8 @@ export function useResyncDays(open: boolean, onDone: () => void) {
     todayKey,
     loading,
     dayState,
-    selected,
+    resyncCount,
+    selected: picked,
     setSelected,
     saving,
     error,
